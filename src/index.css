@@ -1,0 +1,70 @@
+@import './styles/theme.css';
+@import 'tailwindcss';
+@config '../tailwind.config.js';
+
+/* Use class-based dark mode (.dark on <html>) instead of media query */
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    @apply bg-surface font-sans leading-normal text-text-base antialiased;
+    scroll-behavior: smooth;
+    /* Smooth dark ↔ light transition */
+    transition:
+      background-color var(--duration-slow) var(--ease-standard),
+      color var(--duration-slow) var(--ease-standard);
+  }
+
+  body {
+    @apply m-none min-w-none;
+  }
+
+  /* Themed scrollbar — auto-adapts via CSS variables */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-border-subtle)) transparent;
+  }
+
+  button,
+  input,
+  a {
+    -webkit-tap-highlight-color: var(--color-transparent);
+  }
+
+  ::selection {
+    @apply bg-primary-soft text-brand-deep;
+  }
+
+  input:-webkit-autofill {
+    -webkit-text-fill-color: rgb(var(--color-text-base));
+    -webkit-box-shadow: 0 0 0 var(--space-5xl) rgb(var(--color-surface)) inset;
+    caret-color: rgb(var(--color-text-base));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: var(--duration-reduced) !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: var(--duration-reduced) !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Inline link style */
+  .app-link {
+    @apply rounded-control font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline focus-visible:outline-focus focus-visible:outline-offset-focus focus-visible:outline-focus-ring;
+    text-underline-offset: var(--underline-offset);
+  }
+
+  /* Frosted glass card */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+}

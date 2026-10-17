@@ -1,0 +1,273 @@
+/* ═══════════════════════════════════════════════════════════════
+   BookMySku — Design Tokens  (Single Source of Truth)
+   ─────────────────────────────────────────────────────────────
+   Change a value here → every component updates automatically.
+   Never hardcode hex / px / rem anywhere else in the project.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ─── Primary · Indigo ──────────────────────────────────── */
+  --color-primary: 66 82 222;
+  --color-primary-hover: 49 63 191;
+  --color-primary-soft: 237 240 255;
+  --color-primary-disabled: 113 125 216;
+  --color-on-primary: 255 255 255;
+
+  /* ─── Secondary · Teal ──────────────────────────────────── */
+  --color-secondary: 20 184 166;
+  --color-secondary-hover: 13 148 136;
+  --color-secondary-soft: 204 251 241;
+  --color-on-secondary: 255 255 255;
+
+  /* ─── Accent · Amber ────────────────────────────────────── */
+  --color-accent: 245 158 11;
+  --color-accent-hover: 217 119 6;
+  --color-accent-soft: 254 252 232;
+  --color-on-accent: 255 255 255;
+
+  /* ─── Surfaces ──────────────────────────────────────────── */
+  --color-surface: 255 255 255;
+  --color-surface-muted: 249 250 252;
+  --color-surface-raised: 255 255 255;
+
+  /* ─── Text ──────────────────────────────────────────────── */
+  --color-text-base: 28 35 52;
+  --color-text-muted: 97 107 128;
+  --color-text-subtle: 148 163 184;
+
+  /* ─── Borders ───────────────────────────────────────────── */
+  --color-border-subtle: 222 227 237;
+  --color-border-control: 136 146 165;
+
+  /* ─── Feedback ──────────────────────────────────────────── */
+  --color-danger: 183 39 49;
+  --color-danger-muted: 255 241 242;
+  --color-success: 28 113 79;
+  --color-success-muted: 233 247 239;
+  --color-warning: 234 88 12;
+  --color-warning-muted: 255 247 237;
+  --color-info: 59 130 246;
+  --color-info-muted: 219 234 254;
+
+  /* ─── Brand ─────────────────────────────────────────────── */
+  --color-focus-ring: var(--color-primary);
+  --color-brand-surface: 241 244 255;
+  --color-brand-line: 214 222 247;
+  --color-brand-deep: 36 46 98;
+
+  /* ─── Neutral Scale (raw palette — does NOT flip) ─────── */
+  --color-neutral-50: 248 250 252;
+  --color-neutral-100: 241 245 249;
+  --color-neutral-200: 226 232 240;
+  --color-neutral-300: 203 213 225;
+  --color-neutral-400: 148 163 184;
+  --color-neutral-500: 100 116 139;
+  --color-neutral-600: 71 85 105;
+  --color-neutral-700: 51 65 85;
+  --color-neutral-800: 30 41 59;
+  --color-neutral-900: 15 23 42;
+  --color-neutral-950: 2 6 23;
+
+  /* ─── Overlay ───────────────────────────────────────────── */
+  --color-overlay: 15 23 42;
+
+  --color-transparent: transparent;
+
+  /* ─── Typography ────────────────────────────────────────── */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Manrope', 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+  --font-size-5xl: clamp(2.5rem, 3.5vw, 3.5rem);
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-none: 1;
+  --line-height-tight: 1.15;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  --tracking-tight: -0.035em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-widest: 0.12em;
+  --underline-offset: 0.25em;
+
+  /* ─── Spacing (soft 8-pt grid) ──────────────────────────── */
+  --space-none: 0;
+  --space-hairline: 1px;
+  --space-micro: 0.25rem;
+  --space-tiny: 0.375rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 5rem;
+  --space-5xl: 6rem;
+
+  --size-icon-sm: 1rem;
+  --size-icon: 1.25rem;
+  --size-control: 3rem;
+  --size-touch: 2.75rem;
+  --size-form: 28rem;
+  --size-illustration: 27rem;
+  --size-viewport: 100svh;
+  --layout-auth-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+
+  /* ─── Border Radius ─────────────────────────────────────── */
+  --radius-none: 0;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-xl: 1.25rem;
+  --radius-panel: 1.75rem;
+  --radius-pill: 9999px;
+
+  --border-width: 1px;
+  --focus-width: 2px;
+  --focus-offset: 3px;
+
+  /* ─── Shadows ───────────────────────────────────────────── */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgb(var(--color-brand-deep) / 0.03);
+  --shadow-subtle: 0 2px 5px rgb(var(--color-brand-deep) / 0.04);
+  --shadow-card: 0 4px 16px -4px rgb(var(--color-brand-deep) / 0.1),
+    0 2px 4px -2px rgb(var(--color-brand-deep) / 0.06);
+  --shadow-float: 0 12px 36px -10px rgb(var(--color-brand-deep) / 0.2);
+  --shadow-overlay: 0 25px 50px -12px rgb(var(--color-brand-deep) / 0.25);
+  --shadow-focus: 0 0 0 var(--focus-width) rgb(var(--color-surface)),
+    0 0 0 calc(var(--focus-width) + var(--focus-offset))
+      rgb(var(--color-focus-ring));
+
+  /* ─── Glass / Frosted ───────────────────────────────────── */
+  --glass-bg: rgb(255 255 255 / 0.65);
+  --glass-border: rgb(var(--color-brand-deep) / 0.06);
+  --glass-blur: 16px;
+
+  /* ─── Gradients ─────────────────────────────────────────── */
+  --background-brand-panel: radial-gradient(
+      ellipse at 15% 15%,
+      rgb(var(--color-surface) / 0.9),
+      var(--color-transparent) 55%
+    ),
+    linear-gradient(
+      150deg,
+      rgb(var(--color-brand-surface)),
+      rgb(var(--color-primary-soft))
+    );
+
+  /* ─── Motion ────────────────────────────────────────────── */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-reduced: 0.01ms;
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Dark Mode — toggle via .dark on <html>
+   ═══════════════════════════════════════════════════════════════ */
+
+.dark {
+  color-scheme: dark;
+
+  /* Primary — brighter for dark-bg contrast */
+  --color-primary: 129 140 248;
+  --color-primary-hover: 165 180 252;
+  --color-primary-soft: 30 27 75;
+  --color-primary-disabled: 99 102 191;
+  --color-on-primary: 255 255 255;
+
+  /* Secondary */
+  --color-secondary: 94 234 212;
+  --color-secondary-hover: 153 246 228;
+  --color-secondary-soft: 19 78 74;
+  --color-on-secondary: 15 23 42;
+
+  /* Accent */
+  --color-accent: 252 211 77;
+  --color-accent-hover: 253 224 71;
+  --color-accent-soft: 69 53 3;
+  --color-on-accent: 15 23 42;
+
+  /* Surfaces */
+  --color-surface: 15 23 42;
+  --color-surface-muted: 30 41 59;
+  --color-surface-raised: 30 41 59;
+
+  /* Text */
+  --color-text-base: 226 232 240;
+  --color-text-muted: 148 163 184;
+  --color-text-subtle: 100 116 139;
+
+  /* Borders */
+  --color-border-subtle: 51 65 85;
+  --color-border-control: 100 116 139;
+
+  /* Feedback */
+  --color-danger: 248 113 113;
+  --color-danger-muted: 69 26 26;
+  --color-success: 74 222 128;
+  --color-success-muted: 20 83 45;
+  --color-warning: 251 146 60;
+  --color-warning-muted: 67 20 7;
+  --color-info: 96 165 250;
+  --color-info-muted: 23 37 84;
+
+  /* Brand */
+  --color-focus-ring: 129 140 248;
+  --color-brand-surface: 23 25 53;
+  --color-brand-line: 55 48 163;
+  --color-brand-deep: 199 210 254;
+
+  /* Overlay */
+  --color-overlay: 0 0 0;
+
+  /* Shadows — heavier on dark surfaces */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-subtle: 0 2px 5px rgb(0 0 0 / 0.25);
+  --shadow-card: 0 4px 16px -4px rgb(0 0 0 / 0.4),
+    0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-float: 0 12px 36px -10px rgb(0 0 0 / 0.55);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  --shadow-focus: 0 0 0 var(--focus-width) rgb(var(--color-surface)),
+    0 0 0 calc(var(--focus-width) + var(--focus-offset))
+      rgb(var(--color-focus-ring));
+
+  /* Glass — dark frosted */
+  --glass-bg: rgb(15 23 42 / 0.65);
+  --glass-border: rgb(255 255 255 / 0.08);
+
+  /* Brand panel gradient */
+  --background-brand-panel: radial-gradient(
+      ellipse at 15% 15%,
+      rgb(var(--color-surface) / 0.9),
+      var(--color-transparent) 55%
+    ),
+    linear-gradient(
+      150deg,
+      rgb(var(--color-brand-surface)),
+      rgb(var(--color-primary-soft))
+    );
+}
