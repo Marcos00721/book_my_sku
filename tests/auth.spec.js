@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-test('login validates accessibly, toggles the password, and logs valid values', async ({ page }) => {
+test('login validates accessibly and shows provider errors without logging credentials', async ({ page }) => {
+  await page.route('https://registration-test.supabase.co/auth/v1/token?grant_type=password', route => route.fulfill({ status: 400, json: { code: 'invalid_credentials', msg: 'Invalid login credentials' } }))
   const submittedValues = []
   page.on('console', async (message) => {
     if (message.type() === 'log') {
@@ -25,52 +26,8 @@ test('login validates accessibly, toggles the password, and logs valid values', 
   await expect(password).toHaveAttribute('type', 'password')
   await expect(email).toHaveAttribute('aria-invalid', 'false')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect.poll(() => submittedValues).toContainEqual({
-    email: 'alex@example.com', password: 'ExistingPassword1',
-  })
-})
-
-test('registration validates matching passwords and logs formatted and raw phone', async ({ page }) => {
-  const submittedValues = []
-  page.on('console', async (message) => {
-    if (message.type() === 'log') submittedValues.push(await message.args()[0]?.jsonValue())
-  })
-  await page.goto('/register')
-  await page.getByLabel('First name').fill('Alex')
-  await page.getByLabel('Last name').fill('Morgan')
-  await page.getByLabel('Email address').fill('alex@example.com')
-  await page.getByLabel('Phone number').fill('(202) 555-0123')
-  await expect(page.getByLabel('Phone number')).toHaveValue('202-555-0123')
-  await page.getByLabel('Organization name').fill('Studio Goods')
-  await page.getByLabel('Password', { exact: true }).fill('StrongPassword1')
-  await page.getByLabel('Confirm password', { exact: true }).fill('DifferentPassword1')
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
-  await expect(page.getByText('Your passwords do not match.')).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveText('Invalid login credentials')
   expect(submittedValues).toHaveLength(0)
-  await page.getByLabel('Confirm password', { exact: true }).fill('StrongPassword1')
-  await page.getByRole('button', { name: 'Create account', exact: true }).click()
-  await expect.poll(() => submittedValues).toContainEqual({
-    firstName: 'Alex', lastName: 'Morgan', email: 'alex@example.com',
-    phone: '202-555-0123', phoneDigits: '2025550123', organizationName: 'Studio Goods',
-    password: 'StrongPassword1', confirmPassword: 'StrongPassword1',
-  })
-})
-
-test('phone accepts progressive input, caps paste, and supports editing across separators', async ({ page }) => {
-  await page.goto('/register')
-  const phone = page.getByLabel('Phone number')
-  await phone.pressSequentially('2025')
-  await expect(phone).toHaveValue('202-5')
-  await phone.fill('2025550123999')
-  await expect(phone).toHaveValue('202-555-0123')
-  await phone.evaluate((input) => input.setSelectionRange(3, 3))
-  await phone.press('Delete')
-  await expect.poll(() => phone.evaluate((input) => input.selectionStart)).toBe(4)
-  await phone.press('Delete')
-  await expect(phone).toHaveValue('202-550-123')
-  await phone.fill('123')
-  await phone.press('Tab')
-  await expect(page.getByText('Enter a 10-digit US phone number.')).toBeVisible()
 })
 
 for (const width of [320, 375, 768, 1024, 1440]) {

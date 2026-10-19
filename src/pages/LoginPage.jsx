@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Mail } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthPageContent } from '../components/auth/AuthPageContent'
 import { AppFormProvider } from '../components/forms/AppFormProvider'
@@ -8,14 +9,22 @@ import { FormSubmitButton } from '../components/forms/FormSubmitButton'
 import { FormTextField } from '../components/forms/FormTextField'
 import { useAppForm } from '../components/forms/useAppForm'
 import { loginFormSchema } from '../schemas/authSchemas'
+import { getAuthClient } from '../services/auth'
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const [error, setError] = useState('')
   const loginForm = useAppForm(loginFormSchema, {
     defaultValues: { email: '', password: '' },
   })
 
-  function handleLoginSubmit(values) {
-    console.log(values)
+  async function handleLoginSubmit({ email, password }) {
+    setError('')
+    try {
+      const { error } = await getAuthClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+      if (error) throw error
+      navigate('/register', { replace: true })
+    } catch (failure) { setError(failure.message) }
   }
 
   return (
@@ -32,6 +41,7 @@ export function LoginPage() {
           aria-labelledby="login-title"
           className="space-y-lg"
         >
+          {error && <p role="alert" className="rounded-control border border-danger bg-danger-muted p-md text-sm">{error}</p>}
           <FormTextField
             name="email"
             label="Email address"

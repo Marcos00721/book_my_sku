@@ -1,33 +1,36 @@
-import { Building2, Mail, UserRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { AuthLayout } from '../components/auth/AuthLayout'
-import { AuthPageContent } from '../components/auth/AuthPageContent'
-import { AppFormProvider } from '../components/forms/AppFormProvider'
-import { FormPhoneField } from '../components/forms/FormPhoneField'
-import { FormSubmitButton } from '../components/forms/FormSubmitButton'
-import { FormTextField } from '../components/forms/FormTextField'
-import { useAppForm } from '../components/forms/useAppForm'
-import { registerFormSchema } from '../schemas/authSchemas'
-import { formatUSPhoneNumber, stripPhoneFormatting } from '../utils/phone'
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Building2, Globe, Mail, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AuthLayout } from "../components/auth/AuthLayout";
+import { AuthPageContent } from "../components/auth/AuthPageContent";
+import { RegistrationIdentity } from "../components/auth/RegistrationIdentity";
+import { AppFormProvider } from "../components/forms/AppFormProvider";
+import { FormCheckbox } from "../components/forms/FormCheckbox";
+import { FormPhoneField } from "../components/forms/FormPhoneField";
+import { FormSubmitButton } from "../components/forms/FormSubmitButton";
+import { FormTextField } from "../components/forms/FormTextField";
+import { useAppForm } from "../components/forms/useAppForm";
+import { api, ApiError } from "../services/api";
+import { useAuthSession } from "../hooks/useAuthSession";
+import { formatUSPhoneNumber } from "../utils/phone";
+import {
+  registerFormSchema,
+  registrationApplicationSchema,
+  onboardingStatusSchema,
+} from "../schemas/authSchemas";
+
+const defaultValues = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  contactNumber: "",
+  companyName: "",
+  companyWebsite: "",
+  termsAccepted: false,
+};
 
 export function RegisterPage() {
-  const registerForm = useAppForm(registerFormSchema, {
-    defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      organizationName: '',
-    },
-  })
-
-  function handleRegisterSubmit(values) {
-    console.log({
-      ...values,
-      phone: formatUSPhoneNumber(values.phone),
-      phoneDigits: stripPhoneFormatting(values.phone),
-    })
-  }
+  const { session, loading, error } = useAuthSession();
 
   return (
     <AuthLayout variant="register">
@@ -35,8 +38,231 @@ export function RegisterPage() {
         id="register-title"
         eyebrow="Make room for what's next"
         title="Start something great."
-        description="Create your account. Get your business in sync."
+        description="Apply for a BookMySku workspace with your verified email and company details."
       >
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error.message}
+          </p>
+        )}
+        {loading ? (
+          <p role="status">Loading your account...</p>
+        ) : session?.user?.email_confirmed_at ? (
+          <RegistrationApplication
+            key={`${session.user.id}:${session.user.email}:${session.user.email_confirmed_at}`}
+            session={session}
+          />
+        ) : (
+          <RegistrationIdentity session={session} />
+        )}
+        <p className="mt-lg text-center text-sm leading-relaxed text-text-muted">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="app-link inline-flex min-h-touch items-center"
+          >
+            Sign in
+          </Link>
+        </p>
+      </AuthPageContent>
+    </AuthLayout>
+  );
+}
+
+function RegistrationApplication({ session }) {
+  const registerForm = useAppForm(registerFormSchema, {
+    defaultValues: { ...defaultValues, email: session.user.email },
+  });
+  const { reset, setValue } = registerForm;
+  const [error, setError] = useState(null);
+  const [application, setApplication] = useState(null);
+  const [termsVersion, setTermsVersion] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const submission = useRef(null);
+  const retryAfter = useRef(0);
+
+  const loadStatus = useCallback(async (signal) => {
+    const response = await api.get("/onboarding/me", { signal });
+    const result = onboardingStatusSchema.safeParse(response?.data);
+    if (!result.success)
+      throw new ApiError(
+        "The server returned an unexpected registration status. Please try again.",
+        { status: 502, code: "INVALID_RESPONSE" },
+      );
+    return result.data;
+  }, []);
+
+  function applyStatus(status) {
+    setApplication(status.application);
+    setTermsVersion(status.termsVersion);
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadStatus(controller.signal)
+      .then((status) => {
+        if (!controller.signal.aborted) applyStatus(status);
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted) setError(failure);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [loadStatus]);
+
+  async function refreshStatus() {
+    setError(null);
+    setLoading(true);
+    try {
+      applyStatus(await loadStatus());
+      setEditing(false);
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function correctApplication() {
+    reset({
+      firstName: application.firstName ?? "",
+      lastName: application.lastName ?? "",
+      email: application.email,
+      contactNumber: formatUSPhoneNumber(application.contactNumber ?? ""),
+      companyName: application.companyName,
+      companyWebsite: application.companyWebsite ?? "",
+      termsAccepted: false,
+    });
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleRegisterSubmit(values) {
+    setError(null);
+    if (Date.now() < retryAfter.current) {
+      setError(
+        new ApiError("Please wait before trying again.", {
+          status: 429,
+          code: "RATE_LIMITED",
+        }),
+      );
+      return;
+    }
+    try {
+      if (!termsVersion)
+        throw new Error("Load the registration terms before submitting.");
+      const payload = {
+        ...values,
+        termsVersion,
+        ...(editing ? { expectedRevision: application.revision } : {}),
+      };
+      // Reuse the backend-required UUID when retrying the same submitted details.
+      if (
+        JSON.stringify(submission.current?.payload) !== JSON.stringify(payload)
+      ) {
+        submission.current = {
+          key: crypto.randomUUID(),
+          payload,
+        };
+      }
+
+      const response = await api[editing ? "put" : "post"](
+        editing ? "/onboarding/me" : "/onboarding",
+        submission.current.payload,
+        { idempotencyKey: submission.current.key },
+      );
+      const result = registrationApplicationSchema.safeParse(response?.data);
+      if (!result.success)
+        throw new ApiError(
+          "The server returned an unexpected registration response. Retry the same details to recover your application.",
+          { status: 502, code: "INVALID_RESPONSE" },
+        );
+      submission.current = null;
+      setEditing(false);
+      setApplication(result.data);
+    } catch (failure) {
+      if (failure.status > 0 && failure.status < 500) submission.current = null;
+      if (failure.retryAfterMs)
+        retryAfter.current = Date.now() + failure.retryAfterMs;
+      for (const detail of failure.fields || []) {
+        if (Object.hasOwn(defaultValues, detail.field))
+          registerForm.setError(detail.field, {
+            type: "server",
+            message: detail.message,
+          });
+      }
+      setError(failure);
+      if (
+        ["TERMS_UPDATED", "APPLICATION_EXISTS", "APPLICATION_CHANGED"].includes(
+          failure.code,
+        )
+      ) {
+        try {
+          applyStatus(await loadStatus());
+          if (failure.code === "TERMS_UPDATED")
+            setValue("termsAccepted", false);
+          else setEditing(false);
+        } catch (refreshFailure) {
+          setError(refreshFailure);
+        }
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-lg">
+      {error && (
+        <div
+          role="alert"
+          className="space-y-xs rounded-control border border-danger bg-danger-muted p-md text-sm"
+        >
+          <p>{error.message}</p>
+          {error.requestId && (
+            <p className="break-all text-xs">
+              Support reference: {error.requestId}
+            </p>
+          )}
+          {error.status === 401 && (
+            <Link className="app-link" to="/login">
+              Sign in again to continue
+            </Link>
+          )}
+        </div>
+      )}
+      {loading ? (
+        <p role="status">Loading your application...</p>
+      ) : application && !editing ? (
+        <>
+          <RegistrationResult application={application} />
+          {application.status === "rejected" && (
+            <button
+              type="button"
+              className="app-link min-h-touch"
+              onClick={correctApplication}
+            >
+              Correct application
+            </button>
+          )}
+          <button
+            type="button"
+            className="app-link min-h-touch"
+            onClick={refreshStatus}
+          >
+            Refresh status
+          </button>
+        </>
+      ) : !termsVersion ? (
+        <button
+          type="button"
+          className="app-link min-h-touch"
+          onClick={refreshStatus}
+        >
+          Retry loading application
+        </button>
+      ) : (
         <AppFormProvider
           form={registerForm}
           onSubmit={handleRegisterSubmit}
@@ -50,6 +276,7 @@ export function RegisterPage() {
               autoComplete="given-name"
               placeholder="Alex"
               icon={<UserRound />}
+              maxLength={80}
               required
             />
             <FormTextField
@@ -58,6 +285,7 @@ export function RegisterPage() {
               autoComplete="family-name"
               placeholder="Morgan"
               icon={<UserRound />}
+              maxLength={80}
               required
             />
           </div>
@@ -70,24 +298,85 @@ export function RegisterPage() {
             spellCheck={false}
             placeholder="you@company.com"
             icon={<Mail />}
+            maxLength={254}
+            readOnly
+            hint="Your verified sign-in email."
             required
           />
-          <FormPhoneField name="phone" label="Phone number" hint="US number · 10 digits" required />
+          <FormPhoneField
+            name="contactNumber"
+            label="Phone number"
+            maxLength={40}
+            required
+          />
           <FormTextField
-            name="organizationName"
-            label="Organization name"
+            name="companyName"
+            label="Company name"
             autoComplete="organization"
             placeholder="Your company or team"
             icon={<Building2 />}
+            maxLength={160}
             required
           />
-          <FormSubmitButton pendingLabel="Creating account…">Create account</FormSubmitButton>
+          <FormTextField
+            name="companyWebsite"
+            label="Company website"
+            autoComplete="url"
+            placeholder="https://example.com"
+            icon={<Globe />}
+            maxLength={500}
+            required
+          />
+          <FormCheckbox name="termsAccepted">
+            I accept the registration terms ({termsVersion}).
+            {import.meta.env.VITE_REGISTRATION_TERMS_URL && (
+              <>
+                {" "}
+                <a
+                  className="app-link"
+                  href={import.meta.env.VITE_REGISTRATION_TERMS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Read terms
+                </a>
+              </>
+            )}
+          </FormCheckbox>
+          <FormSubmitButton pendingLabel="Submitting application…">
+            {editing ? "Resubmit application" : "Submit application"}
+          </FormSubmitButton>
         </AppFormProvider>
-        <p className="mt-lg text-center text-sm leading-relaxed text-text-muted">
-          Already have an account?{' '}
-          <Link to="/login" className="app-link inline-flex min-h-touch items-center">Sign in</Link>
-        </p>
-      </AuthPageContent>
-    </AuthLayout>
-  )
+      )}
+    </div>
+  );
+}
+
+function RegistrationResult({ application }) {
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg"
+    >
+      <h2 className="text-xl font-semibold">
+        {application.status === "pending"
+          ? "Application received"
+          : "Your application"}
+      </h2>
+      <p className="break-words text-sm">
+        {application.companyName} · {application.email}
+      </p>
+      <p className="text-sm text-text-muted">
+        {application.status === "pending"
+          ? "Your application is pending review."
+          : application.status === "approved"
+            ? "Your application has been approved."
+            : "Your existing application needs corrections before it can be reviewed again."}
+      </p>
+      {application.status === "rejected" && application.reason && (
+        <p className="text-sm">Review feedback: {application.reason}</p>
+      )}
+    </section>
+  );
 }

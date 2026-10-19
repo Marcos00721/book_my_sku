@@ -5,7 +5,10 @@ export function stripPhoneFormatting(value) {
 
 /** Format partial input and pasted values as a US phone number. */
 export function formatUSPhoneNumber(value) {
-  const digits = stripPhoneFormatting(value).slice(0, 10);
+  const rawDigits = stripPhoneFormatting(value);
+  const includesCountryCode = value.trimStart().startsWith('+1') ||
+    (rawDigits.length === 11 && rawDigits.startsWith('1'));
+  const digits = (includesCountryCode ? rawDigits.slice(1) : rawDigits).slice(0, 10);
 
   if (digits.length <= 3) return digits;
   if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;

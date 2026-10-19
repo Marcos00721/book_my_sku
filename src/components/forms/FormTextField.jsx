@@ -8,6 +8,7 @@ export function FormTextField({
   label,
   id,
   icon,
+  prefix,
   hint,
   trailingControl,
   formatValue,
@@ -86,12 +87,13 @@ export function FormTextField({
         {label}
       </FormLabel>
       <div className="relative">
-        {icon && (
+        {(icon || prefix) && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-none left-md flex items-center text-text-muted [&>svg]:size-icon"
+            className="pointer-events-none absolute inset-y-none left-md flex items-center gap-xs text-text-muted [&>svg]:size-icon"
           >
             {icon}
+            {prefix && <span className="text-sm">{prefix}</span>}
           </span>
         )}
         <input
@@ -112,7 +114,7 @@ export function FormTextField({
             'placeholder:text-text-muted focus-visible:border-primary focus-visible:shadow-focus focus-visible:outline-none',
             'disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-text-muted motion-safe:transition-shadow',
             errorMessage ? 'border-danger' : 'border-border-control',
-            icon ? 'pl-control' : '',
+            prefix && icon ? 'pl-3xl' : icon || prefix ? 'pl-control' : '',
             trailingControl ? 'pr-control' : '',
           ].join(' ')}
         />
