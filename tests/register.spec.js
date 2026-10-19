@@ -224,7 +224,54 @@ test('confirmation callback redeems the PKCE code once and removes it from the U
 
 test('invalid confirmation links show a recovery message and clear URL parameters', async ({ page }) => {
   await page.goto('/auth/callback?error=access_denied&error_description=expired')
-  await expect(page.getByRole('alert')).toContainText('invalid or has expired')
+  await expect(page.getByRole('alert')).toContainText('Email confirmation could not be completed.')
+  await expect(page.getByRole('alert')).toContainText('verification_failed')
+  await expect(page).toHaveURL('/auth/callback')
+})
+
+for (const separator of ['?', '#']) {
+  test(`expired confirmation errors from ${separator} show the provider reason without exposing URL values`, async ({ page }) => {
+    let exchanges = 0
+    await page.route(`${authUrl}/auth/v1/token*`, route => {
+      exchanges++
+      return route.abort()
+    })
+    await page.goto(`/auth/callback${separator}error=access_denied&error_code=otp_expired&error_description=private-token-value`)
+    await expect(page.getByRole('alert')).toContainText('expired, or has already been used')
+    await expect(page.getByRole('alert')).toContainText('Verification issue: otp_expired')
+    await expect(page.getByRole('alert')).not.toContainText('private-token-value')
+    await expect(page).toHaveURL('/auth/callback')
+    expect(exchanges).toBe(0)
+  })
+}
+
+test('a missing confirmation code does not claim expiry or trust URL verification flags', async ({ page }) => {
+  await page.goto('/auth/callback?email_confirmed=true')
+  await expect(page.getByRole('alert')).toContainText('did not receive a sign-in code')
+  await expect(page.getByRole('alert')).toContainText('missing_auth_code')
+  await expect(page.getByRole('alert')).not.toContainText('expired')
+  await expect(page).toHaveURL('/auth/callback')
+})
+
+test('a callback reload with an existing verified SDK session resumes registration', async ({ page }) => {
+  await mockSignedIn(page)
+  await mockOnboardingStatus(page)
+  await page.goto('/auth/callback')
+  await expect(page).toHaveURL('/register')
+  await expect(page.getByRole('checkbox', { name: /v2/ })).toBeVisible()
+})
+
+test('an unconfirmed session cannot bypass verification on callback reload', async ({ page }) => {
+  await mockSignedIn(page, makeSession('unconfirmed-session-token', { ...user, email_confirmed_at: null }))
+  await page.goto('/auth/callback')
+  await expect(page.getByRole('alert')).toContainText('missing_auth_code')
+  await expect(page).toHaveURL('/auth/callback')
+})
+
+test('a missing browser verifier is reported separately from an expired email link', async ({ page }) => {
+  await page.goto('/auth/callback?code=unused-confirmation-code')
+  await expect(page.getByRole('alert')).toContainText('signup information needed to finish signing in is missing')
+  await expect(page.getByRole('alert')).toContainText('pkce_code_verifier_not_found')
   await expect(page).toHaveURL('/auth/callback')
 })
 
