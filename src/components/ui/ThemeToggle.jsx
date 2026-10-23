@@ -10,18 +10,26 @@ import { useEffect, useState } from 'react'
  *   <ThemeToggle className="ml-auto" />
  */
 export function ThemeToggle({ className = '' }) {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.classList.contains('dark'),
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark'),
   )
 
   useEffect(() => {
     const root = document.documentElement.classList
     if (isDark) {
       root.add('dark')
-      localStorage.setItem('theme', 'dark')
+      try {
+        localStorage.setItem('theme', 'dark')
+      } catch {
+        /* Keep the theme usable without storage. */
+      }
     } else {
       root.remove('dark')
-      localStorage.setItem('theme', 'light')
+      try {
+        localStorage.setItem('theme', 'light')
+      } catch {
+        /* Keep the theme usable without storage. */
+      }
     }
   }, [isDark])
 

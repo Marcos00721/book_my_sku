@@ -1,36 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, Globe, Mail, UserRound } from "lucide-react";
-import { Link } from "react-router-dom";
-import { AuthLayout } from "../components/auth/AuthLayout";
-import { AuthPageContent } from "../components/auth/AuthPageContent";
-import { RegistrationIdentity } from "../components/auth/RegistrationIdentity";
-import { AppFormProvider } from "../components/forms/AppFormProvider";
-import { FormCheckbox } from "../components/forms/FormCheckbox";
-import { FormPhoneField } from "../components/forms/FormPhoneField";
-import { FormSubmitButton } from "../components/forms/FormSubmitButton";
-import { FormTextField } from "../components/forms/FormTextField";
-import { useAppForm } from "../components/forms/useAppForm";
-import { api, ApiError } from "../services/api";
-import { useAuthSession } from "../hooks/useAuthSession";
-import { formatUSPhoneNumber } from "../utils/phone";
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Building2, Globe, Mail, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AuthLayout } from '../components/auth/AuthLayout'
+import { AuthPageContent } from '../components/auth/AuthPageContent'
+import { RegistrationIdentity } from '../components/auth/RegistrationIdentity'
+import { UnifiedRegistration } from '../components/auth/UnifiedRegistration'
+import { AppFormProvider } from '../components/forms/AppFormProvider'
+import { FormCheckbox } from '../components/forms/FormCheckbox'
+import { FormSubmitButton } from '../components/forms/FormSubmitButton'
+import { FormTextField } from '../components/forms/FormTextField'
+import { useAppForm } from '../components/forms/useAppForm'
+import { api, ApiError } from '../services/api'
+import { useAuthSession } from '../hooks/useAuthSession'
 import {
   registerFormSchema,
   registrationApplicationSchema,
   onboardingStatusSchema,
-} from "../schemas/authSchemas";
+} from '../schemas/authSchemas'
 
 const defaultValues = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  contactNumber: "",
-  companyName: "",
-  companyWebsite: "",
+  firstName: '',
+  lastName: '',
+  email: '',
+  contactNumber: '',
+  companyName: '',
+  companyWebsite: '',
   termsAccepted: false,
-};
+}
 
 export function RegisterPage() {
-  const { session, loading, error } = useAuthSession();
+  const { session, loading, error } = useAuthSession()
+  const unifiedEnabled = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED === 'true'
+
+  if (unifiedEnabled && (!session || !session.user.email_confirmed_at))
+    return <UnifiedRegistration session={session} />
 
   return (
     <AuthLayout variant="register">
@@ -56,7 +59,7 @@ export function RegisterPage() {
           <RegistrationIdentity session={session} />
         )}
         <p className="mt-lg text-center text-sm leading-relaxed text-text-muted">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link
             to="/login"
             className="app-link inline-flex min-h-touch items-center"
@@ -66,99 +69,105 @@ export function RegisterPage() {
         </p>
       </AuthPageContent>
     </AuthLayout>
-  );
+  )
 }
 
 function RegistrationApplication({ session }) {
   const registerForm = useAppForm(registerFormSchema, {
     defaultValues: { ...defaultValues, email: session.user.email },
-  });
-  const { reset, setValue } = registerForm;
-  const [error, setError] = useState(null);
-  const [application, setApplication] = useState(null);
-  const [termsVersion, setTermsVersion] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const submission = useRef(null);
-  const retryAfter = useRef(0);
+  })
+  const { reset, setValue } = registerForm
+  const [error, setError] = useState(null)
+  const [application, setApplication] = useState(null)
+  const [termsVersion, setTermsVersion] = useState(null)
+  const [phase, setPhase] = useState(null)
+  const [recovery, setRecovery] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const submission = useRef(null)
+  const retryAfter = useRef(0)
 
   const loadStatus = useCallback(async (signal) => {
-    const response = await api.get("/onboarding/me", { signal });
-    const result = onboardingStatusSchema.safeParse(response?.data);
+    const response = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED === 'true'
+      ? await api.post('/registration/resume', {}, { signal })
+      : await api.get('/onboarding/me', { signal })
+    const result = onboardingStatusSchema.safeParse(response?.data)
     if (!result.success)
       throw new ApiError(
-        "The server returned an unexpected registration status. Please try again.",
-        { status: 502, code: "INVALID_RESPONSE" },
-      );
-    return result.data;
-  }, []);
+        'The server returned an unexpected registration status. Please try again.',
+        { status: 502, code: 'INVALID_RESPONSE' },
+      )
+    return result.data
+  }, [])
 
   function applyStatus(status) {
-    setApplication(status.application);
-    setTermsVersion(status.termsVersion);
+    setApplication(status.application)
+    setTermsVersion(status.termsVersion)
+    setPhase(status.phase || null)
+    setRecovery(status.recovery || null)
   }
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller = new AbortController()
     loadStatus(controller.signal)
       .then((status) => {
-        if (!controller.signal.aborted) applyStatus(status);
+        if (!controller.signal.aborted) applyStatus(status)
       })
       .catch((failure) => {
-        if (!controller.signal.aborted) setError(failure);
+        if (!controller.signal.aborted) setError(failure)
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [loadStatus]);
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [loadStatus])
 
   async function refreshStatus() {
-    setError(null);
-    setLoading(true);
+    setError(null)
+    setLoading(true)
     try {
-      applyStatus(await loadStatus());
-      setEditing(false);
+      applyStatus(await loadStatus())
+      setEditing(false)
     } catch (failure) {
-      setError(failure);
+      setError(failure)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   function correctApplication() {
     reset({
-      firstName: application.firstName ?? "",
-      lastName: application.lastName ?? "",
+      firstName: application.firstName ?? '',
+      lastName: application.lastName ?? '',
       email: application.email,
-      contactNumber: formatUSPhoneNumber(application.contactNumber ?? ""),
+      contactNumber: application.contactNumber ?? '',
       companyName: application.companyName,
-      companyWebsite: application.companyWebsite ?? "",
+      companyWebsite: application.companyWebsite ?? '',
       termsAccepted: false,
-    });
-    setError(null);
-    setEditing(true);
+    })
+    setError(null)
+    setEditing(true)
   }
 
   async function handleRegisterSubmit(values) {
-    setError(null);
+    setError(null)
     if (Date.now() < retryAfter.current) {
       setError(
-        new ApiError("Please wait before trying again.", {
+        new ApiError('Please wait before trying again.', {
           status: 429,
-          code: "RATE_LIMITED",
+          code: 'RATE_LIMITED',
         }),
-      );
-      return;
+      )
+      return
     }
     try {
       if (!termsVersion)
-        throw new Error("Load the registration terms before submitting.");
+        throw new Error('Load the registration terms before submitting.')
       const payload = {
         ...values,
         termsVersion,
         ...(editing ? { expectedRevision: application.revision } : {}),
-      };
+      }
       // Reuse the backend-required UUID when retrying the same submitted details.
       if (
         JSON.stringify(submission.current?.payload) !== JSON.stringify(payload)
@@ -166,47 +175,46 @@ function RegistrationApplication({ session }) {
         submission.current = {
           key: crypto.randomUUID(),
           payload,
-        };
+        }
       }
 
-      const response = await api[editing ? "put" : "post"](
-        editing ? "/onboarding/me" : "/onboarding",
+      const response = await api[editing ? 'put' : 'post'](
+        editing ? '/onboarding/me' : '/onboarding',
         submission.current.payload,
         { idempotencyKey: submission.current.key },
-      );
-      const result = registrationApplicationSchema.safeParse(response?.data);
+      )
+      const result = registrationApplicationSchema.safeParse(response?.data)
       if (!result.success)
         throw new ApiError(
-          "The server returned an unexpected registration response. Retry the same details to recover your application.",
-          { status: 502, code: "INVALID_RESPONSE" },
-        );
-      submission.current = null;
-      setEditing(false);
-      setApplication(result.data);
+          'The server returned an unexpected registration response. Retry the same details to recover your application.',
+          { status: 502, code: 'INVALID_RESPONSE' },
+        )
+      submission.current = null
+      setEditing(false)
+      setApplication(result.data)
     } catch (failure) {
-      if (failure.status > 0 && failure.status < 500) submission.current = null;
+      if (failure.status > 0 && failure.status < 500) submission.current = null
       if (failure.retryAfterMs)
-        retryAfter.current = Date.now() + failure.retryAfterMs;
+        retryAfter.current = Date.now() + failure.retryAfterMs
       for (const detail of failure.fields || []) {
         if (Object.hasOwn(defaultValues, detail.field))
           registerForm.setError(detail.field, {
-            type: "server",
+            type: 'server',
             message: detail.message,
-          });
+          })
       }
-      setError(failure);
+      setError(failure)
       if (
-        ["TERMS_UPDATED", "APPLICATION_EXISTS", "APPLICATION_CHANGED"].includes(
+        ['TERMS_UPDATED', 'APPLICATION_EXISTS', 'APPLICATION_CHANGED'].includes(
           failure.code,
         )
       ) {
         try {
-          applyStatus(await loadStatus());
-          if (failure.code === "TERMS_UPDATED")
-            setValue("termsAccepted", false);
-          else setEditing(false);
+          applyStatus(await loadStatus())
+          if (failure.code === 'TERMS_UPDATED') setValue('termsAccepted', false)
+          else setEditing(false)
         } catch (refreshFailure) {
-          setError(refreshFailure);
+          setError(refreshFailure)
         }
       }
     }
@@ -237,7 +245,21 @@ function RegistrationApplication({ session }) {
       ) : application && !editing ? (
         <>
           <RegistrationResult application={application} />
-          {application.status === "rejected" && (
+          {application.status === 'approved' && (
+            <Link
+              className="app-link inline-flex min-h-touch items-center"
+              to="/setup"
+            >
+              Continue to payment and company setup
+            </Link>
+          )}
+          <Link
+            className="app-link inline-flex min-h-touch items-center"
+            to="/app"
+          >
+            Open an existing workspace
+          </Link>
+          {application.status === 'rejected' && (
             <button
               type="button"
               className="app-link min-h-touch"
@@ -254,6 +276,18 @@ function RegistrationApplication({ session }) {
             Refresh status
           </button>
         </>
+      ) : phase === 'awaiting_email_verification' ? (
+        <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg">
+          <h2 className="text-xl font-semibold">Confirm your email</h2>
+          <p className="text-sm">Your request is waiting for email confirmation and backend processing. Refresh this page after confirming your address.</p>
+          <button type="button" className="app-link min-h-touch" onClick={refreshStatus}>Refresh application status</button>
+        </section>
+      ) : recovery === 'retry_or_contact_support' ? (
+        <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg">
+          <h2 className="text-xl font-semibold">We’re checking your request</h2>
+          <p className="text-sm">Please refresh later or contact support. We will not create another application automatically.</p>
+          <button type="button" className="app-link min-h-touch" onClick={refreshStatus}>Refresh application status</button>
+        </section>
       ) : !termsVersion ? (
         <button
           type="button"
@@ -269,6 +303,7 @@ function RegistrationApplication({ session }) {
           aria-labelledby="register-title"
           className="space-y-lg"
         >
+          {recovery === 'accept_current_terms' && <p className="notice">Review and accept the current terms before resubmitting your application.</p>}
           <div className="grid grid-cols-1 gap-lg sm:grid-cols-2">
             <FormTextField
               name="firstName"
@@ -281,12 +316,11 @@ function RegistrationApplication({ session }) {
             />
             <FormTextField
               name="lastName"
-              label="Last name"
+              label="Last name (optional)"
               autoComplete="family-name"
               placeholder="Morgan"
               icon={<UserRound />}
               maxLength={80}
-              required
             />
           </div>
           <FormTextField
@@ -303,9 +337,12 @@ function RegistrationApplication({ session }) {
             hint="Your verified sign-in email."
             required
           />
-          <FormPhoneField
+          <FormTextField
             name="contactNumber"
-            label="Phone number"
+            label="Phone with country code"
+            type="tel"
+            placeholder="+14155552671"
+            hint="Include the + sign and your country code."
             maxLength={40}
             required
           />
@@ -320,18 +357,17 @@ function RegistrationApplication({ session }) {
           />
           <FormTextField
             name="companyWebsite"
-            label="Company website"
+            label="Company website (optional)"
             autoComplete="url"
             placeholder="https://example.com"
             icon={<Globe />}
             maxLength={500}
-            required
           />
           <FormCheckbox name="termsAccepted">
             I accept the registration terms ({termsVersion}).
             {import.meta.env.VITE_REGISTRATION_TERMS_URL && (
               <>
-                {" "}
+                {' '}
                 <a
                   className="app-link"
                   href={import.meta.env.VITE_REGISTRATION_TERMS_URL}
@@ -344,12 +380,12 @@ function RegistrationApplication({ session }) {
             )}
           </FormCheckbox>
           <FormSubmitButton pendingLabel="Submitting application…">
-            {editing ? "Resubmit application" : "Submit application"}
+            {editing ? 'Resubmit application' : 'Submit application'}
           </FormSubmitButton>
         </AppFormProvider>
       )}
     </div>
-  );
+  )
 }
 
 function RegistrationResult({ application }) {
@@ -360,23 +396,23 @@ function RegistrationResult({ application }) {
       className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg"
     >
       <h2 className="text-xl font-semibold">
-        {application.status === "pending"
-          ? "Application received"
-          : "Your application"}
+        {application.status === 'pending'
+          ? 'Application received'
+          : 'Your application'}
       </h2>
       <p className="break-words text-sm">
         {application.companyName} · {application.email}
       </p>
       <p className="text-sm text-text-muted">
-        {application.status === "pending"
-          ? "Your application is pending review."
-          : application.status === "approved"
-            ? "Your application has been approved."
-            : "Your existing application needs corrections before it can be reviewed again."}
+        {application.status === 'pending'
+          ? 'Your application is pending review.'
+          : application.status === 'approved'
+            ? 'Your application has been approved.'
+            : 'Your existing application needs corrections before it can be reviewed again.'}
       </p>
-      {application.status === "rejected" && application.reason && (
+      {application.status === 'rejected' && application.reason && (
         <p className="text-sm">Review feedback: {application.reason}</p>
       )}
     </section>
-  );
+  )
 }

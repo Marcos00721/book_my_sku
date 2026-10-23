@@ -25,9 +25,9 @@ export default {
       'on-accent': color('on-accent'),
 
       /* Surfaces */
-      surface: color('surface'),
-      'surface-muted': color('surface-muted'),
-      'surface-raised': color('surface-raised'),
+      surface: 'var(--glass-bg)',
+      'surface-muted': 'var(--glass-bg-muted)',
+      'surface-raised': 'var(--glass-bg-raised)',
 
       /* Text */
       'text-base': color('text-base'),

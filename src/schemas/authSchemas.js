@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { stripPhoneFormatting, usPhoneRegex } from '../utils/phone';
 
 const emailFieldSchema = z
   .string()
@@ -24,16 +23,16 @@ export const signupFormSchema = z.object({
 export const registerFormSchema = z
   .object({
     firstName: z.string().trim().min(1, 'Enter your first name.').max(80),
-    lastName: z.string().trim().min(1, 'Enter your last name.').max(80),
+    lastName: z.string().trim().max(80).default(''),
     email: emailFieldSchema.max(254).toLowerCase(),
     contactNumber: z.string().trim().max(40)
-      .transform(stripPhoneFormatting)
-      .pipe(z.string().regex(usPhoneRegex, 'Enter a 10-digit US phone number.'))
-      .transform(value => `+1${value}`),
+      .transform(value => value.replace(/[ ()-]/g, ''))
+      .pipe(z.string().regex(/^\+[1-9]\d{6,14}$/, 'Include your country code, for example +14155552671.')),
     companyName: z.string().trim().min(1, 'Enter your company name.').max(160),
-    companyWebsite: z.string().trim().min(1, 'Enter your company website.').max(500)
-      .transform(value => value.includes('://') ? value : `https://${value}`)
+    companyWebsite: z.string().trim().max(500).default('')
+      .transform(value => value && !value.includes('://') ? `https://${value}` : value)
       .refine(value => {
+        if (!value) return true
         try {
           const url = new URL(value)
           return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password
@@ -41,6 +40,14 @@ export const registerFormSchema = z
       }, 'Enter a valid HTTP or HTTPS website.'),
     termsAccepted: z.literal(true, { error: 'Accept the registration terms to continue.' }),
   })
+
+export const unifiedSignupSchema = registerFormSchema.extend({
+  password: z.string().min(8, 'Use at least 8 characters.').max(128),
+  confirmPassword: z.string().min(1, 'Confirm your password.'),
+}).refine((value) => value.password === value.confirmPassword, {
+  message: 'Your passwords do not match.',
+  path: ['confirmPassword'],
+})
 
 export const registrationApplicationSchema = z.object({
   id: z.string().min(1),

@@ -10,8 +10,9 @@ import { FormTextField } from '../components/forms/FormTextField'
 import { useAppForm } from '../components/forms/useAppForm'
 import { loginFormSchema } from '../schemas/authSchemas'
 import { getAuthClient } from '../services/auth'
+import { hasPendingInvitation } from '../services/invitation'
 
-export function LoginPage() {
+export function LoginPage({ returnTo }) {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const loginForm = useAppForm(loginFormSchema, {
@@ -21,10 +22,17 @@ export function LoginPage() {
   async function handleLoginSubmit({ email, password }) {
     setError('')
     try {
-      const { error } = await getAuthClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+      const { error } = await getAuthClient().auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      })
       if (error) throw error
-      navigate('/register', { replace: true })
-    } catch (failure) { setError(failure.message) }
+      navigate(returnTo || (hasPendingInvitation() ? '/team/accept' : '/continue'), {
+        replace: true,
+      })
+    } catch (failure) {
+      setError(failure.message)
+    }
   }
 
   return (
@@ -41,7 +49,14 @@ export function LoginPage() {
           aria-labelledby="login-title"
           className="space-y-lg"
         >
-          {error && <p role="alert" className="rounded-control border border-danger bg-danger-muted p-md text-sm">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-control border border-danger bg-danger-muted p-md text-sm"
+            >
+              {error}
+            </p>
+          )}
           <FormTextField
             name="email"
             label="Email address"
@@ -62,16 +77,26 @@ export function LoginPage() {
               required
             />
             <div className="flex justify-end">
-              <Link to="/forgot-password" className="app-link inline-flex min-h-touch items-center text-sm">
+              <Link
+                to="/forgot-password"
+                className="app-link inline-flex min-h-touch items-center text-sm"
+              >
                 Forgot password?
               </Link>
             </div>
           </div>
-          <FormSubmitButton pendingLabel="Signing in…">Sign in</FormSubmitButton>
+          <FormSubmitButton pendingLabel="Signing in…">
+            Sign in
+          </FormSubmitButton>
         </AppFormProvider>
         <p className="mt-xl text-center text-sm leading-relaxed text-text-muted">
           New to BookMySku?{' '}
-          <Link to="/register" className="app-link inline-flex min-h-touch items-center">Create an account</Link>
+          <Link
+            to="/register"
+            className="app-link inline-flex min-h-touch items-center"
+          >
+            Create an account
+          </Link>
         </p>
       </AuthPageContent>
     </AuthLayout>

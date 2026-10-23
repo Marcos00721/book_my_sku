@@ -16,7 +16,7 @@ export function Card({
 }) {
   const base = glass
     ? 'glass rounded-card shadow-card'
-    : 'rounded-card border border-border-subtle bg-surface shadow-subtle'
+    : 'glass rounded-card shadow-subtle'
 
   return (
     <div

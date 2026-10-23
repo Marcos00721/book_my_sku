@@ -17,7 +17,7 @@ export function Skeleton({ circle = false, className = '', ...props }) {
       ].join(' ')}
       {...props}
     >
-      <div className="absolute inset-none animate-shimmer bg-gradient-to-r from-transparent via-border-subtle/40 to-transparent" />
+      <div className="absolute inset-none motion-safe:animate-pulse bg-border-subtle/40" />
     </div>
   )
 }

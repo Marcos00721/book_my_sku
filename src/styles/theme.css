@@ -1,63 +1,69 @@
-/* ═══════════════════════════════════════════════════════════════
-   BookMySku — Design Tokens  (Single Source of Truth)
-   ─────────────────────────────────────────────────────────────
-   Change a value here → every component updates automatically.
-   Never hardcode hex / px / rem anywhere else in the project.
-   ═══════════════════════════════════════════════════════════════ */
-
+/* Shared design tokens for authentication, setup, and workspace. */
 :root {
   color-scheme: light;
 
-  /* ─── Primary · Indigo ──────────────────────────────────── */
-  --color-primary: 66 82 222;
-  --color-primary-hover: 49 63 191;
-  --color-primary-soft: 237 240 255;
-  --color-primary-disabled: 113 125 216;
-  --color-on-primary: 255 255 255;
+  /* Light glass palette. Edit the palette values here to recolor the app. */
+  --color-canvas: 235 242 248;
+  --palette-surface-base: 255 255 255;
+  --palette-surface-highlight: 255 255 255;
+  --palette-surface-shadow: 203 213 225;
+  --palette-brand: 5 150 105;
+  --palette-brand-hover: 4 120 87;
+  --palette-on-brand: 255 255 255;
+  --palette-secondary: 8 145 178;
+  --palette-secondary-hover: 14 116 144;
+  --palette-text: 15 23 42;
+  --palette-text-muted: 71 85 105;
 
-  /* ─── Secondary · Teal ──────────────────────────────────── */
-  --color-secondary: 20 184 166;
-  --color-secondary-hover: 13 148 136;
-  --color-secondary-soft: 204 251 241;
-  --color-on-secondary: 255 255 255;
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-bg-muted: rgb(255 255 255 / 0.52);
+  --glass-bg-raised: rgb(255 255 255 / 0.84);
+  --glass-border: rgb(255 255 255 / 0.72);
+  --glass-border-strong: rgb(100 116 139 / 0.24);
+  --glass-border-accent: rgb(5 150 105 / 0.25);
+  --glass-blur: 16px;
 
-  /* ─── Accent · Amber ────────────────────────────────────── */
-  --color-accent: 245 158 11;
-  --color-accent-hover: 217 119 6;
-  --color-accent-soft: 254 252 232;
-  --color-on-accent: 255 255 255;
+  --color-primary: var(--palette-brand);
+  --color-primary-hover: var(--palette-brand-hover);
+  --color-primary-soft: 209 250 229;
+  --color-primary-disabled: var(--palette-surface-shadow);
+  --color-on-primary: var(--palette-on-brand);
 
-  /* ─── Surfaces ──────────────────────────────────────────── */
-  --color-surface: 255 255 255;
-  --color-surface-muted: 249 250 252;
-  --color-surface-raised: 255 255 255;
+  --color-secondary: var(--palette-secondary);
+  --color-secondary-hover: var(--palette-secondary-hover);
+  --color-secondary-soft: 207 250 254;
+  --color-on-secondary: var(--palette-on-brand);
 
-  /* ─── Text ──────────────────────────────────────────────── */
-  --color-text-base: 28 35 52;
-  --color-text-muted: 97 107 128;
+  --color-accent: var(--palette-secondary);
+  --color-accent-hover: var(--palette-secondary-hover);
+  --color-accent-soft: 207 250 254;
+  --color-on-accent: var(--palette-on-brand);
+
+  --color-surface: var(--palette-surface-base);
+  --color-surface-muted: 241 245 249;
+  --color-surface-raised: var(--palette-surface-base);
+
+  --color-text-base: var(--palette-text);
+  --color-text-muted: var(--palette-text-muted);
   --color-text-subtle: 148 163 184;
 
-  /* ─── Borders ───────────────────────────────────────────── */
-  --color-border-subtle: 222 227 237;
-  --color-border-control: 136 146 165;
+  --color-border-subtle: var(--palette-surface-shadow);
+  --color-border-control: 148 163 184;
 
-  /* ─── Feedback ──────────────────────────────────────────── */
   --color-danger: 183 39 49;
   --color-danger-muted: 255 241 242;
-  --color-success: 28 113 79;
-  --color-success-muted: 233 247 239;
+  --color-success: 46 111 74;
+  --color-success-muted: 233 243 233;
   --color-warning: 234 88 12;
   --color-warning-muted: 255 247 237;
   --color-info: 59 130 246;
   --color-info-muted: 219 234 254;
 
-  /* ─── Brand ─────────────────────────────────────────────── */
-  --color-focus-ring: var(--color-primary);
-  --color-brand-surface: 241 244 255;
-  --color-brand-line: 214 222 247;
-  --color-brand-deep: 36 46 98;
+  --color-focus-ring: var(--palette-brand);
+  --color-brand-surface: var(--palette-surface-base);
+  --color-brand-line: var(--palette-surface-shadow);
+  --color-brand-deep: var(--palette-text);
 
-  /* ─── Neutral Scale (raw palette — does NOT flip) ─────── */
   --color-neutral-50: 248 250 252;
   --color-neutral-100: 241 245 249;
   --color-neutral-200: 226 232 240;
@@ -70,12 +76,10 @@
   --color-neutral-900: 15 23 42;
   --color-neutral-950: 2 6 23;
 
-  /* ─── Overlay ───────────────────────────────────────────── */
   --color-overlay: 15 23 42;
 
   --color-transparent: transparent;
 
-  /* ─── Typography ────────────────────────────────────────── */
   --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-display: 'Manrope', 'Inter', 'Segoe UI', system-ui, sans-serif;
 
@@ -106,7 +110,6 @@
   --tracking-widest: 0.12em;
   --underline-offset: 0.25em;
 
-  /* ─── Spacing (soft 8-pt grid) ──────────────────────────── */
   --space-none: 0;
   --space-hairline: 1px;
   --space-micro: 0.25rem;
@@ -130,7 +133,6 @@
   --size-viewport: 100svh;
   --layout-auth-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 
-  /* ─── Border Radius ─────────────────────────────────────── */
   --radius-none: 0;
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -145,36 +147,19 @@
   --focus-width: 2px;
   --focus-offset: 3px;
 
-  /* ─── Shadows ───────────────────────────────────────────── */
   --shadow-none: none;
-  --shadow-xs: 0 1px 2px rgb(var(--color-brand-deep) / 0.03);
-  --shadow-subtle: 0 2px 5px rgb(var(--color-brand-deep) / 0.04);
-  --shadow-card: 0 4px 16px -4px rgb(var(--color-brand-deep) / 0.1),
-    0 2px 4px -2px rgb(var(--color-brand-deep) / 0.06);
-  --shadow-float: 0 12px 36px -10px rgb(var(--color-brand-deep) / 0.2);
-  --shadow-overlay: 0 25px 50px -12px rgb(var(--color-brand-deep) / 0.25);
-  --shadow-focus: 0 0 0 var(--focus-width) rgb(var(--color-surface)),
+  --shadow-xs: 0 2px 8px rgb(var(--palette-text) / 0.08);
+  --shadow-subtle: 0 8px 24px rgb(var(--palette-text) / 0.1);
+  --shadow-card: 0 16px 42px rgb(var(--palette-text) / 0.14);
+  --shadow-float: 0 24px 60px rgb(var(--palette-text) / 0.2);
+  --shadow-overlay: 0 25px 60px rgb(var(--palette-text) / 0.25);
+  --shadow-focus:
+    0 0 0 var(--focus-width) rgb(var(--color-surface)),
     0 0 0 calc(var(--focus-width) + var(--focus-offset))
       rgb(var(--color-focus-ring));
 
-  /* ─── Glass / Frosted ───────────────────────────────────── */
-  --glass-bg: rgb(255 255 255 / 0.65);
-  --glass-border: rgb(var(--color-brand-deep) / 0.06);
-  --glass-blur: 16px;
+  --background-brand-panel: rgb(var(--color-brand-surface));
 
-  /* ─── Gradients ─────────────────────────────────────────── */
-  --background-brand-panel: radial-gradient(
-      ellipse at 15% 15%,
-      rgb(var(--color-surface) / 0.9),
-      var(--color-transparent) 55%
-    ),
-    linear-gradient(
-      150deg,
-      rgb(var(--color-brand-surface)),
-      rgb(var(--color-primary-soft))
-    );
-
-  /* ─── Motion ────────────────────────────────────────────── */
   --duration-instant: 100ms;
   --duration-fast: 150ms;
   --duration-normal: 200ms;
@@ -185,89 +170,60 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   Dark Mode — toggle via .dark on <html>
-   ═══════════════════════════════════════════════════════════════ */
-
 .dark {
   color-scheme: dark;
 
-  /* Primary — brighter for dark-bg contrast */
-  --color-primary: 129 140 248;
-  --color-primary-hover: 165 180 252;
-  --color-primary-soft: 30 27 75;
-  --color-primary-disabled: 99 102 191;
-  --color-on-primary: 255 255 255;
+  /* Requested obsidian glass theme. Edit these values to restyle dark mode. */
+  --color-canvas: 10 13 20; /* #0A0D14 */
+  --palette-surface-base: 18 24 38; /* #121826 */
+  --palette-surface-highlight: 52 211 153;
+  --palette-surface-shadow: 0 0 0;
+  --palette-brand: 16 185 129; /* #10B981 */
+  --palette-brand-hover: 52 211 153;
+  --palette-on-brand: 4 31 25;
+  --palette-secondary: 6 182 212; /* #06B6D4 */
+  --palette-secondary-hover: 34 211 238;
+  --palette-text: 248 250 252; /* #F8FAFC */
+  --palette-text-muted: 148 163 184; /* #94A3B8 */
 
-  /* Secondary */
-  --color-secondary: 94 234 212;
-  --color-secondary-hover: 153 246 228;
-  --color-secondary-soft: 19 78 74;
-  --color-on-secondary: 15 23 42;
+  --color-primary-soft: 8 62 47;
+  --color-primary-disabled: 39 86 71;
+  --color-secondary-soft: 8 55 67;
+  --color-accent-soft: 8 55 67;
 
-  /* Accent */
-  --color-accent: 252 211 77;
-  --color-accent-hover: 253 224 71;
-  --color-accent-soft: 69 53 3;
-  --color-on-accent: 15 23 42;
+  --glass-bg: rgb(18 24 38 / 0.65);
+  --glass-bg-muted: rgb(18 24 38 / 0.42);
+  --glass-bg-raised: rgb(24 32 48 / 0.78);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-border-strong: rgb(255 255 255 / 0.14);
+  --glass-border-accent: rgb(52 211 153 / 0.25);
 
-  /* Surfaces */
-  --color-surface: 15 23 42;
-  --color-surface-muted: 30 41 59;
-  --color-surface-raised: 30 41 59;
+  --color-surface: var(--palette-surface-base);
+  --color-surface-muted: 24 32 48;
+  --color-surface-raised: 24 32 48;
+  --color-text-subtle: var(--palette-text-muted);
+  --color-border-subtle: 36 49 65;
+  --color-border-control: 71 85 105;
 
-  /* Text */
-  --color-text-base: 226 232 240;
-  --color-text-muted: 148 163 184;
-  --color-text-subtle: 100 116 139;
-
-  /* Borders */
-  --color-border-subtle: 51 65 85;
-  --color-border-control: 100 116 139;
-
-  /* Feedback */
-  --color-danger: 248 113 113;
-  --color-danger-muted: 69 26 26;
-  --color-success: 74 222 128;
-  --color-success-muted: 20 83 45;
-  --color-warning: 251 146 60;
-  --color-warning-muted: 67 20 7;
+  --color-danger: 242 157 145;
+  --color-danger-muted: 64 37 33;
+  --color-success: 52 211 153;
+  --color-success-muted: 6 48 39;
+  --color-warning: 251 191 36;
+  --color-warning-muted: 62 45 13;
   --color-info: 96 165 250;
   --color-info-muted: 23 37 84;
 
-  /* Brand */
-  --color-focus-ring: 129 140 248;
-  --color-brand-surface: 23 25 53;
-  --color-brand-line: 55 48 163;
-  --color-brand-deep: 199 210 254;
+  --color-focus-ring: var(--palette-brand);
+  --color-brand-surface: var(--palette-surface-base);
+  --color-brand-line: var(--palette-surface-highlight);
+  --color-brand-deep: var(--palette-text);
 
-  /* Overlay */
   --color-overlay: 0 0 0;
-
-  /* Shadows — heavier on dark surfaces */
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.15);
-  --shadow-subtle: 0 2px 5px rgb(0 0 0 / 0.25);
-  --shadow-card: 0 4px 16px -4px rgb(0 0 0 / 0.4),
-    0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-float: 0 12px 36px -10px rgb(0 0 0 / 0.55);
-  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.5);
-  --shadow-focus: 0 0 0 var(--focus-width) rgb(var(--color-surface)),
+  --shadow-focus:
+    0 0 0 var(--focus-width) rgb(var(--color-surface)),
     0 0 0 calc(var(--focus-width) + var(--focus-offset))
       rgb(var(--color-focus-ring));
 
-  /* Glass — dark frosted */
-  --glass-bg: rgb(15 23 42 / 0.65);
-  --glass-border: rgb(255 255 255 / 0.08);
-
-  /* Brand panel gradient */
-  --background-brand-panel: radial-gradient(
-      ellipse at 15% 15%,
-      rgb(var(--color-surface) / 0.9),
-      var(--color-transparent) 55%
-    ),
-    linear-gradient(
-      150deg,
-      rgb(var(--color-brand-surface)),
-      rgb(var(--color-primary-soft))
-    );
+  --background-brand-panel: rgb(var(--color-brand-surface));
 }
