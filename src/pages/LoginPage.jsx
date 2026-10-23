@@ -91,7 +91,7 @@ export function LoginPage({ returnTo }) {
           </FormSubmitButton>
         </AppFormProvider>
         <p className="mt-xl text-center text-sm leading-relaxed text-text-muted">
-          New to BookMySku?{' '}
+          New to BookMySKU?{' '}
           <Link
             to="/register"
             className="app-link inline-flex min-h-touch items-center"

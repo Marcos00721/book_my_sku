@@ -89,7 +89,11 @@ export function AuthCallbackPage() {
           }
           throw verificationFailure('missing_auth_code')
         }
-        const { data, error } = await exchangeAuthCode(code)
+        const flowId = parameters.query.get('sb_flow_id')
+        const { data, error } = await exchangeAuthCode(
+          code,
+          flowId ? { flowId } : undefined,
+        )
         if (error) throw verificationFailure(error.code)
         if (!data.session) throw verificationFailure('verification_failed')
         if (active)

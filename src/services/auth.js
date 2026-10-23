@@ -41,9 +41,14 @@ async function refreshAccessToken() {
 setAccessTokenProvider(currentAccessToken, refreshAccessToken)
 
 // React StrictMode must not redeem the same one-use PKCE code twice.
-export function exchangeAuthCode(code) {
-  if (callbackExchange?.code !== code) {
-    callbackExchange = { code, promise: getAuthClient().auth.exchangeCodeForSession(code) }
+export function exchangeAuthCode(code, options) {
+  const flowId = options?.flowId ?? null
+  if (callbackExchange?.code !== code || callbackExchange?.flowId !== flowId) {
+    callbackExchange = {
+      code,
+      flowId,
+      promise: getAuthClient().auth.exchangeCodeForSession(code, options),
+    }
   }
   return callbackExchange.promise
 }

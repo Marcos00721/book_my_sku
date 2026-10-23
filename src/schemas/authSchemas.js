@@ -11,6 +11,18 @@ export const loginFormSchema = z.object({
   password: z.string().min(1, 'Enter your password.'),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailFieldSchema.max(254).toLowerCase(),
+});
+
+export const passwordResetSchema = z.object({
+  password: z.string().min(8, 'Use at least 8 characters.').max(128, 'Use no more than 128 characters.'),
+  confirmPassword: z.string().min(1, 'Confirm your password.'),
+}).refine(value => value.password === value.confirmPassword, {
+  message: 'Your passwords do not match.',
+  path: ['confirmPassword'],
+});
+
 export const signupFormSchema = z.object({
   email: emailFieldSchema.max(254).toLowerCase(),
   password: z.string().min(8, 'Use at least 8 characters.').max(128, 'Use no more than 128 characters.'),

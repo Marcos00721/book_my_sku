@@ -29,6 +29,11 @@ const AccountHelpPage = lazy(() =>
     default: page.AccountHelpPage,
   })),
 )
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage').then((page) => ({
+    default: page.ResetPasswordPage,
+  })),
+)
 const AuthCallbackPage = lazy(() =>
   import('./pages/AuthCallbackPage').then((page) => ({
     default: page.AuthCallbackPage,
@@ -98,6 +103,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/continue" element={<SignedIn><ContinuePage /></SignedIn>} />
         <Route path="/assisted/accept" element={<AssistedAcceptPage />} />
         <Route path="/assisted" element={<SignedIn><AssistedPage /></SignedIn>} />
