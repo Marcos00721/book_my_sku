@@ -46,6 +46,7 @@ export function LoginPage({ returnTo }) {
         <AppFormProvider
           form={loginForm}
           onSubmit={handleLoginSubmit}
+          animated={false}
           aria-labelledby="login-title"
           className="space-y-lg"
         >

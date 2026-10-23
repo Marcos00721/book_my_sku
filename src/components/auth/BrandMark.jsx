@@ -1,4 +1,3 @@
-import { Layers3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export function BrandMark() {
@@ -6,12 +5,24 @@ export function BrandMark() {
     <Link
       to="/login"
       aria-label="BookMySku home"
-      className="inline-flex w-fit items-center gap-sm rounded-control font-display text-xl font-semibold tracking-tight text-text-base outline-none motion-safe:transition-transform hover:scale-105 focus-visible:ring-focus focus-visible:ring-primary focus-visible:ring-offset-focus focus-visible:ring-offset-brand-surface"
+      className="inline-flex w-fit items-center rounded-control outline-none motion-safe:transition-transform hover:scale-105 focus-visible:ring-focus focus-visible:ring-primary focus-visible:ring-offset-focus focus-visible:ring-offset-brand-surface"
     >
-      <span className="flex h-touch w-touch items-center justify-center rounded-control bg-primary text-on-primary shadow-subtle">
-        <Layers3 className="h-icon w-icon" aria-hidden="true" />
+      <span className="brand-mark-logo" aria-hidden="true">
+        <img
+          className="brand-mark-logo-light"
+          src="/logos/bookmysku-logo-on-light.png"
+          alt=""
+          width="1800"
+          height="600"
+        />
+        <img
+          className="brand-mark-logo-dark"
+          src="/logos/bookmysku-logo-on-dark.png"
+          alt=""
+          width="1800"
+          height="600"
+        />
       </span>
-      BookMySku<span className="sr-only"> home</span>
     </Link>
   )
 }

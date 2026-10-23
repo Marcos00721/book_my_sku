@@ -300,6 +300,7 @@ function RegistrationApplication({ session }) {
         <AppFormProvider
           form={registerForm}
           onSubmit={handleRegisterSubmit}
+          animated={false}
           aria-labelledby="register-title"
           className="space-y-lg"
         >

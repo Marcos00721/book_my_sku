@@ -9,17 +9,19 @@ export function AppFormProvider({
   onInvalid,
   children,
   className,
+  animated = true,
   'aria-labelledby': labelledBy,
 }) {
   const controls = useAnimationControls();
   const reducedMotion = useReducedMotion();
+  const Form = animated ? motion.form : 'form';
 
   useEffect(() => {
-    void controls.start('visible');
-  }, [controls]);
+    if (animated) void controls.start('visible');
+  }, [animated, controls]);
 
   const handleInvalidSubmit = (errors, event) => {
-    if (!reducedMotion) {
+    if (animated && !reducedMotion) {
       void controls.start({
         x: [0, -5, 5, -3, 3, 0],
         transition: { duration: 0.32 },
@@ -31,24 +33,26 @@ export function AppFormProvider({
 
   return (
     <FormProvider {...form}>
-      <motion.form
+      <Form
         noValidate
         aria-labelledby={labelledBy}
         className={className}
         onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
-        initial={reducedMotion ? false : 'hidden'}
-        animate={controls}
-        variants={{
-          hidden: {},
-          visible: {
-            transition: {
-              staggerChildren: reducedMotion ? 0 : 0.055,
+        {...(animated ? {
+          initial: reducedMotion ? false : 'hidden',
+          animate: controls,
+          variants: {
+            hidden: {},
+            visible: {
+              transition: {
+                staggerChildren: reducedMotion ? 0 : 0.055,
+              },
             },
           },
-        }}
+        } : {})}
       >
         {children}
-      </motion.form>
+      </Form>
     </FormProvider>
   );
 }

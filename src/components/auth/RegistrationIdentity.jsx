@@ -58,6 +58,7 @@ export function RegistrationIdentity({ session }) {
     <AppFormProvider
       form={form}
       onSubmit={createLogin}
+      animated={false}
       aria-labelledby="register-title"
       className="space-y-lg"
     >
