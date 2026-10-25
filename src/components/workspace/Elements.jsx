@@ -146,7 +146,7 @@ export function Field({ label, children, hint, ...props }) {
   )
 }
 
-export function Dialog({ title, children, close, locked = false }) {
+export function Dialog({ title, children, close, locked = false, className = '' }) {
   const ref = useRef(null)
   const titleId = useId()
   useEffect(() => {
@@ -157,7 +157,7 @@ export function Dialog({ title, children, close, locked = false }) {
   return (
     <dialog
       ref={ref}
-      className="app-dialog"
+      className={`app-dialog ${className}`}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault()

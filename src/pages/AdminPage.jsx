@@ -1,6 +1,6 @@
 import { dateLabel, money } from '../utils/format'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { MfaChallenge } from '../components/workspace/MfaChallenge'
@@ -20,6 +20,8 @@ import { useMutation } from '../hooks/useMutation'
 import { queryPath } from '../services/workspace'
 import { RegistrationIntakes, AssistedAdmin } from './admin/AdminOperations'
 import { MasterDataTemplates } from './admin/MasterDataTemplates'
+import { AdminLayout } from '../components/admin/AdminLayout'
+import { AdminOverview } from './admin/AdminOverview'
 
 export function AdminPage() {
   const identity = useResource('/admin/me')
@@ -29,77 +31,62 @@ export function AdminPage() {
     return () =>
       window.removeEventListener('platform-mfa-required', reloadIdentity)
   }, [reloadIdentity])
-  const [tab, setTab] = useState('applications')
-  return (
-    <div className="setup-layout">
-      <header className="setup-top">
-        <BrandMark />
-        <div className="actions">
-          <Link className="button secondary" to="/app">
-            Workspace
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
-      <PageHeader
-        eyebrow="PLATFORM ADMINISTRATION"
-        title="A thoughtful start for every business."
-        description="Review applications and manage commercial offers with platform authorization."
-      />
-      {identity.loading ? (
-        <Loading />
-      ) : identity.error?.code === 'ADMIN_MFA_REQUIRED' ? (
-        <MfaChallenge verified={identity.reload} />
-      ) : identity.error ? (
-        <ErrorNotice error={identity.error} retry={identity.reload} />
-      ) : (
-        <>
-          <div
-            className="tabs"
-            role="tablist"
-            aria-label="Platform administration"
-          >
-            <button
-              role="tab"
-              aria-selected={tab === 'applications'}
-              onClick={() => setTab('applications')}
-            >
-              Applications
-            </button>
-            <button
-              role="tab"
-              aria-selected={tab === 'plan'}
-              onClick={() => setTab('plan')}
-            >
-              Standard plan
-            </button>
-            <button
-              role="tab"
-              aria-selected={tab === 'catalog'}
-              onClick={() => setTab('catalog')}
-            >
-              Permission catalog
-            </button>
-            <button role="tab" aria-selected={tab === 'registrations'} onClick={() => setTab('registrations')}>Email verification</button>
-            <button role="tab" aria-selected={tab === 'masterData'} onClick={() => setTab('masterData')}>Master data</button>
-            <button role="tab" aria-selected={tab === 'assisted'} onClick={() => setTab('assisted')}>Assisted onboarding</button>
+  const [parameters] = useSearchParams()
+  const sections = [
+    'overview',
+    'applications',
+    'plan',
+    'catalog',
+    'registrations',
+    'masterData',
+    'assisted',
+  ]
+  const requested = parameters.get('section') || 'overview'
+  const tab = sections.includes(requested) ? requested : 'overview'
+  if (identity.loading || identity.error)
+    return (
+      <div className="setup-layout">
+        <header className="setup-top">
+          <BrandMark />
+          <div className="actions">
+            <Link className="button secondary" to="/app">
+              Workspace
+            </Link>
+            <ThemeToggle />
           </div>
-          {tab === 'applications' ? (
-            <Applications />
-          ) : tab === 'plan' ? (
-            <StandardPlan />
-          ) : tab === 'catalog' ? (
-            <PermissionCatalog />
-          ) : tab === 'registrations' ? (
-            <RegistrationIntakes />
-          ) : tab === 'masterData' ? (
-            <MasterDataTemplates />
-          ) : (
-            <AssistedAdmin />
-          )}
-        </>
+        </header>
+        <PageHeader
+          eyebrow="PLATFORM ADMINISTRATION"
+          title="A thoughtful start for every business."
+          description="Review applications and manage commercial offers with platform authorization."
+        />
+        {identity.loading ? (
+          <Loading />
+        ) : identity.error?.code === 'ADMIN_MFA_REQUIRED' ? (
+          <MfaChallenge verified={identity.reload} />
+        ) : identity.error ? (
+          <ErrorNotice error={identity.error} retry={identity.reload} />
+        ) : null}
+      </div>
+    )
+  return (
+    <AdminLayout section={tab}>
+      {tab === 'overview' ? (
+        <AdminOverview />
+      ) : tab === 'applications' ? (
+        <Applications />
+      ) : tab === 'plan' ? (
+        <StandardPlan />
+      ) : tab === 'catalog' ? (
+        <PermissionCatalog />
+      ) : tab === 'registrations' ? (
+        <RegistrationIntakes />
+      ) : tab === 'masterData' ? (
+        <MasterDataTemplates />
+      ) : (
+        <AssistedAdmin />
       )}
-    </div>
+    </AdminLayout>
   )
 }
 

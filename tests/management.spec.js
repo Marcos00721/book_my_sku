@@ -212,7 +212,7 @@ test('platform MFA challenges once and retries authorization with the updated se
   await page.getByLabel('Authenticator code').fill('123456')
   await page.getByRole('button', { name: 'Verify and continue' }).click()
   await expect(
-    page.getByRole('tab', { name: 'Applications', exact: true }),
+    page.getByRole('navigation', { name: 'Platform administration' }).getByRole('link', { name: 'Applications', exact: true }),
   ).toBeVisible()
   expect(meCalls).toBeLessThan(5)
 })
@@ -259,7 +259,7 @@ test('billing extensions render the exact server preview before applying its ID'
     submitted = route.request().postDataJSON()
     return route.fulfill({ json: { data: { status: 'pending' } } })
   })
-  await page.goto('/admin')
+  await page.goto('/admin?section=applications')
   await page.getByRole('button', { name: 'Open application' }).click()
   await page
     .getByRole('button', { name: 'Preview trial / discount extension' })

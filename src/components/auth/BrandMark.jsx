@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 
-export function BrandMark() {
+export function BrandMark({ to = '/login' }) {
   return (
     <Link
-      to="/login"
+      to={to}
       aria-label="BookMySku home"
       className="inline-flex w-fit items-center rounded-control outline-none motion-safe:transition-transform hover:scale-105 focus-visible:ring-focus focus-visible:ring-primary focus-visible:ring-offset-focus focus-visible:ring-offset-brand-surface"
     >

@@ -73,7 +73,7 @@ export function WorkspaceLayout() {
         aria-label="Workspace navigation"
       >
         <div className="sidebar-brand">
-          <BrandMark />
+          <BrandMark to="/app" />
           <Action
             className="mobile-only"
             variant="icon-button"
