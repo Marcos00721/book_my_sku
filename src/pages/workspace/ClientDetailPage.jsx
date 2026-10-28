@@ -17,6 +17,7 @@ import {
 } from '../../components/workspace/Elements'
 import { ClientNameDialog } from './ClientsPage'
 import { ClientAddresses } from './ClientAddresses'
+import { ClientActivity } from './ClientActivity'
 
 export function ClientDetailPage() {
   const workspace = useWorkspace()
@@ -60,24 +61,26 @@ function ClientRecord({ path }) {
         }
       />
       <div className="tabs" role="tablist" aria-label="Client information">
-        {['contacts', 'addresses'].map((value) => (
+        {['contacts', 'addresses', ...(workspace.can('clients.history.view') ? ['activity'] : [])].map((value) => (
           <button
             key={value}
             role="tab"
             aria-selected={tab === value}
             onClick={() => setTab(value)}
           >
-            {value === 'contacts' ? 'Contacts' : 'Saved addresses'}
+            {value === 'contacts' ? 'Contacts' : value === 'activity' ? 'Activity' : 'Saved addresses'}
           </button>
         ))}
       </div>
       <section
         className="panel"
         role="tabpanel"
-        aria-label={tab === 'contacts' ? 'Contacts' : 'Saved addresses'}
+        aria-label={tab === 'contacts' ? 'Contacts' : tab === 'activity' ? 'Activity' : 'Saved addresses'}
       >
         {tab === 'contacts' ? (
           <ClientContacts path={`${path}/contacts`} />
+        ) : tab === 'activity' ? (
+          <ClientActivity key={String(workspace.can('contacts.view'))} path={path} />
         ) : (
           <ClientAddresses
             path={path}

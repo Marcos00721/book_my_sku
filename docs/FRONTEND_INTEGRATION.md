@@ -1,5 +1,12 @@
 # Frontend integration
 
+Client detail now exposes protected activity history when `clients.history.view` is
+granted. It renders server actor labels/membership, trusted origin, revisions and
+before/after values as text, with explicit coverage date, cursor pagination and
+error/empty states. Contact visibility remains server-enforced. No activity mutation,
+export, inferred actor name or verification bypass is introduced. Hosted UI/API
+validation requires deployment approval; fixture browser tests are not live evidence.
+
 Implemented against backend `main` at `4ec7a4f`, pulled on October 20, 2026 from `backend/bookMySKU`. Start future contract reviews at its maintained `docs/frontend-handoff.md`. The old `promoxcrm-webapp-prod` checkout was read for navigation and client workflows; its source, dependencies, legacy JWT handling, and legacy endpoint shapes were not copied.
 
 ## Screens and contracts
