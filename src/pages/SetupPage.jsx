@@ -4,6 +4,7 @@ import { ArrowRight, Check } from 'lucide-react'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { BillingPanel } from '../components/workspace/BillingPanel'
+import { GeographyFields } from '../components/workspace/GeographyFields'
 import {
   Action,
   ErrorNotice,
@@ -28,7 +29,8 @@ export function SetupPage() {
     return <Navigate to="/app" replace />
   if (status.data.application?.status !== 'approved')
     return <Navigate to="/register" replace />
-  if (assisted.loading) return <Loading label="Checking assisted setup…" />
+  if (import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true' && assisted.loading)
+    return <Loading label="Checking assisted setup…" />
   if (assisted.error && import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true')
     return <ErrorNotice error={assisted.error} retry={assisted.reload} />
   const assistedGrant = assisted.data?.items?.find(
@@ -185,7 +187,7 @@ function CompanyForm({ setup, saved }) {
     industry: setup.industry || '',
     asiNumber: setup.asiNumber || '',
     ...Object.fromEntries(
-      ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
+      ['line1', 'line2', 'city', 'region', 'postalCode', 'country', 'stateCode'].map(
         (key) => [key, setup.address?.[key] || ''],
       ),
     ),
@@ -213,7 +215,7 @@ function CompanyForm({ setup, saved }) {
         industry: values.industry.trim(),
         asiNumber: values.asiNumber.trim(),
         address: Object.fromEntries(
-          ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
+          ['line1', 'line2', 'city', 'postalCode', 'country', 'stateCode'].map(
             (key) => [key, values[key].trim()],
           ),
         ),
@@ -262,9 +264,7 @@ function CompanyForm({ setup, saved }) {
           <div className="form-grid">
             {[
               ['city', 'City'],
-              ['region', 'State / region (optional)'],
               ['postalCode', 'Postal code'],
-              ['country', 'Country code (two letters)'],
             ].map(([key, label]) => (
               <Field
                 key={key}
@@ -283,6 +283,7 @@ function CompanyForm({ setup, saved }) {
                 }
               />
             ))}
+            <GeographyFields values={values} change={patch => { setValues(current => ({ ...current, ...patch })); setSavedRevision(false) }} />
           </div>
         </fieldset>
         <SaveFooter

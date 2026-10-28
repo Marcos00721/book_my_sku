@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { mockSignedIn, mockOnboardingStatus } from './helpers/auth'
+import { mockGeography } from './helpers/geography'
 
 test.beforeEach(async ({ page }) => {
   // Keep browser QA independent of third-party font availability.
@@ -314,6 +315,48 @@ test('contact edits use server revisions and clear optional fields explicitly', 
   })
 })
 
+test('address creation selects supported geography and can become both defaults', async ({ page }) => {
+  await workspace(page)
+  await mockGeography(page)
+  let submitted, defaults, created = false
+  const addressId = '507f1f77bcf86cd799439062'
+  await page.route(`**/clients/${clientId}/addresses**`, route => {
+    if (route.request().method() === 'POST') {
+      submitted = route.request().postDataJSON()
+      created = true
+      return route.fulfill({ status: 201, json: { data: { id: addressId, revision: 0, ...submitted } } })
+    }
+    return route.fulfill({ json: { data: { items: created ? [{ id: addressId, revision: 0, active: true, ...submitted }] : [], next: null } } })
+  })
+  await page.route(`**/clients/${clientId}/address-defaults`, route => {
+    defaults = route.request().postDataJSON()
+    return route.fulfill({ json: { data: { ...client, __v: 3 } } })
+  })
+  await page.goto(`/app/clients/${clientId}`)
+  await page.getByRole('tab', { name: 'Saved addresses' }).click()
+  await page.getByRole('button', { name: 'Add address' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Label', {exact: true}).fill('QA Billing and Shipping')
+  await dialog.getByLabel('Use this address for').selectOption('both')
+  await dialog.getByLabel('Address line 1', {exact: true}).fill('123 Test Street')
+  await dialog.getByLabel('City', {exact: true}).fill('Austin')
+  await dialog.getByLabel('Postal code', {exact: true}).fill('78701')
+  await dialog.getByRole('combobox', {name: 'Country', exact: true}).selectOption('US')
+  await dialog.getByRole('combobox', {name: 'State', exact: true}).selectOption('US-TX')
+  await dialog.getByRole('combobox', {name: 'Country', exact: true}).selectOption('IN')
+  await expect(dialog.getByRole('combobox', {name: 'State', exact: true})).toHaveValue('')
+  await dialog.getByRole('combobox', {name: 'Country', exact: true}).selectOption('US')
+  await dialog.getByRole('combobox', {name: 'State', exact: true}).selectOption('US-TX')
+  await dialog.getByRole('button', {name: 'Save address', exact: true}).click()
+  await expect(dialog).toHaveCount(0)
+  expect(submitted.address).toMatchObject({ country: 'US', stateCode: 'US-TX', city: 'Austin', postalCode: '78701' })
+  expect(submitted.address).not.toHaveProperty('region')
+  await page.getByRole('button', {name: 'Use for both'}).click()
+  await page.getByRole('dialog').getByRole('button', {name: 'Confirm', exact: true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(defaults).toEqual({expectedVersion: 2, billing: {addressId, expectedRevision: 0}, shipping: {addressId, expectedRevision: 0}})
+})
+
 test('shared address defaults send the exact client and address revisions', async ({
   page,
 }) => {
@@ -363,6 +406,7 @@ test('shared address defaults send the exact client and address revisions', asyn
 
 async function mockSetup(page) {
   await mockSignedIn(page)
+  await mockGeography(page)
   await mockOnboardingStatus(page, application)
   await page.route('**/onboarding/setup', (route) =>
     route.fulfill({
@@ -559,12 +603,15 @@ test('company setup saves and completes with the returned revision and no storag
     .fill('1 Example Road')
   await page.getByLabel('City', { exact: true }).fill('Jaipur')
   await page.getByLabel('Postal code', { exact: true }).fill('302001')
-  await page.getByLabel('Country code (two letters)').fill('IN')
+  await page.getByRole('combobox', { name: 'Country', exact: true }).selectOption('IN')
+  await page.getByRole('combobox', { name: 'State', exact: true }).selectOption('IN-RJ')
   await page.getByRole('button', { name: 'Save company details' }).click()
   await page.getByRole('button', { name: 'Complete company setup' }).click()
   await expect.poll(() => completion?.expectedRevision).toBe(1)
   expect(patch.expectedRevision).toBe(0)
   expect(patch.address.country).toBe('IN')
+  expect(patch.address.stateCode).toBe('IN-RJ')
+  expect(patch.address).not.toHaveProperty('region')
   expect(patch).not.toHaveProperty('mode')
   await expect(page.getByLabel(/database|storage/i)).toHaveCount(0)
 })
@@ -629,6 +676,9 @@ for (const width of [375, 1440]) {
     page,
   }, testInfo) => {
     await workspace(page)
+    await page.addInitScript(() => {
+      if (!localStorage.getItem('theme')) localStorage.setItem('theme', 'light')
+    })
     await page.setViewportSize({ width, height: 1000 })
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
     await page.goto('/app')
