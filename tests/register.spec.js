@@ -31,7 +31,7 @@ async function openRegistration(page, existing = null) {
 async function fillRegistration(page) {
   await page.getByLabel('First name').fill('Alex')
   await page.getByLabel('Last name').fill('Morgan')
-  await page.getByLabel('Phone number').fill('4155550123')
+  await page.getByLabel('Phone with country code').fill('+14155550123')
   await page.getByLabel('Company name').fill('Studio Goods')
   await page.getByLabel('Company website').fill('example.com')
   await page.getByRole('checkbox').check()
@@ -92,7 +92,7 @@ test('signup waits for email confirmation before making any backend application 
   expect(backendRequests).toHaveLength(0)
 })
 
-test('registration validates six company fields and locks the verified email', async ({
+test('registration validates required fields, permits optional fields and locks the verified email', async ({
   page,
 }) => {
   await openRegistration(page)
@@ -100,28 +100,26 @@ test('registration validates six company fields and locks the verified email', a
   await expect(page.getByLabel('Email address')).not.toBeEditable()
   for (const label of [
     'First name',
-    'Last name',
-    'Phone number',
+    'Last name (optional)',
+    'Phone with country code',
     'Company name',
-    'Company website',
+    'Company website (optional)',
   ]) {
     await expect(page.getByLabel(label, { exact: true })).toBeEditable()
   }
-  const phone = page.getByLabel('Phone number')
+  const phone = page.getByLabel('Phone with country code')
   await phone.fill('+1 (415) 555-0123')
-  await expect(phone).toHaveValue('415-555-0123')
-  await phone.fill('14155550123')
-  await expect(phone).toHaveValue('415-555-0123')
+  await expect(phone).toHaveValue('+1 (415) 555-0123')
   await submit(page)
   await expect(page.getByLabel('First name')).toBeFocused()
-  await expect(page.getByLabel('Company website')).toHaveAttribute(
+  await expect(page.getByLabel('Company website')).not.toHaveAttribute(
     'aria-invalid',
     'true',
   )
   await phone.fill('415555012')
   await phone.press('Tab')
   await expect(
-    page.getByText('Enter a 10-digit US phone number.'),
+    page.getByText('Include your country code, for example +14155552671.'),
   ).toBeVisible()
   await expect(page.getByRole('checkbox')).toHaveAttribute(
     'aria-invalid',
@@ -295,7 +293,7 @@ test('rejected applications can be corrected using the latest revision', async (
   ).toBeVisible()
   await page.getByRole('button', { name: 'Correct application' }).click()
   await expect(page.getByLabel('First name')).toHaveValue('Alex')
-  await expect(page.getByLabel('Phone number')).toHaveValue('415-555-0123')
+  await expect(page.getByLabel('Phone with country code')).toHaveValue('+14155550123')
   await page.route('**/api/v1/onboarding/me', (route) => {
     write = {
       method: route.request().method(),
@@ -507,15 +505,18 @@ test('login signs in through Supabase and discovers workspaces', async ({
     route.fulfill({ json: makeSession() }),
   )
   await mockOnboardingStatus(page)
+  await page.route('**/api/v1/onboarding/journey', route => route.fulfill({ json: { data: { nextAction: 'open_workspace', invitations: {items: []} } } }))
   await page.route('**/api/v1/organizations', (route) =>
-    route.fulfill({ json: { data: { items: [], next: null } } }),
+    route.fulfill({ json: { data: { items: [{ id: application.id, name: 'Studio Goods', status: 'active', owner: true }], next: null } } }),
   )
+  await page.route('**/permissions', route => route.fulfill({ json: { data: { owner: true, grants: [] } } }))
+  await page.route('**/access', route => route.fulfill({ json: { data: { writesAllowed: true, state: 'normal' } } }))
   await page.goto('/login')
   await page.getByLabel('Email address').fill('alex@example.com')
   await page.getByLabel('Password', { exact: true }).fill('StrongPassword1')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/app')
   await expect(
-    page.getByRole('link', { name: 'Continue workspace setup' }),
+    page.getByRole('heading', { name: 'Good work starts here.' }),
   ).toBeVisible()
 })

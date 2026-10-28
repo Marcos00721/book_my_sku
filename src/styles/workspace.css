@@ -17,6 +17,7 @@
   position: absolute;
   z-index: -1;
   width: 20rem;
+  max-width: 80%;
   height: 20rem;
   content: '';
   pointer-events: none;

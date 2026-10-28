@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GeographyFields } from '../../components/workspace/GeographyFields'
 import { Copy, MapPin, Plus } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
@@ -296,13 +297,14 @@ function AddressCommand({ command, close, saved }) {
 }
 
 function AddressEditor({ path, address, close, saved }) {
+  const [geographyChanged, setGeographyChanged] = useState(false)
   const [values, setValues] = useState({
     label: address.label || '',
     companyName: address.companyName || '',
     usage: address.usage || 'billing',
     active: address.active ?? true,
     ...Object.fromEntries(
-      ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
+      ['line1', 'line2', 'city', 'region', 'postalCode', 'country', 'stateCode'].map(
         (key) => [key, address.address?.[key] || ''],
       ),
     ),
@@ -317,13 +319,17 @@ function AddressEditor({ path, address, close, saved }) {
       companyName: values.companyName.trim() || null,
       usage: values.usage,
       address: Object.fromEntries(
-        ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
+        ['line1', 'line2', 'city', 'postalCode'].map(
           (key) => [key, values[key].trim() || null],
         ),
       ),
       ...(address.id
         ? { expectedRevision: address.revision, active: values.active }
         : {}),
+    }
+    if (!address.id || geographyChanged) {
+      payload.address.country = values.country || null
+      payload.address.stateCode = values.stateCode || null
     }
     if (
       await mutation.run(
@@ -380,9 +386,7 @@ function AddressEditor({ path, address, close, saved }) {
           <div className="form-grid">
             {[
               ['city', 'City', 100],
-              ['region', 'State / region', 100],
               ['postalCode', 'Postal code', 32],
-              ['country', 'Country code', 2],
             ].map(([key, label, maxLength]) => (
               <Field
                 key={key}
@@ -401,6 +405,7 @@ function AddressEditor({ path, address, close, saved }) {
                 }
               />
             ))}
+            <GeographyFields values={values} change={patch => { setGeographyChanged(true); setValues(current => ({ ...current, ...patch })) }} />
           </div>
           {address.id && (
             <label className="check-label">
