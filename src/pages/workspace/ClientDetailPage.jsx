@@ -17,6 +17,14 @@ import {
 } from '../../components/workspace/Elements'
 import { ClientNameDialog } from './ClientsPage'
 import { ClientAddresses } from './ClientAddresses'
+import { ClientActivity } from './ClientActivity'
+import { ClientManagement } from './ClientManagement'
+import { ClientContactDefaults } from './ClientContactDefaults'
+import {
+  ConflictReview,
+  DuplicateHints,
+  MutationRetry,
+} from '../../components/workspace/RecordTools'
 
 export function ClientDetailPage() {
   const workspace = useWorkspace()
@@ -51,7 +59,8 @@ function ClientRecord({ path }) {
         description="The people and places behind your next great project."
         actions={
           workspace.can('clients.edit') &&
-          workspace.writesAllowed && (
+          workspace.writesAllowed &&
+          client.status !== 'archived' && (
             <Action variant="secondary" onClick={() => setRenaming(true)}>
               <Pencil size={15} />
               Rename client
@@ -60,24 +69,56 @@ function ClientRecord({ path }) {
         }
       />
       <div className="tabs" role="tablist" aria-label="Client information">
-        {['contacts', 'addresses'].map((value) => (
+        {[
+          'overview',
+          'contacts',
+          'addresses',
+          ...(workspace.can('clients.history.view') ? ['activity'] : []),
+        ].map((value) => (
           <button
             key={value}
             role="tab"
             aria-selected={tab === value}
             onClick={() => setTab(value)}
           >
-            {value === 'contacts' ? 'Contacts' : 'Saved addresses'}
+            {value === 'overview'
+              ? 'Overview'
+              : value === 'contacts'
+                ? 'Contacts'
+                : value === 'activity'
+                  ? 'Activity'
+                  : 'Saved addresses'}
           </button>
         ))}
       </div>
       <section
         className="panel"
         role="tabpanel"
-        aria-label={tab === 'contacts' ? 'Contacts' : 'Saved addresses'}
+        aria-label={
+          tab === 'contacts'
+            ? 'Contacts'
+            : tab === 'activity'
+              ? 'Activity'
+              : 'Saved addresses'
+        }
       >
-        {tab === 'contacts' ? (
-          <ClientContacts path={`${path}/contacts`} />
+        {tab === 'overview' ? (
+          <ClientManagement
+            path={path}
+            client={client}
+            reload={resource.reload}
+          />
+        ) : tab === 'contacts' ? (
+          <ClientContacts
+            path={`${path}/contacts`}
+            archived={client.status === 'archived'}
+            reloadClient={resource.reload}
+          />
+        ) : tab === 'activity' ? (
+          <ClientActivity
+            key={String(workspace.can('contacts.view'))}
+            path={path}
+          />
         ) : (
           <ClientAddresses
             path={path}
@@ -101,13 +142,16 @@ function ClientRecord({ path }) {
   )
 }
 
-function ClientContacts({ path }) {
+function ClientContacts({ path, archived, reloadClient }) {
   const workspace = useWorkspace()
   const [editing, setEditing] = useState(null)
   const [version, setVersion] = useState(0)
+  const [state, setState] = useState('active')
+  const lifecycle = useMutation()
   if (!workspace.can('contacts.view')) return <PermissionDenied />
   const create = workspace.can('contacts.create') &&
-    workspace.writesAllowed && (
+    workspace.writesAllowed &&
+    !archived && (
       <Action onClick={() => setEditing({})}>
         <Plus size={16} />
         Add contact
@@ -122,8 +166,34 @@ function ClientContacts({ path }) {
         </div>
         {create}
       </div>
-      <Directory
+      <Field
+        label="Contact status"
+        value={state}
+        onChange={(event) => setState(event.target.value)}
+      >
+        <option value="active">Active</option>
+        <option value="inactive">Archived</option>
+        <option value="all">All</option>
+      </Field>
+      <ErrorNotice error={lifecycle.error} />
+      <MutationRetry
+        mutation={lifecycle}
+        saved={() => {
+          setVersion((value) => value + 1)
+          reloadClient()
+        }}
+      />
+      <ClientContactDefaults
         key={version}
+        path={path}
+        editable={
+          !archived && workspace.can('contacts.edit') && workspace.writesAllowed
+        }
+        saved={reloadClient}
+      />
+      <Directory
+        key={`${version}:${state}`}
+        filters={{ state }}
         path={path}
         label="Contacts"
         emptyAction={create}
@@ -150,12 +220,44 @@ function ClientContacts({ path }) {
                     <td>{contact.phone || '—'}</td>
                     <td>
                       {workspace.can('contacts.edit') &&
-                        workspace.writesAllowed && (
+                        workspace.writesAllowed &&
+                        !archived &&
+                        contact.active !== false && (
                           <Action
                             variant="secondary"
                             onClick={() => setEditing(contact)}
                           >
                             Edit
+                          </Action>
+                        )}
+                      {workspace.can('contacts.edit') &&
+                        workspace.writesAllowed &&
+                        !archived && (
+                          <Action
+                            variant="secondary"
+                            disabled={lifecycle.pending || lifecycle.uncertain}
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  contact.active === false
+                                    ? 'Restore this contact without restoring previous defaults?'
+                                    : 'Archive this contact and clear any defaults using it?',
+                                )
+                              )
+                                return
+                              if (
+                                await lifecycle.run(
+                                  'post',
+                                  `${path}/${contact._id}/${contact.active === false ? 'restore' : 'archive'}`,
+                                  { expectedVersion: contact.__v },
+                                )
+                              ) {
+                                setVersion((value) => value + 1)
+                                reloadClient()
+                              }
+                            }}
+                          >
+                            {contact.active === false ? 'Restore' : 'Archive'}
                           </Action>
                         )}
                     </td>
@@ -189,6 +291,7 @@ function ContactEditor({ path, contact, close, saved }) {
     jobTitle: contact.jobTitle || '',
   })
   const mutation = useMutation()
+  const [version, setVersion] = useState(contact.__v)
   async function submit(event) {
     event.preventDefault()
     const payload = {
@@ -196,7 +299,7 @@ function ContactEditor({ path, contact, close, saved }) {
       email: values.email.trim() || null,
       phone: values.phone.trim() || null,
       jobTitle: values.jobTitle.trim() || null,
-      ...(contact._id ? { expectedVersion: contact.__v } : {}),
+      ...(contact._id ? { expectedVersion: version } : {}),
     }
     const result = await mutation.run(
       contact._id ? 'patch' : 'post',
@@ -232,6 +335,17 @@ function ContactEditor({ path, contact, close, saved }) {
             />
           ))}
         </fieldset>
+        <DuplicateHints
+          path={`${path}/duplicate-candidates`}
+          query={values.email.trim() ? { email: values.email.trim() } : null}
+          labelFor={(item) => item.name}
+        />
+        <ConflictReview
+          error={mutation.error}
+          path={contact._id ? `${path}/${contact._id}` : null}
+          values={values}
+          onReview={(current) => setVersion(current.__v)}
+        />
         <SaveFooter
           mutation={mutation}
           close={close}

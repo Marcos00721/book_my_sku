@@ -26,7 +26,7 @@ export function useResource(path) {
   }, [path, version])
   // A changed URL never exposes data from the previous organization or filter.
   return {
-    ...(state.path === path
+    ...(!path ? { data: null, error: null, loading: false } : state.path === path
       ? state
       : { data: null, error: null, loading: Boolean(path) }),
     reload,

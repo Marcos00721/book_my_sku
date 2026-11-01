@@ -229,8 +229,8 @@ export function ResetPasswordPage() {
           <div className="space-y-md">
             <p role="status" className="rounded-control border border-border-subtle bg-surface-muted p-md text-sm leading-relaxed">
               {signOutFailed
-                ? 'Your password changed, but this browser could not end the recovery session. Sign out, then sign in with your new password and return to /admin.'
-                : 'Sign in with your new password, then return to /admin to enroll or verify TOTP.'}
+                ? 'Your password changed, but this browser could not end the recovery session. Sign out, then sign in with your new password to continue to your account.'
+                : 'Sign in with your new password to continue to your account.'}
             </p>
             <Link to="/login" className="app-link inline-flex min-h-touch items-center text-sm">
               Back to sign in

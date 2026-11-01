@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test'
+import process from 'node:process'
 
 export default defineConfig({
   testDir: './tests',
@@ -16,6 +17,6 @@ export default defineConfig({
       VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_browser_test_key',
     },
     url: 'http://127.0.0.1:5174',
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_TEST_SERVER === 'true',
   },
 })

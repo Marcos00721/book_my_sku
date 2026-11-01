@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GeographyFields } from '../../components/workspace/GeographyFields'
 import { Copy, MapPin, Plus } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
@@ -24,7 +25,10 @@ export function ClientAddresses({ path, client, reloadClient }) {
   const resource = useResource(
     queryPath(`${path}/addresses`, { state, after: history.at(-1), limit: 25 }),
   )
-  const editable = workspace.can('clients.edit') && workspace.writesAllowed
+  const editable =
+    workspace.can('clients.edit') &&
+    workspace.writesAllowed &&
+    client.status !== 'archived'
   function saved() {
     setEditing(null)
     setCommand(null)
@@ -145,6 +149,13 @@ export function ClientAddresses({ path, client, reloadClient }) {
                 <Status value={address.active ? 'active' : 'inactive'} />
               </div>
               <h3>{address.label || 'Untitled address'}</h3>
+              {address.readiness && (
+                <p className="muted">
+                  {address.readiness.complete
+                    ? 'Complete for use; delivery unverified'
+                    : `Draft: ${(address.readiness.missingFields || []).join(', ')}`}
+                </p>
+              )}
               <small className="muted">
                 {address.usage === 'both'
                   ? 'Billing & shipping · shared record'
@@ -296,15 +307,22 @@ function AddressCommand({ command, close, saved }) {
 }
 
 function AddressEditor({ path, address, close, saved }) {
+  const [geographyChanged, setGeographyChanged] = useState(false)
   const [values, setValues] = useState({
     label: address.label || '',
     companyName: address.companyName || '',
     usage: address.usage || 'billing',
     active: address.active ?? true,
     ...Object.fromEntries(
-      ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
-        (key) => [key, address.address?.[key] || ''],
-      ),
+      [
+        'line1',
+        'line2',
+        'city',
+        'region',
+        'postalCode',
+        'country',
+        'stateCode',
+      ].map((key) => [key, address.address?.[key] || '']),
     ),
   })
   const mutation = useMutation()
@@ -317,13 +335,18 @@ function AddressEditor({ path, address, close, saved }) {
       companyName: values.companyName.trim() || null,
       usage: values.usage,
       address: Object.fromEntries(
-        ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
-          (key) => [key, values[key].trim() || null],
-        ),
+        ['line1', 'line2', 'city', 'postalCode'].map((key) => [
+          key,
+          values[key].trim() || null,
+        ]),
       ),
       ...(address.id
         ? { expectedRevision: address.revision, active: values.active }
         : {}),
+    }
+    if (!address.id || geographyChanged) {
+      payload.address.country = values.country || null
+      payload.address.stateCode = values.stateCode || null
     }
     if (
       await mutation.run(
@@ -380,9 +403,7 @@ function AddressEditor({ path, address, close, saved }) {
           <div className="form-grid">
             {[
               ['city', 'City', 100],
-              ['region', 'State / region', 100],
               ['postalCode', 'Postal code', 32],
-              ['country', 'Country code', 2],
             ].map(([key, label, maxLength]) => (
               <Field
                 key={key}
@@ -401,6 +422,13 @@ function AddressEditor({ path, address, close, saved }) {
                 }
               />
             ))}
+            <GeographyFields
+              values={values}
+              change={(patch) => {
+                setGeographyChanged(true)
+                setValues((current) => ({ ...current, ...patch }))
+              }}
+            />
           </div>
           {address.id && (
             <label className="check-label">

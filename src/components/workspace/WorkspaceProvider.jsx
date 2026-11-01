@@ -96,9 +96,6 @@ function WorkspaceSession({ session, children }) {
         <header className="setup-top">
           <BrandMark />
           <div className="actions">
-            <Link className="button secondary" to="/admin">
-              Platform administration
-            </Link>
             <ThemeToggle />
           </div>
         </header>
@@ -166,7 +163,7 @@ function WorkspaceSession({ session, children }) {
     session,
     organization,
     organizations: items,
-    selectOrganization: setSelectedId,
+    selectOrganization: id => { if (!window.dispatchEvent(new Event('workspace-before-switch', { cancelable:true }))) return false; setSelectedId(id); return true },
     base,
     owner,
     can,

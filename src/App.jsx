@@ -100,6 +100,8 @@ const MasterDataPage = lazy(() =>
     default: page.MasterDataPage,
   })),
 );
+const ProductsPage = lazy(() => import('./pages/workspace/ProductsPage').then(page => ({ default: page.ProductsPage })));
+const ProductDetailPage = lazy(() => import('./pages/workspace/ProductsPage').then(page => ({ default: page.ProductDetailPage })));
 
 export default function App() {
   return (
@@ -166,6 +168,8 @@ export default function App() {
             element={<SupplierDetailPage />}
           />
           <Route path="master-data" element={<MasterDataPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products/:productId" element={<ProductDetailPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="billing" element={<BillingPage />} />

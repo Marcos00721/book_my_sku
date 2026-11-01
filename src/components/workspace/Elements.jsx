@@ -146,22 +146,70 @@ export function Field({ label, children, hint, ...props }) {
   )
 }
 
-export function Dialog({ title, children, close, locked = false, className = '' }) {
+export function Dialog({
+  title,
+  children,
+  close,
+  locked = false,
+  className = '',
+}) {
   const ref = useRef(null)
+  const dirty = useRef(false)
   const titleId = useId()
+  function allowDiscard() {
+    return (
+      !dirty.current ||
+      window.confirm(
+        'Discard unsaved changes? Choose Cancel to stay and save your draft.',
+      )
+    )
+  }
   useEffect(() => {
     const node = ref.current
     node.showModal()
-    return () => node.close()
+    const topmost = () =>
+      [...document.querySelectorAll('dialog[open]')].at(-1) === node
+    const beforeUnload = (event) => {
+      if (dirty.current) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+    const navigation = (event) => {
+      if (
+        topmost() &&
+        dirty.current &&
+        !window.confirm('Discard unsaved changes and leave this form?')
+      ) {
+        event.preventDefault()
+        event.stopPropagation()
+      } else if (topmost()) dirty.current = false
+    }
+    const link = (event) => {
+      if (event.target.closest('a[href]')) navigation(event)
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    window.addEventListener('workspace-before-switch', navigation)
+    document.addEventListener('click', link, true)
+    return () => {
+      node.close()
+      window.removeEventListener('beforeunload', beforeUnload)
+      window.removeEventListener('workspace-before-switch', navigation)
+      document.removeEventListener('click', link, true)
+    }
   }, [])
   return (
     <dialog
       ref={ref}
       className={`app-dialog ${className}`}
       aria-labelledby={titleId}
+      onInputCapture={() => {
+        dirty.current = true
+        ref.current.dataset.dirty = 'true'
+      }}
       onCancel={(event) => {
         event.preventDefault()
-        if (!locked) close()
+        if (!locked && allowDiscard()) close()
       }}
     >
       <header>
@@ -170,7 +218,9 @@ export function Dialog({ title, children, close, locked = false, className = '' 
           variant="icon-button"
           aria-label="Close dialog"
           disabled={locked}
-          onClick={close}
+          onClick={() => {
+            if (allowDiscard()) close()
+          }}
         >
           <X size={20} />
         </Action>
@@ -199,7 +249,16 @@ export function SaveFooter({
           <Action
             variant="secondary"
             disabled={mutation.pending || mutation.uncertain}
-            onClick={close}
+            onClick={(event) => {
+              if (
+                event.currentTarget.closest('dialog')?.dataset.dirty !==
+                  'true' ||
+                window.confirm(
+                  'Discard unsaved changes? Choose Cancel to keep editing.',
+                )
+              )
+                close()
+            }}
           >
             Cancel
           </Action>

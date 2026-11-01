@@ -16,7 +16,7 @@
 .setup-layout::after {
   position: absolute;
   z-index: -1;
-  width: 20rem;
+  width: min(20rem, 80%);
   height: 20rem;
   content: '';
   pointer-events: none;
@@ -1010,3 +1010,8 @@
     transition: none;
   }
 }
+:where(.field textarea) { width: 100%; min-height: 7rem; resize: vertical; padding: .75rem; color: rgb(var(--color-text-base)); background: rgb(var(--color-surface)); border: 1px solid rgb(var(--color-border-control)); border-radius: var(--radius-control); font: inherit; }
+.plain-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-card, .activity-event { padding: 1rem; margin-block: 1rem; border: 1px solid rgb(var(--color-border-subtle)); border-radius: var(--radius-card); overflow-wrap: anywhere; }
+.reference-picker { display: grid; gap: .5rem; margin-block: .75rem; }
+.detail-list dd, .notice, .address-card { overflow-wrap: anywhere; }

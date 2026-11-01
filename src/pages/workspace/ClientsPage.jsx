@@ -6,6 +6,11 @@ import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useMutation } from '../../hooks/useMutation'
 import { Directory } from '../../components/workspace/Directory'
 import {
+  ConflictReview,
+  DuplicateHints,
+  ReferenceSelect,
+} from '../../components/workspace/RecordTools'
+import {
   Action,
   Dialog,
   Field,
@@ -19,6 +24,7 @@ export function ClientsPage() {
   const workspace = useWorkspace()
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
+  const [state, setState] = useState('active')
   if (!workspace.can('clients.view')) return <PermissionDenied />
   const create = workspace.can('clients.create') && workspace.writesAllowed && (
     <Action onClick={() => setCreating(true)}>
@@ -34,7 +40,19 @@ export function ClientsPage() {
         actions={create}
       />
       <section className="panel">
+        <Field
+          label="Client status"
+          value={state}
+          onChange={(event) => setState(event.target.value)}
+        >
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+          <option value="all">All</option>
+        </Field>
         <Directory
+          key={state}
+          filters={{ state }}
+          caseSensitive={false}
           path={`${workspace.base}/clients`}
           label="Clients"
           emptyAction={create}
@@ -65,6 +83,11 @@ export function ClientsPage() {
                           </span>
                           {client.name}
                         </Link>
+                        <small>
+                          {[client.clientCode, client.accountLabel]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </small>
                       </td>
                       <td>
                         <Status value={client.status} />
@@ -100,12 +123,28 @@ export function ClientsPage() {
 
 export function ClientNameDialog({ path, client, close, saved }) {
   const [name, setName] = useState(client?.name || '')
+  const [website, setWebsite] = useState(client?.website || '')
+  const [accountLabel, setAccountLabel] = useState(client?.accountLabel || '')
+  const [industryId, setIndustryId] = useState(client?.industryId || '')
+  const [version, setVersion] = useState(client?.__v)
+  const workspace = useWorkspace()
   const mutation = useMutation()
   async function submit(event) {
     event.preventDefault()
-    const result = await mutation.run(client ? 'patch' : 'post', path, {
+    const fields = {
       name: name.trim(),
-      ...(client ? { expectedVersion: client.__v } : {}),
+      website: website.trim() || null,
+      accountLabel: accountLabel.trim() || null,
+      industryId: industryId || null,
+    }
+    const payload = Object.fromEntries(
+      Object.entries(fields).filter(([key, value]) =>
+        client ? value !== (client[key] ?? null) : value != null,
+      ),
+    )
+    const result = await mutation.run(client ? 'patch' : 'post', path, {
+      ...payload,
+      ...(client ? { expectedVersion: version } : {}),
     })
     if (result) saved(result.data)
   }
@@ -124,6 +163,38 @@ export function ClientNameDialog({ path, client, close, saved }) {
           value={name}
           onChange={(event) => setName(event.target.value)}
           disabled={mutation.pending || mutation.uncertain}
+        />
+        <fieldset disabled={mutation.pending || mutation.uncertain}>
+          <Field
+            label="Account label (optional)"
+            value={accountLabel}
+            maxLength={120}
+            onChange={(event) => setAccountLabel(event.target.value)}
+          />
+          <Field
+            label="Website (optional)"
+            type="url"
+            value={website}
+            maxLength={300}
+            onChange={(event) => setWebsite(event.target.value)}
+          />
+          <ReferenceSelect
+            path={`${workspace.base}/clients/industry-options`}
+            label="Client industry"
+            value={industryId}
+            onChange={setIndustryId}
+          />
+          <DuplicateHints
+            path={`${workspace.base}/clients/duplicate-candidates`}
+            query={name.trim() ? { name: name.trim() } : null}
+            to="/app/clients"
+          />
+        </fieldset>
+        <ConflictReview
+          error={mutation.error}
+          path={client ? path : null}
+          values={{ name, website, accountLabel, industryId }}
+          onReview={(current) => setVersion(current.__v)}
         />
         <SaveFooter
           mutation={mutation}

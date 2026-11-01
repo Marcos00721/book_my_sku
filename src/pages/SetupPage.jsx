@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDraftGuard } from '../hooks/useDraftGuard'
+import { useJourneyStatus } from '../hooks/useJourneyStatus'
+import { useNavigate } from 'react-router-dom'
+import { api } from '../services/api'
+import { getAuthClient } from '../services/auth'
+import { createOnboardingCoordinator } from '../services/onboardingCoordinator'
+import { ConflictReview } from '../components/workspace/RecordTools'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { BillingPanel } from '../components/workspace/BillingPanel'
+import { GeographyFields } from '../components/workspace/GeographyFields'
 import {
   Action,
   ErrorNotice,
@@ -18,22 +26,32 @@ import { useMutation } from '../hooks/useMutation'
 
 export function SetupPage() {
   const status = useResource('/onboarding/me')
+  const journey = useJourneyStatus()
   const assisted = useResource(
-    import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true' ? '/assisted' : null,
+    import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true'
+      ? '/assisted'
+      : null,
   )
   if (status.loading) return <Loading label="Loading your setup progress…" />
   if (status.error)
     return <ErrorNotice error={status.error} retry={status.reload} />
-  if (status.data.organization?.status === 'active')
-    return <Navigate to="/app" replace />
-  if (status.data.application?.status !== 'approved')
-    return <Navigate to="/register" replace />
-  if (assisted.loading) return <Loading label="Checking assisted setup…" />
-  if (assisted.error && import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true')
+  if (
+    import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true' &&
+    assisted.loading
+  )
+    return <Loading label="Checking assisted setup…" />
+  if (
+    assisted.error &&
+    import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === 'true'
+  )
     return <ErrorNotice error={assisted.error} retry={assisted.reload} />
   const assistedGrant = assisted.data?.items?.find(
     (item) => item.scope === 'organization' && item.state === 'accepted',
   )
+  if (status.data.organization?.status === 'active' && !assistedGrant)
+    return <Navigate to="/app" replace />
+  if (status.data.application?.status !== 'approved' && !assistedGrant)
+    return <Navigate to="/register" replace />
   return (
     <div className="setup-layout">
       <header className="setup-top">
@@ -53,20 +71,47 @@ export function SetupPage() {
       <div className="setup-progress">
         <span className="done">
           <Check size={15} />
-          Application approved
+          {assistedGrant ? 'Invitation accepted' : 'Application approved'}
         </span>
         <span>2 · Payment setup</span>
         <span>3 · Company details</span>
         <span>4 · Activate workspace</span>
       </div>
+      <ErrorNotice error={journey.error} retry={journey.reload} />
+      {journey.data && (
+        <p className="notice">
+          Next step: {String(journey.data.nextAction).replaceAll('_', ' ')}.{' '}
+          <Action
+            variant="text-button"
+            onClick={() => {
+              journey.reload()
+              status.reload()
+            }}
+          >
+            Check current status
+          </Action>
+        </p>
+      )}
       {assistedGrant ? (
-        <section className="panel"><h2>Assisted billing checklist</h2><p className="muted">Future billing consent and card setup are separate from the standard subscription flow.</p><Link className="button secondary" to="/assisted">Review assisted billing</Link></section>
+        <section className="panel">
+          <h2>Assisted billing checklist</h2>
+          <p className="muted">
+            Future billing consent and card setup are separate from the standard
+            subscription flow.
+          </p>
+          <Link className="button secondary" to="/assisted">
+            Review assisted billing
+          </Link>
+        </section>
       ) : (
-        <BillingPanel applicationId={status.data.application.id} changed={status.reload} />
+        <BillingPanel
+          applicationId={status.data.application.id}
+          changed={status.reload}
+        />
       )}
       <CompanySetup
         organization={status.data.organization}
-        applicationId={status.data.application.id}
+        applicationId={status.data.application?.id}
         assistedGrantId={assistedGrant?.id}
         changed={status.reload}
       />
@@ -74,9 +119,16 @@ export function SetupPage() {
   )
 }
 
-function CompanySetup({ organization, applicationId, assistedGrantId, changed }) {
+function CompanySetup({
+  organization,
+  applicationId,
+  assistedGrantId,
+  changed,
+}) {
   const resource = useResource('/onboarding/setup')
-  const billing = useResource(assistedGrantId ? null : `/applications/${applicationId}/billing`)
+  const billing = useResource(
+    assistedGrantId ? null : `/applications/${applicationId}/billing`,
+  )
   const mutation = useMutation()
   const preparation = useMutation()
   const [editing, setEditing] = useState(false)
@@ -95,7 +147,9 @@ function CompanySetup({ organization, applicationId, assistedGrantId, changed })
       changed()
   }
   async function prepare() {
-    const path = assistedGrantId ? `/assisted/${assistedGrantId}/prepare` : '/onboarding/setup/prepare'
+    const path = assistedGrantId
+      ? `/assisted/${assistedGrantId}/prepare`
+      : '/onboarding/setup/prepare'
     if (await preparation.run('post', path, {})) changed()
   }
   const versionTwo = billing.data?.flowVersion === 2
@@ -123,13 +177,18 @@ function CompanySetup({ organization, applicationId, assistedGrantId, changed })
             </div>
           )}
           <ErrorNotice error={mutation.error} />
-          {billing.error && <ErrorNotice error={billing.error} retry={billing.reload} />}
+          {billing.error && (
+            <ErrorNotice error={billing.error} retry={billing.reload} />
+          )}
           <ErrorNotice error={preparation.error} retry={resource.reload} />
           <div className="actions">
             {!assistedGrantId && billing.loading ? (
               <Loading label="Checking the billing flow…" />
             ) : !assistedGrantId && billing.error ? (
-              <p className="notice">Billing status must load before continuing. Refresh it to avoid starting the wrong setup flow.</p>
+              <p className="notice">
+                Billing status must load before continuing. Refresh it to avoid
+                starting the wrong setup flow.
+              </p>
             ) : organization?.provisioning?.state === 'in_progress' ? (
               <Action variant="secondary" onClick={changed}>
                 Refresh activation status
@@ -139,13 +198,29 @@ function CompanySetup({ organization, applicationId, assistedGrantId, changed })
                 This workspace needs operator review. Contact support with the
                 reference above.
               </p>
+            ) : organization?.status === 'active' ? (
+              <p className="notice">Your workspace is active. Company details and future billing requirements remain separate.</p>
             ) : stagedFlow && organization?.status !== 'prepared' ? (
-              <Action disabled={preparation.pending || preparation.uncertain || Boolean(billing.error)} onClick={prepare}>
-                {preparation.pending ? 'Preparing workspace…' : preparation.uncertain ? 'Retry preparation' : 'Prepare workspace'}
+              <Action
+                disabled={
+                  preparation.pending ||
+                  preparation.uncertain ||
+                  Boolean(billing.error)
+                }
+                onClick={prepare}
+              >
+                {preparation.pending
+                  ? 'Preparing workspace…'
+                  : preparation.uncertain
+                    ? 'Retry preparation'
+                    : 'Prepare workspace'}
                 <ArrowRight size={16} />
               </Action>
             ) : stagedFlow ? (
-              <p className="notice">Workspace preparation is complete. Start your subscription explicitly in the billing panel when you are ready.</p>
+              <p className="notice">
+                Workspace preparation is complete. Start your subscription
+                explicitly in the billing panel when you are ready.
+              </p>
             ) : (
               <Action disabled={mutation.pending} onClick={activate}>
                 {mutation.pending
@@ -185,16 +260,112 @@ function CompanyForm({ setup, saved }) {
     industry: setup.industry || '',
     asiNumber: setup.asiNumber || '',
     ...Object.fromEntries(
-      ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
-        (key) => [key, setup.address?.[key] || ''],
-      ),
+      [
+        'line1',
+        'line2',
+        'city',
+        'region',
+        'postalCode',
+        'country',
+        'stateCode',
+      ].map((key) => [key, setup.address?.[key] || '']),
     ),
   })
   const [revision, setRevision] = useState(setup.revision)
   const [savedRevision, setSavedRevision] = useState(setup.revision > 0)
-  const mutation = useMutation()
-  const completion = useMutation()
+  const [edited, setEdited] = useState(false)
+  useDraftGuard(edited)
+  const [coordinator, setCoordinator] = useState(null)
+  const factory = useRef(null)
+  const [state, setState] = useState({
+    pending: false,
+    error: null,
+    uncertain: false,
+  })
+  const navigate = useNavigate()
+  const mutation = state
+  const completion = state
+  useEffect(() => {
+    let active = true
+    async function initialize() {
+      try {
+        const { data } = await getAuthClient().auth.getSession()
+        const subject = data.session?.user.id
+        const journey = (await api.get('/onboarding/journey')).data
+        if (!journey.actorId || !subject)
+          throw new Error(
+            'Your setup identity could not be confirmed. Reload your session.',
+          )
+        factory.current = (reviewed) => {
+          let seed = reviewed
+          return createOnboardingCoordinator({
+            allowCompletedEdits: setup.complete && !setup.locked,
+            actorId: journey.actorId,
+            currentActorId: () => (active ? journey.actorId : null),
+            withLock: async (name, task) => {
+              if (!navigator.locks)
+                throw new Error(
+                  'This browser cannot coordinate setup across tabs. Use a browser with Web Locks support.',
+                )
+              return navigator.locks.request(name, task)
+            },
+            request: async (method, path, body) => {
+              const current = await getAuthClient().auth.getSession()
+              if (current.data.session?.user.id !== subject)
+                throw new Error(
+                  'Your account changed. Reload setup before continuing.',
+                )
+              if (method === 'GET' && path === '/onboarding/setup' && seed) {
+                const result = seed
+                seed = null
+                return result
+              }
+              return (await api[method.toLowerCase()](path, body)).data
+            },
+            refreshPermissions: async (workspaces) => {
+              for (const org of workspaces.items.filter(
+                (item) => item.status === 'active',
+              ))
+                await Promise.all([
+                  api.get(`/organizations/${org.id}/permissions`),
+                  api.get(`/organizations/${org.id}/access`),
+                ])
+              window.dispatchEvent(new Event('workspace-access-changed'))
+            },
+          })
+        }
+        const instance = factory.current()
+        const current = await instance.load()
+        if (active) {
+          setValues({
+            industry: current.industry || '',
+            asiNumber: current.asiNumber || '',
+            ...Object.fromEntries(
+              [
+                'line1',
+                'line2',
+                'city',
+                'region',
+                'postalCode',
+                'country',
+                'stateCode',
+              ].map((key) => [key, current.address?.[key] || '']),
+            ),
+          })
+          setRevision(current.revision)
+          setCoordinator(instance)
+        }
+      } catch (error) {
+        if (active) setState({ pending: false, error, uncertain: false })
+      }
+    }
+    void initialize()
+    return () => {
+      active = false
+    }
+  }, [setup.complete, setup.locked])
   const locked =
+    !coordinator ||
     mutation.pending ||
     mutation.uncertain ||
     completion.pending ||
@@ -202,27 +373,70 @@ function CompanyForm({ setup, saved }) {
   const set = (key, value) => {
     setValues((current) => ({ ...current, [key]: value }))
     setSavedRevision(false)
+    setEdited(true)
   }
-  async function save(event) {
-    event.preventDefault()
-    const result = await mutation.run(
-      'patch',
-      '/onboarding/setup',
-      {
-        expectedRevision: revision,
+  const save = useCallback(
+    async (event) => {
+      event?.preventDefault()
+      if (!coordinator) return
+      setState({ pending: true, error: null, uncertain: false })
+      try {
+        coordinator.edit({
+          industry: values.industry.trim(),
+          asiNumber: values.asiNumber.trim(),
+          address: Object.fromEntries(
+            [
+              'line1',
+              'line2',
+              'city',
+              'postalCode',
+              'country',
+              'stateCode',
+            ].map((key) => [key, values[key].trim()]),
+          ),
+        })
+        const result = await coordinator.save()
+        setRevision(result.revision)
+        setSavedRevision(true)
+        setEdited(false)
+        setState({ pending: false, error: null, uncertain: false })
+      } catch (error) {
+        setState({ pending: false, error, uncertain: false })
+      }
+    },
+    [coordinator, values],
+  )
+  useEffect(() => {
+    if (!edited || !coordinator || state.pending || state.error) return
+    const timer = setTimeout(() => {
+      void save()
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [edited, coordinator, state.pending, state.error, save])
+  async function finish() {
+    if (!coordinator) return
+    setState({ pending: true, error: null, uncertain: false })
+    try {
+      coordinator.edit({
         industry: values.industry.trim(),
         asiNumber: values.asiNumber.trim(),
         address: Object.fromEntries(
-          ['line1', 'line2', 'city', 'region', 'postalCode', 'country'].map(
+          ['line1', 'line2', 'city', 'postalCode', 'country', 'stateCode'].map(
             (key) => [key, values[key].trim()],
           ),
         ),
-      },
-      { idempotent: false },
-    )
-    if (result) {
-      setRevision(result.data.revision)
-      setSavedRevision(true)
+      })
+      const journey = await coordinator.finish()
+      setState({ pending: false, error: null, uncertain: false })
+      if (['open_workspace', 'choose_workspace'].includes(journey.nextAction))
+        navigate('/app')
+      else saved()
+    } catch (error) {
+      setState({
+        pending: false,
+        error,
+        uncertain: !error.status || error.status >= 500,
+      })
     }
   }
   return (
@@ -262,9 +476,7 @@ function CompanyForm({ setup, saved }) {
           <div className="form-grid">
             {[
               ['city', 'City'],
-              ['region', 'State / region (optional)'],
               ['postalCode', 'Postal code'],
-              ['country', 'Country code (two letters)'],
             ].map(([key, label]) => (
               <Field
                 key={key}
@@ -283,48 +495,83 @@ function CompanyForm({ setup, saved }) {
                 }
               />
             ))}
+            <GeographyFields
+              values={values}
+              change={(patch) => {
+                setValues((current) => ({ ...current, ...patch }))
+                setSavedRevision(false)
+                setEdited(true)
+              }}
+            />
           </div>
         </fieldset>
         <SaveFooter
           mutation={mutation}
           label="Save company details"
-          disabled={completion.pending || completion.uncertain}
+          disabled={!coordinator || completion.pending || completion.uncertain}
         />
       </form>
       <ErrorNotice error={completion.error} />
-      {(mutation.error?.status === 409 || completion.error?.status === 409) && (
-        <Action variant="secondary" onClick={saved}>
-          Reload latest setup
-        </Action>
+      {state.error && (
+        <p className="notice">
+          Your entered details are preserved. Review the latest setup before
+          retrying. Support reference:{' '}
+          {state.error.requestId || state.error.code || 'unavailable'}
+        </p>
       )}
-      {savedRevision && (
+      <ConflictReview
+        error={state.error}
+        path="/onboarding/setup"
+        values={{
+          industry: values.industry,
+          asiNumber: values.asiNumber,
+          address: Object.fromEntries(
+            [
+              'line1',
+              'line2',
+              'city',
+              'postalCode',
+              'country',
+              'stateCode',
+            ].map((key) => [key, values[key]]),
+          ),
+        }}
+        onReview={async (current) => {
+          try {
+            const instance = factory.current(current)
+            await instance.load()
+            setCoordinator(instance)
+            setRevision(current.revision)
+            setState({ pending: false, error: null, uncertain: false })
+          } catch (error) {
+            setState({
+              pending: false,
+              error,
+              uncertain: !error.status || error.status >= 500,
+            })
+          }
+        }}
+      />
+      <small className="muted">Saved revision {revision}</small>
+      {coordinator && (
         <div className="notice">
           <div>
             <p>
-              Details saved. Industry, street, city, postal code, and country
-              are required to complete setup.
+              {savedRevision ? 'Details saved. ' : ''}Finish saves and completes
+              these details, then checks the next workspace step. Subscription
+              consent remains separate.
             </p>
             <Action
               disabled={
                 mutation.pending || mutation.uncertain || completion.pending
               }
-              onClick={async () => {
-                if (
-                  await completion.run(
-                    'post',
-                    '/onboarding/setup/complete',
-                    { expectedRevision: revision },
-                    { idempotent: false },
-                  )
-                )
-                  saved()
-              }}
+              onClick={finish}
             >
               {completion.pending
                 ? 'Completing…'
                 : completion.uncertain
                   ? 'Retry completion'
-                  : 'Complete company setup'}
+                  : 'Finish setup'}
             </Action>
           </div>
         </div>

@@ -4,6 +4,13 @@ import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
 import { readData } from '../../services/workspace'
 import {
+  ActivityHistory,
+  ConflictReview,
+  Pager,
+} from '../../components/workspace/RecordTools'
+const valueText = (value) =>
+  value == null || value === '' ? 'Not set' : String(value)
+import {
   Action,
   Dialog,
   Empty,
@@ -48,8 +55,68 @@ export function MasterDataTemplates() {
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [historyVersion, setHistoryVersion] = useState(0)
+  const [preview, setPreview] = useState(null)
   const publish = useMutation()
   const draft = savedDraft || resource.data
+
+  async function reviewPublication() {
+    setRefreshing(true)
+    setError(null)
+    try {
+      const current = await readData('/admin/master-data/draft')
+      setSavedDraft(current)
+      let prior = { entries: [] }
+      if (current.version > 0) {
+        let after = ''
+        const seen = new Set()
+        for (;;) {
+          const page = await readData(
+            `/admin/master-data/versions?limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}`,
+          )
+          const match = page.items.find(
+            (item) => item.version === current.version,
+          )
+          if (match) {
+            prior = await readData(`/admin/master-data/versions/${match.id}`)
+            break
+          }
+          if (!page.next || seen.has(page.next))
+            throw new Error(
+              'The previous publication could not be loaded. Retry before publishing.',
+            )
+          after = page.next
+          seen.add(after)
+        }
+      }
+      const identity = (entry) => `${entry.category}:${entry.key}`
+      const old = new Map(
+        prior.entries.map((entry) => [identity(entry), entry]),
+      )
+      const differences = current.entries.flatMap((entry) =>
+        ['label', 'description', 'sortOrder', 'status']
+          .filter(
+            (field) =>
+              valueText(old.get(identity(entry))?.[field]) !==
+              valueText(entry[field]),
+          )
+          .map((field) => ({
+            entry: identity(entry),
+            field,
+            before: old.get(identity(entry))?.[field],
+            after: entry[field],
+          })),
+      )
+      setPreview({
+        revision: current.revision,
+        version: current.version,
+        differences,
+      })
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   async function refreshDraft() {
     setRefreshing(true)
@@ -65,6 +132,12 @@ export function MasterDataTemplates() {
 
   async function publishDraft(event) {
     event.preventDefault()
+    if (
+      !preview ||
+      preview.revision !== draft.revision ||
+      preview.version !== draft.version
+    )
+      return
     const result = await publish.run('post', '/admin/master-data/publish', {
       expectedRevision: draft.revision,
       expectedVersion: draft.version,
@@ -192,6 +265,41 @@ export function MasterDataTemplates() {
       </section>
       <section className="panel">
         <h2>Publish a reviewed version</h2>
+        <Action variant="secondary" disabled={busy} onClick={reviewPublication}>
+          Review saved draft changes
+        </Action>
+        {preview &&
+          preview.revision === draft.revision &&
+          preview.version === draft.version && (
+            <div className="table-scroll">
+              <p>
+                Saved draft revision {preview.revision}, compared with published
+                version {preview.version}. This publication affects future
+                onboarding only.
+              </p>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Entry</th>
+                    <th>Field</th>
+                    <th>Published</th>
+                    <th>Saved draft</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.differences.map((row, index) => (
+                    <tr key={index}>
+                      <th>{row.entry}</th>
+                      <td>{row.field}</td>
+                      <td>{valueText(row.before)}</td>
+                      <td>{valueText(row.after)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!preview.differences.length && <p>No value differences.</p>}
+            </div>
+          )}
         <p className="muted">
           Include at least one active entry in each category. Published lists
           are copied into new workspaces; existing workspaces keep their own
@@ -208,8 +316,15 @@ export function MasterDataTemplates() {
           />
           <ErrorNotice error={publish.error} />
           <Action
+            disabled={
+              !reason.trim() ||
+              refreshing ||
+              publish.pending ||
+              !preview ||
+              preview.revision !== draft.revision ||
+              preview.version !== draft.version
+            }
             type="submit"
-            disabled={!reason.trim() || refreshing || publish.pending}
           >
             {publish.pending
               ? 'Publishing…'
@@ -220,6 +335,14 @@ export function MasterDataTemplates() {
         </form>
       </section>
       <TemplateHistory key={historyVersion} />
+      <section className="panel">
+        <ActivityHistory
+          key={`activity:${historyVersion}`}
+          path="/admin/master-data/history"
+          title="Platform template activity"
+          actions={['master.draft', 'master.publish']}
+        />
+      </section>
       {editor && (
         <TemplateEntryForm
           draft={draft}
@@ -240,6 +363,7 @@ export function MasterDataTemplates() {
 }
 
 function TemplateEntryForm({ draft, entry, close, saved }) {
+  const [baseline, setBaseline] = useState(draft)
   const editing = Boolean(entry.key)
   const [category, setCategory] = useState(entry.category)
   const [label, setLabel] = useState(entry.label || '')
@@ -258,7 +382,7 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
       setError(new Error('Enter a name for this entry.'))
       return
     }
-    const duplicate = draft.entries.some(
+    const duplicate = baseline.entries.some(
       (item) =>
         item.category === category &&
         item.key !== entry.key &&
@@ -275,21 +399,21 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
     }
     const next = {
       category,
-      key: entry.key || createEntryKey(name, category, draft.entries),
+      key: entry.key || createEntryKey(name, category, baseline.entries),
       label: name,
       description: description.trim() || null,
       sortOrder: Number(sortOrder),
       status,
     }
     const entries = editing
-      ? draft.entries.map((item) =>
+      ? baseline.entries.map((item) =>
           item.category === entry.category && item.key === entry.key
             ? next
             : item,
         )
-      : [...draft.entries, next]
+      : [...baseline.entries, next]
     const result = await mutation.run('put', '/admin/master-data/draft', {
-      expectedRevision: draft.revision,
+      expectedRevision: baseline.revision,
       entries,
     })
     if (result) saved(result.data, name, category)
@@ -357,6 +481,18 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
           </div>
         </fieldset>
         <ErrorNotice error={error} />
+        <ConflictReview
+          error={mutation.error}
+          path="/admin/master-data/draft"
+          values={{ label, description, sortOrder, status }}
+          project={(current) =>
+            current.entries.find(
+              (item) =>
+                item.category === entry.category && item.key === entry.key,
+            ) || {}
+          }
+          onReview={setBaseline}
+        />
         <SaveFooter mutation={mutation} close={close} label="Save to draft" />
       </form>
     </Dialog>
@@ -364,7 +500,14 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
 }
 
 function TemplateHistory() {
-  const resource = useResource('/admin/master-data/versions?limit=25')
+  const [pages, setPages] = useState([])
+  const [selected, setSelected] = useState(null)
+  const resource = useResource(
+    `/admin/master-data/versions?limit=25${pages.length ? `&after=${encodeURIComponent(pages.at(-1))}` : ''}`,
+  )
+  const detail = useResource(
+    selected ? `/admin/master-data/versions/${selected}` : null,
+  )
   return (
     <section className="panel">
       <h2>Published versions</h2>
@@ -382,6 +525,9 @@ function TemplateHistory() {
               </small>
             </span>
             <Status value="published" />
+            <Action variant="secondary" onClick={() => setSelected(version.id)}>
+              View publication
+            </Action>
           </div>
         ))
       ) : (
@@ -390,6 +536,37 @@ function TemplateHistory() {
             Publish the first template before new workspaces are activated.
           </Empty>
         )
+      )}
+      <Pager
+        resource={resource}
+        pages={pages}
+        setPages={setPages}
+        label="versions"
+      />
+      {selected && (
+        <Dialog title="Published template" close={() => setSelected(null)}>
+          <ErrorNotice error={detail.error} retry={detail.reload} />
+          {detail.loading ? (
+            <Loading />
+          ) : (
+            detail.data && (
+              <>
+                <p>Version {detail.data.version}</p>
+                <p>
+                  {detail.data.publication?.evidence === 'retained'
+                    ? `Published by ${detail.data.publication.publisher?.label || 'Actor unavailable'}`
+                    : 'Publication evidence unavailable'}
+                </p>
+                <p>{detail.data.publication?.reason || 'Reason unavailable'}</p>
+                {detail.data.entries?.map((entry) => (
+                  <p key={`${entry.category}:${entry.key}`}>
+                    {entry.category} · {entry.label} · {entry.status}
+                  </p>
+                ))}
+              </>
+            )
+          )}
+        </Dialog>
       )}
     </section>
   )

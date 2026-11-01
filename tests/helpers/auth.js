@@ -21,5 +21,12 @@ export async function mockSignedIn(page, session = makeSession()) {
 }
 
 export async function mockOnboardingStatus(page, application = null, termsVersion = 'v2') {
+  await page.route('**/api/v1/admin/me', route => route.fulfill({ status: 403, json: { error: { code: 'PLATFORM_ACCESS_REQUIRED', message: 'Platform administrator access is required' } } }))
+  await page.route('**/api/v1/onboarding/journey', route => route.fulfill({ json: { data: {
+    actorId: '507f1f77bcf86cd799439099',
+    application,
+    nextAction: application?.status === 'approved' ? 'complete_company' : application?.status === 'pending' ? 'await_review' : application?.status === 'rejected' ? 'correct_application' : 'choose_onboarding',
+    invitations: { items: [] },
+  } } }))
   await page.route('**/api/v1/onboarding/me', route => route.fulfill({ json: { data: { application, termsVersion, phase: application?.status ?? 'not_submitted', organization: null } } }))
 }

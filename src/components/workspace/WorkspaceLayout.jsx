@@ -40,7 +40,8 @@ export function WorkspaceLayout() {
     ...(workspace.can('suppliers.view')
       ? [{ to: '/app/suppliers', label: 'Suppliers', Icon: Truck }]
       : []),
-    ...(workspace.owner || workspace.can('master_data.view')
+    ...(workspace.can('products.view') ? [{ to: '/app/products', label: 'Products', Icon: Boxes }] : []),
+    ...(workspace.can('master_data.view')
       ? [{ to: '/app/master-data', label: 'Reference lists', Icon: Boxes }]
       : []),
     ...(workspace.owner
@@ -92,7 +93,7 @@ export function WorkspaceLayout() {
             <select
               value={workspace.organization.id}
               onChange={(event) => {
-                workspace.selectOrganization(event.target.value)
+                if (!workspace.selectOrganization(event.target.value)) return
                 navigate('/app')
                 setMobileOpen(false)
               }}
@@ -205,7 +206,6 @@ export function WorkspaceLayout() {
         </main>
         <footer className="workspace-footer">
           <span>BookMySku · A clearer day at work.</span>
-          <Link to="/admin">Platform administration</Link>
         </footer>
       </div>
     </div>

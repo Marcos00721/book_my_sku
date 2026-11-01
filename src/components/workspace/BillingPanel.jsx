@@ -4,7 +4,7 @@ import { ExternalLink, RefreshCw } from 'lucide-react'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { mutate, paymentDestination } from '../../services/workspace'
-import { Action, ErrorNotice, Loading, Status } from './Elements'
+import { Action, Dialog, ErrorNotice, Loading, SaveFooter, Status } from './Elements'
 
 export function BillingPanel({ applicationId, changed }) {
   const path = `/applications/${applicationId}/billing`
@@ -13,6 +13,7 @@ export function BillingPanel({ applicationId, changed }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [recovery, setRecovery] = useState(null)
+  const [canceling,setCanceling] = useState(false)
   function reload() {
     offer.reload()
     billing.reload()
@@ -166,6 +167,7 @@ export function BillingPanel({ applicationId, changed }) {
         </div>
       )}
       <div className="actions" style={{ marginTop: '1.5rem' }}>
+        {status.flowVersion === 2 && status.status !== 'canceled' && <Action variant="secondary" onClick={() => setCanceling(true)}>Cancel before workspace access</Action>}
         <Action
           variant="secondary"
           disabled={busy}
@@ -184,8 +186,14 @@ export function BillingPanel({ applicationId, changed }) {
           </Action>
         )}
       </div>
+      {canceling && <CancelBeforeAccess path={path} close={() => setCanceling(false)} saved={() => { setCanceling(false); reload() }} />}
     </section>
   )
+}
+
+function CancelBeforeAccess({ path, close, saved }) {
+  const mutation = useMutation()
+  return <Dialog title="Cancel before workspace access" close={close} locked={mutation.pending || mutation.uncertain}><p>Canceling preserves prepared workspace data. Any existing invoices remain subject to review; this does not promise a refund or no charge. Cancellation after workspace activation requires support review.</p><form onSubmit={async event => { event.preventDefault(); if (await mutation.run('post',`${path}/cancel-before-access`,{})) saved() }}><SaveFooter mutation={mutation} close={close} label="Confirm cancellation" /></form></Dialog>
 }
 
 function StartSubscription({ path, preview, reload }) {

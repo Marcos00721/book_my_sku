@@ -14,6 +14,7 @@ import {
   PageHeader,
   SaveFooter,
   Status,
+  PermissionDenied,
 } from '../components/workspace/Elements'
 import { useResource } from '../hooks/useResource'
 import { useMutation } from '../hooks/useMutation'
@@ -69,6 +70,7 @@ export function AdminPage() {
         ) : null}
       </div>
     )
+  if (identity.data?.role !== 'super_admin') return <PermissionDenied />
   return (
     <AdminLayout section={tab}>
       {tab === 'overview' ? (

@@ -7,6 +7,7 @@ import {
 } from '../components/workspace/Elements'
 import { hasPendingInvitation } from '../services/invitation'
 import { ApiError } from '../services/api'
+import { useJourneyStatus } from '../hooks/useJourneyStatus'
 
 const registerActions = new Set([
   'verify_email',
@@ -68,7 +69,7 @@ function AccountDestination() {
 }
 
 function WorkspaceJourney() {
-  const journey = useResource('/onboarding/journey')
+  const journey = useJourneyStatus()
   if (journey.loading)
     return <Loading label="Checking your BookMySku journey…" />
   if (journey.error)
@@ -116,6 +117,7 @@ function WorkspaceJourney() {
     return <Navigate to="/assisted" replace />
   if (registerActions.has(action)) return <Navigate to="/register" replace />
   if (setupActions.has(action)) return <Navigate to="/setup" replace />
+  if (action === 'contact_support' || action === 'support_required') return <div className="setup-layout"><PageHeader title="Your workspace needs a review" description="Contact support with the request reference. Your existing application and payment remain in place." /><ErrorNotice error={journey.data.platform?.reason ? { message:journey.data.platform.reason } : null} /><button className="button secondary" onClick={journey.reload}>Check current status</button></div>
   return (
     <div className="setup-layout">
       <PageHeader

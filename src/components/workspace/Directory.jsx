@@ -4,7 +4,7 @@ import { useResource } from '../../hooks/useResource'
 import { queryPath } from '../../services/workspace'
 import { Action, Empty, ErrorNotice, Loading } from './Elements'
 
-export function Directory({ path, label, filters, children, emptyAction }) {
+export function Directory({ path, label, filters, children, emptyAction, caseSensitive = true }) {
   const [search, setSearch] = useState('')
   const [draft, setDraft] = useState('')
   const [history, setHistory] = useState([])
@@ -59,7 +59,7 @@ export function Directory({ path, label, filters, children, emptyAction }) {
         </Action>
       </div>
       <p className="muted" style={{ fontSize: '.7rem', marginBottom: '1rem' }}>
-        Name search matches the start of the name and is case-sensitive.
+        Name search matches the start of the name{caseSensitive ? ' and is case-sensitive.' : ' regardless of capitalization.'}
       </p>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (

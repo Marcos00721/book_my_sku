@@ -85,14 +85,24 @@ test('entry forms save the chosen category without publishing or replacing other
   await page.goto('/admin?section=masterData')
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
   let dialog = page.getByRole('dialog')
-  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('Cancelled entry')
+  await dialog
+    .getByRole('textbox', { name: 'Name', exact: true })
+    .fill('Cancelled entry')
+  page.once('dialog', (confirmation) => confirmation.dismiss())
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(
+    dialog.getByRole('textbox', { name: 'Name', exact: true }),
+  ).toHaveValue('Cancelled entry')
+  page.once('dialog', (confirmation) => confirmation.accept())
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(writes).toHaveLength(0)
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Category').selectOption('decoration_method')
-  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('  Laser engraving  ')
+  await dialog
+    .getByRole('textbox', { name: 'Name', exact: true })
+    .fill('  Laser engraving  ')
   await dialog.getByRole('button', { name: 'Save to draft' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('tabpanel')).toContainText('Laser engraving')
@@ -132,12 +142,16 @@ test('an interrupted dialog save locks its draft and retries the original operat
   await page.goto('/admin?section=masterData')
   await page.getByRole('button', { name: 'Add entry', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('Healthcare')
+  await dialog
+    .getByRole('textbox', { name: 'Name', exact: true })
+    .fill('Healthcare')
   await dialog.getByRole('button', { name: 'Save to draft' }).click()
   await expect(
     dialog.getByRole('button', { name: 'Retry same request' }),
   ).toBeVisible()
-  await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toBeDisabled()
+  await expect(
+    dialog.getByRole('textbox', { name: 'Name', exact: true }),
+  ).toBeDisabled()
   await expect(
     dialog.getByRole('button', { name: 'Cancel', exact: true }),
   ).toBeDisabled()
@@ -147,4 +161,3 @@ test('an interrupted dialog save locks its draft and retries the original operat
   expect(writes[1]).toEqual(writes[0])
   expect(writes[0].key).toMatch(/^[a-f\d-]{36}$/)
 })
-
