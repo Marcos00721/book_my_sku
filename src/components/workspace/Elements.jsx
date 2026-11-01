@@ -76,19 +76,14 @@ export function Empty({ title = 'Nothing here yet', children, action }) {
   )
 }
 
-export function PageHeader({
-  eyebrow = 'YOUR WORKSPACE',
-  title,
-  description,
-  actions,
-}) {
+export function PageHeader({ eyebrow, title, description, actions }) {
   useEffect(() => {
     document.title = `${title} | BookMySku`
   }, [title])
   return (
     <header className="page-heading">
       <div>
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
         {description && <p className="muted">{description}</p>}
       </div>

@@ -517,6 +517,6 @@ test('login signs in through Supabase and discovers workspaces', async ({
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/app')
   await expect(
-    page.getByRole('heading', { name: 'Good work starts here.' }),
+    page.getByRole('heading', { name: 'Studio Goods' }),
   ).toBeVisible()
 })

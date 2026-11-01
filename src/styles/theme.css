@@ -28,18 +28,18 @@
 :root {
   color-scheme: light;
 
-  /* Light glass palette. Edit the palette values here to recolor the app. */
-  --color-canvas: 235 242 248;
+  /* Quiet paper palette. Emerald stays the only accent. */
+  --color-canvas: 244 244 241;
   --palette-surface-base: 255 255 255;
   --palette-surface-highlight: 255 255 255;
-  --palette-surface-shadow: 203 213 225;
+  --palette-surface-shadow: 228 228 224;
   --palette-brand: 5 150 105;
   --palette-brand-hover: 4 120 87;
   --palette-on-brand: 255 255 255;
   --palette-secondary: 8 145 178;
   --palette-secondary-hover: 14 116 144;
-  --palette-text: 15 23 42;
-  --palette-text-muted: 71 85 105;
+  --palette-text: 24 24 27;
+  --palette-text-muted: 113 113 122;
 
   --glass-bg: rgb(255 255 255 / 0.72);
   --glass-bg-muted: rgb(255 255 255 / 0.52);
@@ -71,7 +71,7 @@
 
   --color-text-base: var(--palette-text);
   --color-text-muted: var(--palette-text-muted);
-  --color-text-subtle: 148 163 184;
+  --color-text-subtle: 161 161 170;
 
   --color-border-subtle: var(--palette-surface-shadow);
   --color-border-control: 148 163 184;
@@ -174,10 +174,10 @@
   --focus-offset: 3px;
 
   --shadow-none: none;
-  --shadow-xs: 0 2px 8px rgb(var(--palette-text) / 0.08);
-  --shadow-subtle: 0 8px 24px rgb(var(--palette-text) / 0.1);
-  --shadow-card: 0 16px 42px rgb(var(--palette-text) / 0.14);
-  --shadow-float: 0 24px 60px rgb(var(--palette-text) / 0.2);
+  --shadow-xs: 0 1px 1px rgb(24 24 27 / 0.04);
+  --shadow-subtle: 0 1px 2px rgb(24 24 27 / 0.04);
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.05);
+  --shadow-float: 0 16px 40px rgb(24 24 27 / 0.12);
   --shadow-overlay: 0 25px 60px rgb(var(--palette-text) / 0.25);
   --shadow-focus:
     0 0 0 var(--focus-width) rgb(var(--color-surface)),
@@ -199,9 +199,9 @@
 .dark {
   color-scheme: dark;
 
-  /* Requested obsidian glass theme. Edit these values to restyle dark mode. */
-  --color-canvas: 10 13 20; /* #0A0D14 */
-  --palette-surface-base: 18 24 38; /* #121826 */
+  /* Ink workspace. Emerald stays the only accent. */
+  --color-canvas: 12 12 13;
+  --palette-surface-base: 23 23 26;
   --palette-surface-highlight: 52 211 153;
   --palette-surface-shadow: 0 0 0;
   --palette-brand: 16 185 129; /* #10B981 */
@@ -209,27 +209,27 @@
   --palette-on-brand: 4 31 25;
   --palette-secondary: 6 182 212; /* #06B6D4 */
   --palette-secondary-hover: 34 211 238;
-  --palette-text: 248 250 252; /* #F8FAFC */
-  --palette-text-muted: 148 163 184; /* #94A3B8 */
+  --palette-text: 244 244 245;
+  --palette-text-muted: 161 161 170;
 
   --color-primary-soft: 8 62 47;
   --color-primary-disabled: 39 86 71;
   --color-secondary-soft: 8 55 67;
   --color-accent-soft: 8 55 67;
 
-  --glass-bg: rgb(18 24 38 / 0.65);
-  --glass-bg-muted: rgb(18 24 38 / 0.42);
-  --glass-bg-raised: rgb(24 32 48 / 0.78);
+  --glass-bg: rgb(23 23 26 / 0.86);
+  --glass-bg-muted: rgb(32 32 36 / 0.72);
+  --glass-bg-raised: rgb(32 32 36 / 0.94);
   --glass-border: rgb(255 255 255 / 0.08);
   --glass-border-strong: rgb(255 255 255 / 0.14);
   --glass-border-accent: rgb(52 211 153 / 0.25);
 
   --color-surface: var(--palette-surface-base);
-  --color-surface-muted: 24 32 48;
-  --color-surface-raised: 24 32 48;
-  --color-text-subtle: var(--palette-text-muted);
-  --color-border-subtle: 36 49 65;
-  --color-border-control: 71 85 105;
+  --color-surface-muted: 32 32 36;
+  --color-surface-raised: 32 32 36;
+  --color-text-subtle: 113 113 122;
+  --color-border-subtle: 42 42 46;
+  --color-border-control: 63 63 70;
 
   --color-danger: 242 157 145;
   --color-danger-muted: 64 37 33;

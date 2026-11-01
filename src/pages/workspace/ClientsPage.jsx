@@ -36,7 +36,7 @@ export function ClientsPage() {
     <>
       <PageHeader
         title="Clients"
-        description="Good relationships, all in one place. Keep your client details a little closer."
+        description="Companies you work with, and the people behind them."
         actions={create}
       />
       <section className="panel">

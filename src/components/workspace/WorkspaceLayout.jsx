@@ -118,25 +118,55 @@ export function WorkspaceLayout() {
           </Action>
         )}
         <ErrorNotice error={workspace.organizationError} />
-        <p className="nav-label">WORKSPACE</p>
+        <p className="nav-label">Records</p>
         <nav>
-          {links.map(({ to, label, Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={() => setMobileOpen(false)}
-            >
-              <Icon size={19} aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
+          {links
+            .filter((link) =>
+              [
+                '/app',
+                '/app/clients',
+                '/app/suppliers',
+                '/app/products',
+                '/app/master-data',
+              ].includes(link.to),
+            )
+            .map(({ to, label, Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Icon size={16} aria-hidden="true" />
+                {label}
+              </NavLink>
+            ))}
         </nav>
+        {links.some((link) =>
+          ['/app/team', '/app/roles', '/app/billing'].includes(link.to),
+        ) && (
+          <>
+            <p className="nav-label">Workspace</p>
+            <nav>
+              {links
+                .filter((link) =>
+                  ['/app/team', '/app/roles', '/app/billing'].includes(link.to),
+                )
+                .map(({ to, label, Icon, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    {label}
+                  </NavLink>
+                ))}
+            </nav>
+          </>
+        )}
         <div className="sidebar-bottom">
-          <div className="sidebar-note">
-            <span className="status-dot" />A little more organized.
-            <p>A lot more possible.</p>
-          </div>
           <div className="account-row">
             <span className="avatar-letter">
               {workspace.session.user.email?.slice(0, 1).toUpperCase()}
@@ -180,7 +210,6 @@ export function WorkspaceLayout() {
             </span>
           </div>
           <div className="actions">
-            <span className="topbar-note">Make space for better work.</span>
             <ThemeToggle />
           </div>
         </header>
@@ -205,7 +234,7 @@ export function WorkspaceLayout() {
           <Outlet />
         </main>
         <footer className="workspace-footer">
-          <span>BookMySku · A clearer day at work.</span>
+          <span>BookMySku</span>
         </footer>
       </div>
     </div>

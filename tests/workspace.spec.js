@@ -744,7 +744,7 @@ for (const width of [375, 1440]) {
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
     await page.goto('/app')
     await expect(
-      page.getByRole('heading', { name: 'Good work starts here.' }),
+      page.getByRole('heading', { name: 'Acme Promotions' }),
     ).toBeVisible()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
