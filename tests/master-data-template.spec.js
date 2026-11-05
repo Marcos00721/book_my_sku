@@ -3,6 +3,14 @@ import { mockSignedIn } from './helpers/auth'
 
 const initialEntries = [
   {
+    category: 'decoration_location',
+    key: 'front',
+    label: 'Front',
+    description: null,
+    sortOrder: 0,
+    status: 'active',
+  },
+  {
     category: 'industry',
     key: 'education',
     label: 'Education',
@@ -128,7 +136,7 @@ test('entry forms save the chosen category without publishing or replacing other
     .click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(writes[1].body.expectedRevision).toBe(5)
-  expect(writes[1].body.entries).toHaveLength(4)
+  expect(writes[1].body.entries).toHaveLength(5)
   expect(
     writes[1].body.entries.find((entry) => entry.key === 'laser_engraving')
       .label,

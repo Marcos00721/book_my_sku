@@ -48,13 +48,18 @@ export function ReferenceSelect({
   required = false,
   disabled = false,
   labelFor = (item) => item.label || item.name,
+  filter = () => true,
+  query = {},
 }) {
   const [search, setSearch] = useState('')
   const [pages, setPages] = useState([])
   const resource = useResource(
-    path ? queryPath(path, { search, limit: 50, after: pages.at(-1) }) : null,
+    path
+      ? queryPath(path, { ...query, search, limit: 50, after: pages.at(-1) })
+      : null,
   )
   const items = resource.data?.items || []
+  const choices = items.filter(filter)
   return (
     <div className="reference-picker">
       <Field
@@ -83,14 +88,14 @@ export function ReferenceSelect({
               : 'Not set'}
         </option>
         {value &&
-          !items.some(
+          !choices.some(
             (item) => (item.id || item._id || item.actorId) === value,
           ) && (
             <option value={value}>
               {selectedLabel || 'Current selection'} (saved)
             </option>
           )}
-        {items.map((item) => (
+        {choices.map((item) => (
           <option
             key={item.id || item._id || item.actorId}
             value={item.id || item._id || item.actorId}

@@ -456,34 +456,40 @@ async function mockSetup(page) {
   await mockSignedIn(page)
   await mockGeography(page)
   await mockOnboardingStatus(page, application)
-  await page.route('**/onboarding/setup', (route) =>
-    route.fulfill({
-      json: {
-        data: {
-          revision: 0,
-          address: {},
-          industry: '',
-          asiNumber: '',
-          mode: 'shared',
-          complete: false,
-          locked: false,
-        },
-      },
-    }),
+  const snapshot = {
+    actorId: '507f1f77bcf86cd799439099',
+    application,
+    nextAction: 'complete_company',
+    provisioning: null,
+    platform: { ready: true },
+    workspaces: { items: [], next: null },
+    invitations: { items: [], more: false },
+    setup: {
+      revision: 0,
+      address: {},
+      industry: '',
+      asiNumber: '',
+      mode: 'shared',
+      complete: false,
+      locked: false,
+    },
+    billing: {
+      status: 'not_started',
+      quantity: 1,
+      synchronization: 'pending_refresh',
+      billingEligible: false,
+      terms: null,
+    },
+    offer: { state: 'awaiting_offer', offer: null },
+  }
+  await page.route('**/onboarding/journey', (route) =>
+    route.fulfill({ json: { data: snapshot } }),
   )
-  await page.route(`**/applications/${applicationId}/billing`, (route) =>
-    route.fulfill({
-      json: {
-        data: {
-          status: 'not_started',
-          quantity: 1,
-          synchronization: 'pending_refresh',
-          billingEligible: false,
-          terms: null,
-        },
-      },
-    }),
-  )
+  await page.route('**/onboarding/setup', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback()
+    return route.fulfill({ json: { data: snapshot.setup } })
+  })
+  return snapshot
 }
 const offer = {
   state: 'available',
@@ -509,17 +515,16 @@ const offer = {
 test('Checkout uses exact offer consent and invalidates consent after a price revision conflict', async ({
   page,
 }) => {
-  await mockSetup(page)
+  const snapshot = await mockSetup(page)
   let revision = 3
-  await page.route(`**/billing/offer`, (route) =>
-    route.fulfill({
-      json: { data: { ...offer, offer: { ...offer.offer, revision } } },
-    }),
-  )
+  snapshot.setup = { ...snapshot.setup, complete: true, locked: true }
+  snapshot.nextAction = 'review_offer'
+  snapshot.offer = { ...offer, offer: { ...offer.offer, revision } }
   let submitted
   await page.route('**/billing/checkout', (route) => {
     submitted = route.request().postDataJSON()
     revision = 4
+    snapshot.offer = { ...offer, offer: { ...offer.offer, revision } }
     return route.fulfill({
       status: 409,
       json: {
@@ -558,14 +563,12 @@ test('Checkout uses exact offer consent and invalidates consent after a price re
 test('restarting Checkout recovers a server-verified existing session without creating a new one', async ({
   page,
 }) => {
-  await mockSetup(page)
-  await page.route('**/billing/offer', (route) =>
-    route.fulfill({
-      json: {
-        data: { state: 'billing_started', checkoutAllowed: false, offer: null },
-      },
-    }),
-  )
+  const snapshot = await mockSetup(page)
+  snapshot.offer = {
+    state: 'billing_started',
+    checkoutAllowed: false,
+    offer: null,
+  }
   await page.route('**/billing/recovery', (route) =>
     route.fulfill({
       json: {
@@ -595,10 +598,10 @@ test('restarting Checkout recovers a server-verified existing session without cr
 })
 
 test('unsafe payment redirects are rejected', async ({ page }) => {
-  await mockSetup(page)
-  await page.route('**/billing/offer', (route) =>
-    route.fulfill({ json: { data: offer } }),
-  )
+  const snapshot = await mockSetup(page)
+  snapshot.setup = { ...snapshot.setup, complete: true, locked: true }
+  snapshot.nextAction = 'review_offer'
+  snapshot.offer = offer
   await page.route('**/billing/checkout', (route) =>
     route.fulfill({
       json: {
@@ -621,17 +624,46 @@ test('unsafe payment redirects are rejected', async ({ page }) => {
   await expect(page).toHaveURL('/setup')
 })
 
+test('dark workspace action and theme icons stay visible before hover', async ({
+  page,
+}) => {
+  await workspace(page)
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
+  await page.goto('/app/clients')
+  const action = page.locator('.data-table .icon-button').first()
+  await expect(action).toBeVisible()
+  await expect(action).toHaveCSS('opacity', '1')
+  await expect(action).toHaveCSS('color', 'rgb(244, 244, 245)')
+  await expect(action.locator('svg')).toHaveCSS('stroke', 'rgb(244, 244, 245)')
+  const theme = page.getByRole('button', { name: 'Switch to light mode' })
+  await expect(theme.locator('svg')).toHaveCSS('stroke', 'rgb(244, 244, 245)')
+  await expect(
+    page.getByRole('button', { name: 'Sign out' }).locator('svg'),
+  ).toHaveCSS('stroke', 'rgb(244, 244, 245)')
+  await page.screenshot({
+    path: 'test-results/dark-visible-icons.png',
+    fullPage: true,
+  })
+  await theme.click()
+  await expect(action).toHaveCSS('opacity', '1')
+  await expect(action.locator('svg')).toHaveCSS('stroke', 'rgb(24, 24, 27)')
+})
+
 test('company setup saves and completes with the returned revision and no storage selector', async ({
   page,
 }) => {
-  await mockSetup(page)
-  await page.route('**/billing/offer', (route) =>
-    route.fulfill({ json: { data: { state: 'awaiting_offer', offer: null } } }),
-  )
+  const snapshot = await mockSetup(page)
   let patch, completion
   await page.route('**/onboarding/setup', (route) => {
     if (route.request().method() !== 'PATCH') return route.fallback()
     patch = route.request().postDataJSON()
+    snapshot.setup = {
+      ...snapshot.setup,
+      industry: patch.industry,
+      asiNumber: patch.asiNumber,
+      address: patch.address,
+      revision: 1,
+    }
     return route.fulfill({
       json: {
         data: {
@@ -647,6 +679,8 @@ test('company setup saves and completes with the returned revision and no storag
   })
   await page.route('**/onboarding/setup/complete', (route) => {
     completion = route.request().postDataJSON()
+    snapshot.setup = { ...snapshot.setup, revision: 2, complete: true }
+    snapshot.nextAction = 'await_offer'
     return route.fulfill({
       json: { data: { revision: 2, complete: true, locked: false } },
     })

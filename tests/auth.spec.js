@@ -1,7 +1,58 @@
 import { expect, test } from '@playwright/test'
 
-test('login validates accessibly and shows provider errors without logging credentials', async ({ page }) => {
-  await page.route('https://registration-test.supabase.co/auth/v1/token?grant_type=password', route => route.fulfill({ status: 400, json: { code: 'invalid_credentials', msg: 'Invalid login credentials' } }))
+test('password and theme icons remain clear against dark authentication surfaces', async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/login')
+  for (const label of ['Show password', 'Switch to light mode']) {
+    const icon = page
+      .getByRole('button', { name: label, exact: true })
+      .locator('svg')
+    await expect(icon).toBeVisible()
+    const contrast = await icon.evaluate((node) => {
+      const rgb = (value) =>
+        (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number)
+      const luminance = (channels) =>
+        channels
+          .map((value) => value / 255)
+          .map((value) =>
+            value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+          )
+          .reduce(
+            (sum, value, index) =>
+              sum + value * [0.2126, 0.7152, 0.0722][index],
+            0,
+          )
+      const foreground = luminance(rgb(getComputedStyle(node).stroke))
+      const background = luminance(
+        rgb(
+          getComputedStyle(
+            node.closest('.auth-form') || document.documentElement,
+          ).backgroundColor,
+        ),
+      )
+      return (
+        (Math.max(foreground, background) + 0.05) /
+        (Math.min(foreground, background) + 0.05)
+      )
+    })
+    expect(contrast).toBeGreaterThanOrEqual(3)
+  }
+})
+
+test('login validates accessibly and shows provider errors without logging credentials', async ({
+  page,
+}) => {
+  await page.route(
+    'https://registration-test.supabase.co/auth/v1/token?grant_type=password',
+    (route) =>
+      route.fulfill({
+        status: 400,
+        json: { code: 'invalid_credentials', msg: 'Invalid login credentials' },
+      }),
+  )
   const submittedValues = []
   page.on('console', async (message) => {
     if (message.type() === 'log') {
@@ -17,7 +68,9 @@ test('login validates accessibly and shows provider errors without logging crede
   await expect(page.getByText('Enter your email address.')).toBeVisible()
   const descriptionId = await email.getAttribute('aria-describedby')
   expect(descriptionId).toBeTruthy()
-  await expect(page.locator(`[id="${descriptionId}"]`)).toHaveText('Enter your email address.')
+  await expect(page.locator(`[id="${descriptionId}"]`)).toHaveText(
+    'Enter your email address.',
+  )
   await email.fill('alex@example.com')
   await password.fill('ExistingPassword1')
   await page.getByRole('button', { name: 'Show password', exact: true }).click()
@@ -36,20 +89,41 @@ for (const width of [320, 375, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(width)
       if (width === 320 || width === 1440) {
-        await expect(page.getByRole('heading', { level: 1 }).locator('xpath=../..')).toHaveCSS('opacity', '1')
-        await expect(page.locator('input').last().locator('xpath=../..')).toHaveCSS('opacity', '1')
-        await page.screenshot({ path: testInfo.outputPath('page.png'), fullPage: true })
+        await expect(
+          page.getByRole('heading', { level: 1 }).locator('xpath=../..'),
+        ).toHaveCSS('opacity', '1')
+        await expect(
+          page.locator('input').last().locator('xpath=../..'),
+        ).toHaveCSS('opacity', '1')
+        await page.screenshot({
+          path: testInfo.outputPath('page.png'),
+          fullPage: true,
+        })
       }
-      await page.getByRole('button', { name: path === '/login' ? 'Sign in' : 'Create account', exact: true }).click()
-      await expect(page.getByLabel('Email address')).toHaveAttribute('aria-invalid', 'true')
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      await page
+        .getByRole('button', {
+          name: path === '/login' ? 'Sign in' : 'Create account',
+          exact: true,
+        })
+        .click()
+      await expect(page.getByLabel('Email address')).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      )
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(width)
     })
   }
 }
 
-test('reduced motion leaves fields visible and skips entrance and shake movement', async ({ page }) => {
+test('reduced motion leaves fields visible and skips entrance and shake movement', async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/login')
   const form = page.getByRole('form', { name: 'Welcome back.' })
@@ -60,7 +134,9 @@ test('reduced motion leaves fields visible and skips entrance and shake movement
   await expect(form).toHaveCSS('transform', 'none')
 })
 
-test('auth links navigate without leaving the application', async ({ page }) => {
+test('auth links navigate without leaving the application', async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page).toHaveURL('/login')
   await page.getByRole('link', { name: 'Create an account' }).click()

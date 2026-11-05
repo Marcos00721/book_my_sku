@@ -39,7 +39,7 @@ export function ThemeToggle({ className = '' }) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       onClick={() => setIsDark((d) => !d)}
       className={[
-        'inline-flex size-touch items-center justify-center rounded-control',
+        'theme-toggle inline-flex size-touch items-center justify-center rounded-control',
         'text-text-muted motion-safe:transition-colors',
         'hover:bg-surface-muted hover:text-text-base',
         'focus-visible:shadow-focus focus-visible:outline-none',

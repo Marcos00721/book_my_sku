@@ -120,9 +120,12 @@
 }
 .button.icon-button {
   background: transparent;
-  color: rgb(var(--color-text-muted));
+  color: rgb(var(--color-text-base));
   padding: 0.6rem;
   flex-shrink: 0;
+}
+.button.icon-button:hover {
+  background: rgb(var(--color-text-base) / 0.08);
 }
 .button.text-button {
   color: rgb(var(--color-primary));
@@ -132,7 +135,7 @@
   justify-content: flex-start;
 }
 .button:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 .button:focus-visible,
@@ -746,15 +749,6 @@
 .data-table tbody tr:hover td {
   background: rgb(var(--color-text-base) / 0.03);
 }
-@media (hover: hover) {
-  .data-table .icon-button {
-    opacity: 0;
-  }
-  .data-table tr:hover .icon-button,
-  .data-table tr:focus-within .icon-button {
-    opacity: 1;
-  }
-}
 .data-table td small {
   display: block;
   color: rgb(var(--color-text-muted));
@@ -1119,8 +1113,55 @@
     grid-template-columns: 1fr;
   }
 }
-:where(.field textarea) { width: 100%; min-height: 7rem; resize: vertical; padding: .75rem; color: rgb(var(--color-text-base)); background: rgb(var(--color-surface)); border: 1px solid rgb(var(--color-border-control)); border-radius: var(--radius-control); font: inherit; }
-.plain-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.note-card, .activity-event { padding: 1rem; margin-block: 1rem; border: 1px solid rgb(var(--color-border-subtle)); border-radius: var(--radius-card); overflow-wrap: anywhere; }
-.reference-picker { display: grid; gap: .5rem; margin-block: .75rem; }
-.detail-list dd, .notice, .address-card { overflow-wrap: anywhere; }
+:where(.field textarea) {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  padding: 0.75rem;
+  color: rgb(var(--color-text-base));
+  background: rgb(var(--color-surface));
+  border: 1px solid rgb(var(--color-border-control));
+  border-radius: var(--radius-control);
+  font: inherit;
+}
+.plain-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.note-card,
+.activity-event {
+  padding: 1rem;
+  margin-block: 1rem;
+  border: 1px solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-card);
+  overflow-wrap: anywhere;
+}
+.reference-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+}
+.detail-list dd,
+.notice,
+.address-card {
+  overflow-wrap: anywhere;
+}
+.catalog-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+}
+.catalog-preview img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+.matrix-dialog {
+  width: min(1050px, calc(100vw - 2rem));
+}
+.matrix-cell {
+  padding: 1rem;
+  margin-block: 1rem;
+  border: 1px solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-control);
+}

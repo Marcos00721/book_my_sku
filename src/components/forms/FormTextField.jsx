@@ -62,7 +62,10 @@ export function FormTextField({
 
       // Delete moves past a restored separator so repeated Delete keeps editing.
       if (event.nativeEvent.inputType === 'deleteContentForward') {
-        while (nextCaret < nextValue.length && /\D/.test(nextValue[nextCaret])) {
+        while (
+          nextCaret < nextValue.length &&
+          /\D/.test(nextValue[nextCaret])
+        ) {
           nextCaret += 1;
         }
       }
@@ -80,17 +83,20 @@ export function FormTextField({
       className={`min-w-none ${className}`}
       variants={{
         hidden: { opacity: 0, y: reducedMotion ? 0 : 8 },
-        visible: { opacity: 1, y: 0, transition: { duration: reducedMotion ? 0 : 0.28 } },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: reducedMotion ? 0 : 0.28 },
+        },
       }}
     >
-      <FormLabel htmlFor={inputId}>
-        {label}
-      </FormLabel>
-      <div className="relative">
+      <FormLabel htmlFor={inputId}>{label}</FormLabel>
+      {/* Keep icons above the input's backdrop-filter layer and inside this field. */}
+      <div className="form-control-shell relative isolate">
         {(icon || prefix) && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-none left-md flex items-center gap-xs text-text-muted [&>svg]:size-icon"
+            className="form-control-leading pointer-events-none absolute inset-y-none left-md z-10 flex items-center gap-xs text-text-muted [&>svg]:size-icon"
           >
             {icon}
             {prefix && <span className="text-sm">{prefix}</span>}
@@ -121,7 +127,10 @@ export function FormTextField({
         {trailingControl}
       </div>
       {hint && (
-        <p id={hintId} className="mt-xs text-xs leading-relaxed text-text-muted">
+        <p
+          id={hintId}
+          className="mt-xs text-xs leading-relaxed text-text-muted"
+        >
           {hint}
         </p>
       )}

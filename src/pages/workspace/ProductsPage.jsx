@@ -24,6 +24,9 @@ import {
   MutationRetry,
 } from '../../components/workspace/RecordTools'
 import { SupplierEditor } from './SuppliersPage'
+import { ProductConfiguration } from './ProductConfiguration'
+import { ProductMedia } from './ProductMedia'
+import { ProductPricing } from './ProductPricing'
 
 export function ProductsPage() {
   const workspace = useWorkspace()
@@ -38,7 +41,7 @@ function ProductDirectory() {
   const [filters, setFilters] = useState({
     search: '',
     searchBy: 'name',
-    status: 'draft',
+    status: 'active',
     supplierId: '',
     categoryId: '',
   })
@@ -55,7 +58,7 @@ function ProductDirectory() {
     <>
       <PageHeader
         title="Products"
-        description="Supplier-linked product drafts for your workspace."
+        description="Supplier-linked products, configurations and saved commercial terms."
         actions={
           workspace.can('products.create') &&
           workspace.writesAllowed && (
@@ -64,8 +67,8 @@ function ProductDirectory() {
         }
       />
       <p className="notice">
-        Products are drafts. Pricing, variants, media, stock and order use are
-        not available yet.
+        Catalog activation, private images and goods pricing are separate
+        stages. Inventory and order workflows remain unavailable.
       </p>
       <section className="panel">
         <div className="toolbar">
@@ -89,7 +92,7 @@ function ProductDirectory() {
             value={filters.status}
             onChange={(event) => set('status', event.target.value)}
           >
-            {['draft', 'archived', 'all'].map((value) => (
+            {['active', 'draft', 'archived', 'all'].map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
@@ -211,6 +214,10 @@ function ProductRecord({ base, id }) {
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const product = resource.data
   const isArchived = product.status === 'archived'
+  const pricingAllowed = ['edit', 'publish', 'preview'].some((action) =>
+    workspace.can(`products.pricing.${action}`),
+  )
+  const activationBlockers = product.readiness?.activationBlockers || []
   async function lifecycle() {
     const action = isArchived ? 'restore' : 'archive'
     if (
@@ -233,11 +240,38 @@ function ProductRecord({ base, id }) {
       </Link>
       <PageHeader
         title={product.name}
-        description={`${product.productCode} · Draft product`}
+        description={`${product.productCode} · ${product.status} product`}
         actions={
           <div className="actions">
             {workspace.writesAllowed && (
               <>
+                {workspace.owner &&
+                  workspace.can('products.edit') &&
+                  product.status === 'draft' && (
+                    <Action
+                      disabled={
+                        mutation.pending ||
+                        mutation.uncertain ||
+                        activationBlockers.length > 0
+                      }
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            'Activate this reviewed catalog product? This does not place an order or establish pricing.',
+                          )
+                        )
+                          return
+                        if (
+                          await mutation.run('post', `${base}/${id}/activate`, {
+                            expectedRevision: product.revision,
+                          })
+                        )
+                          resource.reload()
+                      }}
+                    >
+                      Activate product
+                    </Action>
+                  )}
                 {!isArchived && workspace.can('products.edit') && (
                   <Action variant="secondary" onClick={() => setEditing(true)}>
                     Edit product
@@ -272,6 +306,21 @@ function ProductRecord({ base, id }) {
       <ErrorNotice error={mutation.error} retry={resource.reload} />
       <MutationRetry mutation={mutation} saved={resource.reload} />
       <Status value={product.status} />
+      {activationBlockers.length > 0 && (
+        <p className="notice">
+          Catalog activation needs:{' '}
+          {activationBlockers
+            .map((code) => code.replaceAll('_', ' ').toLowerCase())
+            .join(', ')}
+          .
+        </p>
+      )}
+      {product.status === 'active' && product.catalogSelectable === false && (
+        <p className="notice">
+          This product is active but its current source references or variants
+          prevent catalog selection.
+        </p>
+      )}
       {product.readiness?.restoreBlockers?.map((blocker) => (
         <p className="notice" key={blocker.code}>
           {blocker.code === 'SUPPLIER_NOT_SELECTABLE'
@@ -287,6 +336,29 @@ function ProductRecord({ base, id }) {
         >
           Details
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'configuration'}
+          onClick={() => setTab('configuration')}
+        >
+          Variants
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'images'}
+          onClick={() => setTab('images')}
+        >
+          Images
+        </button>
+        {pricingAllowed && (
+          <button
+            role="tab"
+            aria-selected={tab === 'pricing'}
+            onClick={() => setTab('pricing')}
+          >
+            Pricing
+          </button>
+        )}
         {workspace.can('products.history.view') && (
           <button
             role="tab"
@@ -298,7 +370,25 @@ function ProductRecord({ base, id }) {
         )}
       </div>
       <section className="panel" role="tabpanel">
-        {tab === 'activity' ? (
+        {tab === 'configuration' ? (
+          <ProductConfiguration
+            path={`${base}/${id}`}
+            product={product}
+            changed={resource.reload}
+          />
+        ) : tab === 'images' ? (
+          <ProductMedia
+            path={`${base}/${id}`}
+            product={product}
+            changed={resource.reload}
+          />
+        ) : tab === 'pricing' ? (
+          pricingAllowed ? (
+            <ProductPricing path={`${base}/${id}`} product={product} />
+          ) : (
+            <PermissionDenied />
+          )
+        ) : tab === 'activity' ? (
           workspace.can('products.history.view') ? (
             <ActivityHistory path={`${base}/${id}/activity`} />
           ) : (
@@ -322,8 +412,9 @@ function ProductRecord({ base, id }) {
               ))}
             </dl>
             <p className="notice">
-              This draft is not ready for orders. Private notes are visible only
-              to authorized workspace product users.
+              Catalog selection does not establish a price or authorize an
+              order. Private notes are visible to authorized workspace product
+              users.
             </p>
           </>
         )}

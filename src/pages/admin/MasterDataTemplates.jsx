@@ -25,6 +25,7 @@ const categories = {
   industry: 'Industries',
   product_category: 'Product categories',
   decoration_method: 'Decoration methods',
+  decoration_location: 'Decoration locations',
 }
 
 function createEntryKey(label, category, entries) {
@@ -92,8 +93,21 @@ export function MasterDataTemplates() {
       const old = new Map(
         prior.entries.map((entry) => [identity(entry), entry]),
       )
-      const differences = current.entries.flatMap((entry) =>
-        ['label', 'description', 'sortOrder', 'status']
+      const active = current.entries.filter(
+        (entry) => entry.status === 'active',
+      )
+      const activeKeys = new Set(active.map(identity))
+      const differences = active.flatMap((entry) => {
+        if (!old.has(identity(entry)))
+          return [
+            {
+              entry: identity(entry),
+              field: 'Added to active publication',
+              before: null,
+              after: entry.label,
+            },
+          ]
+        return ['label', 'description', 'sortOrder']
           .filter(
             (field) =>
               valueText(old.get(identity(entry))?.[field]) !==
@@ -104,12 +118,24 @@ export function MasterDataTemplates() {
             field,
             before: old.get(identity(entry))?.[field],
             after: entry[field],
-          })),
-      )
+          }))
+      })
+      for (const [key, entry] of old) {
+        if (!activeKeys.has(key))
+          differences.push({
+            entry: key,
+            field: 'Archived from active publication',
+            before: entry.label,
+            after: 'Excluded',
+          })
+      }
       setPreview({
         revision: current.revision,
         version: current.version,
         differences,
+        archived: current.entries.filter(
+          (entry) => entry.status === 'archived',
+        ),
       })
     } catch (failure) {
       setError(failure)
@@ -159,6 +185,19 @@ export function MasterDataTemplates() {
   const rows = draft.entries
     .filter((entry) => entry.category === category)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
+  const missingCategories = Object.keys(categories).filter(
+    (key) =>
+      !draft.entries.some(
+        (entry) => entry.category === key && entry.status === 'active',
+      ),
+  )
+  const remaining = 100 - rows.length
+  const draftBytes = new TextEncoder().encode(
+    JSON.stringify({
+      expectedRevision: draft.revision,
+      entries: draft.entries,
+    }),
+  ).length
 
   return (
     <>
@@ -171,7 +210,10 @@ export function MasterDataTemplates() {
               draft until you publish.
             </p>
           </div>
-          <Action disabled={busy} onClick={() => setEditor({ category })}>
+          <Action
+            disabled={busy || remaining <= 0 || draft.entries.length >= 400}
+            onClick={() => setEditor({ category })}
+          >
             <Plus size={16} aria-hidden="true" /> Add entry
           </Action>
         </div>
@@ -194,6 +236,11 @@ export function MasterDataTemplates() {
             {notice}
           </p>
         )}
+        <p className="muted">
+          {remaining} entries remaining in this category ·{' '}
+          {draft.entries.length}/400 total · {draftBytes}/60,000 bytes. Archived
+          rows count toward capacity.
+        </p>
         <ErrorNotice error={error} retry={refreshDraft} />
         <div
           id="template-entries"
@@ -244,7 +291,12 @@ export function MasterDataTemplates() {
             <Empty
               title={`No ${categories[category].toLowerCase()} yet`}
               action={
-                <Action disabled={busy} onClick={() => setEditor({ category })}>
+                <Action
+                  disabled={
+                    busy || remaining <= 0 || draft.entries.length >= 400
+                  }
+                  onClick={() => setEditor({ category })}
+                >
                   <Plus size={16} aria-hidden="true" /> Add an entry
                 </Action>
               }
@@ -265,6 +317,13 @@ export function MasterDataTemplates() {
       </section>
       <section className="panel">
         <h2>Publish a reviewed version</h2>
+        {missingCategories.length > 0 && (
+          <p className="notice">
+            Add an active entry before publishing:{' '}
+            {missingCategories.map((key) => categories[key]).join(', ')}.
+            Historical three-category versions remain unchanged.
+          </p>
+        )}
         <Action variant="secondary" disabled={busy} onClick={reviewPublication}>
           Review saved draft changes
         </Action>
@@ -297,13 +356,35 @@ export function MasterDataTemplates() {
                   ))}
                 </tbody>
               </table>
-              {!preview.differences.length && <p>No value differences.</p>}
+              {!preview.differences.length && <p>No active-content changes.</p>}
+              {preview.archived.length > 0 && (
+                <>
+                  <h3>Archived rows retained in the saved draft</h3>
+                  <p>
+                    These rows count toward capacity and will not appear in the
+                    active publication.
+                  </p>
+                  <ul>
+                    {preview.archived.map((entry) => (
+                      <li key={`${entry.category}:${entry.key}`}>
+                        {entry.category}:{entry.key} · {entry.label} ·{' '}
+                        {entry.description || 'No description'} · Order{' '}
+                        {entry.sortOrder}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           )}
         <p className="muted">
           Include at least one active entry in each category. Published lists
           are copied into new workspaces; existing workspaces keep their own
           entries.
+        </p>
+        <p>
+          Applies to future onboarding only. Existing organization copies and
+          already pinned onboarding keep their selected version.
         </p>
         <form onSubmit={publishDraft}>
           <Field
@@ -318,6 +399,7 @@ export function MasterDataTemplates() {
           <Action
             disabled={
               !reason.trim() ||
+              missingCategories.length > 0 ||
               refreshing ||
               publish.pending ||
               !preview ||
@@ -412,6 +494,20 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
             : item,
         )
       : [...baseline.entries, next]
+    if (
+      entries.length > 400 ||
+      entries.filter((item) => item.category === category).length > 100 ||
+      new TextEncoder().encode(
+        JSON.stringify({ expectedRevision: baseline.revision, entries }),
+      ).length > 60000
+    ) {
+      setError(
+        new Error(
+          'The saved draft exceeds its category, total entry or 60,000-byte capacity. Shorten content or review retained entries; archiving does not free capacity.',
+        ),
+      )
+      return
+    }
     const result = await mutation.run('put', '/admin/master-data/draft', {
       expectedRevision: baseline.revision,
       entries,

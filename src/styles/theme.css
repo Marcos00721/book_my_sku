@@ -1,4 +1,8 @@
 /* Shared design tokens for authentication, setup, and workspace. */
+.theme-toggle {
+  color: rgb(var(--color-text-base));
+}
+
 .brand-mark-logo {
   position: relative;
   display: block;

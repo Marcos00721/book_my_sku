@@ -100,8 +100,26 @@ const MasterDataPage = lazy(() =>
     default: page.MasterDataPage,
   })),
 );
-const ProductsPage = lazy(() => import('./pages/workspace/ProductsPage').then(page => ({ default: page.ProductsPage })));
-const ProductDetailPage = lazy(() => import('./pages/workspace/ProductsPage').then(page => ({ default: page.ProductDetailPage })));
+const ProductsPage = lazy(() =>
+  import("./pages/workspace/ProductsPage").then((page) => ({
+    default: page.ProductsPage,
+  })),
+);
+const ProductDetailPage = lazy(() =>
+  import("./pages/workspace/ProductsPage").then((page) => ({
+    default: page.ProductDetailPage,
+  })),
+);
+const DecorationMatricesPage = lazy(() =>
+  import("./pages/workspace/DecorationMatricesPage").then((page) => ({
+    default: page.DecorationMatricesPage,
+  })),
+);
+const DecorationMatrixDetailPage = lazy(() =>
+  import("./pages/workspace/DecorationMatricesPage").then((page) => ({
+    default: page.DecorationMatrixDetailPage,
+  })),
+);
 
 export default function App() {
   return (
@@ -170,6 +188,14 @@ export default function App() {
           <Route path="master-data" element={<MasterDataPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/:productId" element={<ProductDetailPage />} />
+          <Route
+            path="decoration-matrices"
+            element={<DecorationMatricesPage />}
+          />
+          <Route
+            path="decoration-matrices/:matrixId"
+            element={<DecorationMatrixDetailPage />}
+          />
           <Route path="team" element={<TeamPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="billing" element={<BillingPage />} />

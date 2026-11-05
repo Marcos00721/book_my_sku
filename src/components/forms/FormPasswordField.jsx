@@ -27,7 +27,7 @@ export function FormPasswordField({
           aria-pressed={isVisible}
           disabled={disabled || formState.disabled || formState.isSubmitting}
           onClick={() => setIsVisible((visible) => !visible)}
-          className="absolute inset-y-none right-micro my-auto flex size-touch items-center justify-center rounded-control text-text-muted hover:text-primary focus-visible:shadow-focus focus-visible:outline-none disabled:cursor-not-allowed"
+          className="form-control-trailing absolute inset-y-none right-micro z-10 my-auto flex size-touch items-center justify-center rounded-control text-text-muted hover:text-primary focus-visible:shadow-focus focus-visible:outline-none disabled:cursor-not-allowed"
         >
           <VisibilityIcon aria-hidden="true" className="size-icon" />
         </button>

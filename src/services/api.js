@@ -55,6 +55,17 @@ export class ApiError extends Error {
   }
 }
 
+// Preserve the original file bytes and the exact media type for private catalog
+// uploads. The caller retains the asset reservation and bytes for an explicit retry.
+export async function uploadBytes(path, bytes, type, signal) {
+  const headers = await authHeaders({})
+  headers.set('Content-Type', type)
+  return client
+    .put(path, bytes, { headers, signal, transformRequest: [(data) => data] })
+    .then(readResponse)
+    .catch(handleError)
+}
+
 // Headerless calls still send JSON headers, but never an Authorization header.
 function jsonHeaders({ headers, idempotencyKey } = {}) {
   const result = new axios.AxiosHeaders(headers)

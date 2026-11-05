@@ -40,9 +40,20 @@ export function WorkspaceLayout() {
     ...(workspace.can('suppliers.view')
       ? [{ to: '/app/suppliers', label: 'Suppliers', Icon: Truck }]
       : []),
-    ...(workspace.can('products.view') ? [{ to: '/app/products', label: 'Products', Icon: Boxes }] : []),
+    ...(workspace.can('products.view')
+      ? [{ to: '/app/products', label: 'Products', Icon: Boxes }]
+      : []),
     ...(workspace.can('master_data.view')
       ? [{ to: '/app/master-data', label: 'Reference lists', Icon: Boxes }]
+      : []),
+    ...(workspace.owner && workspace.can('master_data.view')
+      ? [
+          {
+            to: '/app/decoration-matrices',
+            label: 'Decoration matrices',
+            Icon: Boxes,
+          },
+        ]
       : []),
     ...(workspace.owner
       ? [

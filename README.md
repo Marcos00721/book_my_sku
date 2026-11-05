@@ -1,6 +1,6 @@
 ﻿# BookMySku
 
-React workspace for clients, contacts, addresses, teams, roles, onboarding, and billing, with a centralized light/dark theme and solid surfaces throughout. Built with JavaScript, Vite, Tailwind CSS, React Hook Form, Zod, and Framer Motion.
+React workspace for clients, suppliers, product configuration, private catalog images, manual pricing, decoration matrices, teams, roles, onboarding, and billing, with a centralized light/dark theme. Built with JavaScript, Vite, Tailwind CSS, React Hook Form, Zod, and Framer Motion.
 
 See [Frontend integration](docs/FRONTEND_INTEGRATION.md) for the current screen/API map, backend reference revision, retry behavior, and verification limits.
 
@@ -12,6 +12,8 @@ npm run dev
 ```
 
 Open `http://localhost:5173/login`. The frontend uses port 5173 and proxies `/api` to the backend on port 3000. Set `API_PROXY_TARGET` if the backend runs elsewhere. For a deployed frontend, set `VITE_API_BASE_URL` to the backend URL including `/api/v1`, and redeploy after changing build variables. Keep `.env` out of Git.
+
+The configured staging API is `https://bookmysku-staging-647834327133.asia-south1.run.app/api/v1`. Set `VITE_STRIPE_PUBLISHABLE_KEY` to your public Stripe key; hosted Checkout sessions are created by the backend. Restart the dev server after changing `.env`.
 
 Registration follows the current backend `docs/frontend-handoff.md` and `docs/supabase-auth-setup.md`:
 

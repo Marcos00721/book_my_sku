@@ -84,7 +84,10 @@ test('client profiles save optional fields and use client-specific industry opti
     },
   })
   await page.goto('/app/clients')
-  await page.locator('.page-heading').getByRole('button', { name: 'Add client', exact: true }).click()
+  await page
+    .locator('.page-heading')
+    .getByRole('button', { name: 'Add client', exact: true })
+    .click()
   const dialog = page.getByRole('dialog')
   await dialog
     .getByRole('textbox', { name: 'Client name', exact: true })
@@ -252,7 +255,7 @@ test('product creation retries the exact SKU and UUID and opens current detail',
   )
   await expect(
     page.getByRole('button', {
-      name: /activate product|add price|upload media/i,
+      name: /place order|receive stock/i,
     }),
   ).toHaveCount(0)
 })
@@ -381,16 +384,19 @@ test('superadmin template publication requires a saved-draft comparison and exac
   page,
 }) => {
   let publication
-  const entries = ['industry', 'product_category', 'decoration_method'].map(
-    (category, index) => ({
-      category,
-      key: `entry_${index}`,
-      label: `Label ${index}`,
-      description: null,
-      status: 'active',
-      sortOrder: 0,
-    }),
-  )
+  const entries = [
+    'industry',
+    'product_category',
+    'decoration_method',
+    'decoration_location',
+  ].map((category, index) => ({
+    category,
+    key: `entry_${index}`,
+    label: `Label ${index}`,
+    description: null,
+    status: 'active',
+    sortOrder: 0,
+  }))
   await workspace(page, {
     handler: async ({ path, request, reply }) => {
       if (path === '/admin/me') {

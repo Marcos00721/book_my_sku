@@ -24,6 +24,7 @@ const labels = {
   industry: 'Industries',
   product_category: 'Product categories',
   decoration_method: 'Decoration methods',
+  decoration_location: 'Decoration locations',
 }
 
 export function MasterDataPage() {
@@ -52,7 +53,7 @@ export function MasterDataPage() {
     <>
       <PageHeader
         title="Business reference lists"
-        description="Manage the labels your workspace uses for industries, product categories, and decoration methods."
+        description="Manage workspace industries, product categories, decoration methods and locations."
         actions={
           canEdit && <Action onClick={() => setEditing({})}>Add entry</Action>
         }
@@ -225,8 +226,9 @@ export function MasterDataPage() {
             ) : (
               !entries.error && (
                 <Empty title="No entries yet">
-                  New workspaces receive the published BookMySku starter lists.
-                  You can add labels that fit your business.
+                  {category === 'decoration_location'
+                    ? 'An older workspace may have no decoration locations. Its owner can add independent local entries.'
+                    : 'New workspaces receive the published BookMySku starter lists. Owners can add labels that fit their business.'}
                 </Empty>
               )
             )}
