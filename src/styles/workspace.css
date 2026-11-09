@@ -631,6 +631,21 @@
   gap: 0.3rem;
   font-weight: 650;
 }
+.billing-check-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  color: rgb(var(--color-text-muted));
+  font-size: 0.8125rem;
+}
+.billing-recovery-notice {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+.billing-recovery-notice .button {
+  margin-top: 0.75rem;
+}
 .loading-state {
   display: flex;
   align-items: center;

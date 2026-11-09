@@ -26,11 +26,12 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
     ['wait_billing', 'wait_provisioning', 'contact_support'].includes(
       snapshot.nextAction,
     )
-  const [busy, setBusy] = useState(false)
+  const [busyAction, setBusyAction] = useState(null)
   const [error, setError] = useState(null)
   const [recovery, setRecovery] = useState(null)
   const [canceling, setCanceling] = useState(false)
   const reconcileLocked = useRef(false)
+  const busy = Boolean(busyAction)
   function reload() {
     if (!snapshot) {
       offerResource.reload()
@@ -41,7 +42,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
   async function reconcile(action) {
     if (reconcileLocked.current) return
     reconcileLocked.current = true
-    setBusy(true)
+    setBusyAction(action)
     setError(null)
     setRecovery(null)
     try {
@@ -64,7 +65,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
       return failure
     } finally {
       reconcileLocked.current = false
-      setBusy(false)
+      setBusyAction(null)
     }
   }
   if (offer.loading || billing.loading)
@@ -193,37 +194,54 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
               off per seat for {status.terms.discount.months} months.
             </p>
           )}
-          <p className="muted">
-            Payment confirmation comes from the billing service. A return from
-            Stripe may still need a status refresh.
-          </p>
+          {!pendingRecovery && (
+            <p className="muted">
+              Payment confirmation comes from the billing service. A return from
+              Stripe may still need a status refresh.
+            </p>
+          )}
         </>
       )}
-      {showRecovery && (
-        <div className="notice">
-          <div>
-            <p>
-              {recovery.state === 'processing'
-                ? 'Your existing billing request is still processing. Wait for the next status check before trying recovery again.'
-                : recovery.state === 'support_required'
-                  ? 'Your billing setup needs support review. Contact support with any request reference shown on this page.'
-                  : recovery.paymentUrl
-                    ? 'Your secure payment page is ready. Continue on Stripe to complete the required step.'
-                    : recovery.state === 'card_ready'
-                      ? 'Your card is saved. Review your accepted offer and choose Start subscription.'
-                      : recovery.state === 'eligible'
-                        ? 'Billing is verified. Checking your workspace access.'
-                        : 'Your existing billing setup has been checked. Review the next step above.'}
-            </p>
-            {recovery.paymentUrl && (
-              <ButtonLink href={recovery.paymentUrl} rel="noreferrer">
-                Continue secure payment <ExternalLink size={15} />
-              </ButtonLink>
-            )}
+      {showRecovery &&
+        !(pendingRecovery && recovery.state === 'processing') && (
+          <div className="notice">
+            <div>
+              <p>
+                {recovery.state === 'processing'
+                  ? 'Your existing billing request is still processing. Wait for the next status check before trying recovery again.'
+                  : recovery.state === 'support_required'
+                    ? 'Your billing setup needs support review. Contact support with any request reference shown on this page.'
+                    : recovery.paymentUrl
+                      ? 'Your secure payment page is ready. Continue on Stripe to complete the required step.'
+                      : recovery.state === 'card_ready'
+                        ? 'Your card is saved. Review your accepted offer and choose Start subscription.'
+                        : recovery.state === 'eligible'
+                          ? 'Billing is verified. Checking your workspace access.'
+                          : 'Your existing billing setup has been checked. Review the next step above.'}
+              </p>
+              {recovery.paymentUrl && (
+                <ButtonLink href={recovery.paymentUrl} rel="noreferrer">
+                  Continue secure payment <ExternalLink size={15} />
+                </ButtonLink>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+      {(busy || waiting) && (
+        <p className="billing-check-status" aria-live="polite">
+          <RefreshCw size={14} className="spin" aria-hidden="true" />
+          {busyAction === 'recovery'
+            ? 'Recovering existing billing setup…'
+            : busyAction === 'refresh'
+              ? 'Checking billing status…'
+              : 'Payment is still confirming. Status checks continue automatically.'}
+        </p>
       )}
-      <div className="actions" style={{ marginTop: '1.5rem' }}>
+      <div
+        className="actions"
+        style={{ marginTop: pendingRecovery || busy || waiting ? '1rem' : '1.5rem' }}
+        aria-busy={busy || undefined}
+      >
         {status.flowVersion === 2 && status.status !== 'canceled' && (
           <Action
             variant="secondary"
@@ -238,8 +256,12 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
           disabled={busy || waiting}
           onClick={() => reconcile('refresh')}
         >
-          <RefreshCw size={15} />
-          {busy ? 'Checking…' : 'Refresh billing status'}
+          <RefreshCw
+            size={15}
+            className={busyAction === 'refresh' || waiting ? 'spin' : undefined}
+            aria-hidden="true"
+          />
+          {busyAction === 'refresh' ? 'Checking…' : 'Refresh billing status'}
         </Action>
         {offer.data.state === 'billing_started' &&
           !waiting &&
@@ -249,7 +271,9 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
               disabled={busy}
               onClick={() => reconcile('recovery')}
             >
-              Resume payment / recover
+              {busyAction === 'recovery'
+                ? 'Recovering…'
+                : 'Resume payment / recover'}
             </Action>
           )}
       </div>
@@ -260,7 +284,8 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
           checkout={['checkout_creating', 'checkout_pending'].includes(
             status.status,
           )}
-          busy={busy}
+          busy={busyAction === 'recovery'}
+          locked={busy}
           recover={() => reconcile('recovery')}
         />
       )}
@@ -278,7 +303,23 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
   )
 }
 
-function PendingBillingRecovery({ retryAfter, checkout, busy, recover }) {
+function formatWait(seconds) {
+  const whole = Math.max(0, Math.ceil(seconds))
+  if (whole >= 60) {
+    const minutes = Math.floor(whole / 60)
+    const rest = whole % 60
+    return rest > 0 ? `${minutes}m ${rest}s` : `${minutes}m`
+  }
+  return `${whole}s`
+}
+
+function PendingBillingRecovery({
+  retryAfter,
+  checkout,
+  busy,
+  locked,
+  recover,
+}) {
   // Backend billing operations hold a two-minute worker lease. Give the current
   // operation that window, then recover it explicitly; never create a new intent.
   const [notBefore, setNotBefore] = useState(() => Date.now() + 120000)
@@ -289,16 +330,14 @@ function PendingBillingRecovery({ retryAfter, checkout, busy, recover }) {
     Number.isFinite(serverTime) ? serverTime : 0,
   )
   const ready = observed >= retryAt
+  const secondsLeft = Math.max(0, (retryAt - observed) / 1000)
   useEffect(() => {
     if (ready) return
-    const timer = setTimeout(
-      () => setObserved(Date.now()),
-      Math.max(0, retryAt - Date.now()),
-    )
-    return () => clearTimeout(timer)
-  }, [retryAt, observed, ready])
+    const timer = setInterval(() => setObserved(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [ready])
   async function resume() {
-    if (!ready || busy) return
+    if (!ready || locked) return
     const now = Date.now()
     setNotBefore(now + 120000)
     setObserved(now)
@@ -307,20 +346,33 @@ function PendingBillingRecovery({ retryAfter, checkout, busy, recover }) {
       setNotBefore(Date.now() + Math.max(120000, failure.retryAfterMs))
   }
   return (
-    <section className="panel" aria-label="Recover pending billing">
-      <p>
-        {ready
-          ? 'If this is still pending, resume the existing billing setup below. The backend checks and recovers the original operation.'
-          : 'The current billing request is processing. Status checks continue; recovery becomes available after the current waiting period.'}
-      </p>
-      <Action variant="secondary" disabled={!ready || busy} onClick={resume}>
-        {busy
-          ? 'Recovering existing setup…'
-          : checkout
-            ? 'Resume existing Checkout'
-            : 'Recover existing billing setup'}
-      </Action>
-    </section>
+    <div className="notice billing-recovery-notice" aria-label="Recover pending billing">
+      <div>
+        <p>
+          {busy
+            ? 'Recovering the existing billing setup…'
+            : ready
+              ? 'If payment is still pending, resume the existing billing setup. This recovers the original request and does not start a new one.'
+              : `Billing is still processing. Recovery unlocks in ${formatWait(secondsLeft)}.`}
+        </p>
+        <Action
+          variant="secondary"
+          disabled={!ready || locked}
+          onClick={resume}
+        >
+          {busy ? (
+            <>
+              <RefreshCw size={15} className="spin" aria-hidden="true" />
+              Recovering…
+            </>
+          ) : checkout ? (
+            'Resume existing Checkout'
+          ) : (
+            'Recover existing billing setup'
+          )}
+        </Action>
+      </div>
+    </div>
   )
 }
 
