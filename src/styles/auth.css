@@ -41,12 +41,21 @@
   background: rgb(var(--color-secondary) / 0.08);
 }
 
-.auth-top {
+.auth-theme {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.auth-brand {
   display: flex;
-  min-height: var(--size-touch);
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.auth-brand .brand-mark-logo {
+  width: min(9.5rem, 56vw);
 }
 
 .auth-form-wrap {

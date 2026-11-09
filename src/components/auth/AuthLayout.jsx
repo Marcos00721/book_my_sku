@@ -9,13 +9,15 @@ export function AuthLayout({ variant, tone, children }) {
 
   return (
     <div className={shellClass}>
+      <div className="auth-theme">
+        <ThemeToggle />
+      </div>
       <main className="auth-main">
-        <header className="auth-top">
-          <BrandMark />
-          <ThemeToggle />
-        </header>
         <div className="auth-form-wrap">
           <div className="auth-form" key={variant}>
+            <div className="auth-brand">
+              <BrandMark />
+            </div>
             {children}
           </div>
         </div>
