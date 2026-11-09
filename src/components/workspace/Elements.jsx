@@ -214,7 +214,7 @@ export function Dialog({
           <X size={20} />
         </Action>
       </header>
-      {children}
+      <div className="app-dialog-body">{children}</div>
     </dialog>
   )
 }

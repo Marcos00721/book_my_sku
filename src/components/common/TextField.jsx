@@ -4,7 +4,8 @@ import { FieldFrame } from './FieldFrame'
 
 /**
  * App-wide text input. Same size/chrome as SelectField.
- * Controlled or uncontrolled — pass value/onChange or defaultValue.
+ * One bordered control; icons sit inside as overlays.
+ * Use spacing token `none` (not `0`) — this theme has no numeric zero scale.
  */
 export const TextField = forwardRef(function TextField(
   {
@@ -23,6 +24,9 @@ export const TextField = forwardRef(function TextField(
   },
   ref,
 ) {
+  const hasLeading = Boolean(icon || prefix)
+  const hasBothLeading = Boolean(icon && prefix)
+
   return (
     <FieldFrame
       id={id}
@@ -33,16 +37,24 @@ export const TextField = forwardRef(function TextField(
       className={className}
     >
       {({ id: fieldId, describedBy, invalid }) => (
-        <div className="relative isolate">
-          {(icon || prefix) && (
+        <div className="relative">
+          {hasLeading ? (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-md z-10 flex items-center gap-xs text-text-muted [&>svg]:size-icon"
+              className={theme.cx(
+                'pointer-events-none absolute inset-y-none left-none z-10 flex items-center text-text-muted',
+                hasBothLeading
+                  ? 'gap-xs pl-md pr-xs'
+                  : 'w-control justify-center',
+                '[&>svg]:size-icon [&>svg]:shrink-0',
+              )}
             >
               {icon}
-              {prefix ? <span className="text-sm">{prefix}</span> : null}
+              {prefix ? (
+                <span className="text-sm leading-none">{prefix}</span>
+              ) : null}
             </span>
-          )}
+          ) : null}
           <input
             {...props}
             ref={ref}
@@ -54,9 +66,12 @@ export const TextField = forwardRef(function TextField(
             className={theme.cx(
               theme.input,
               invalid && theme.inputInvalid,
-              icon || prefix ? 'pl-control' : '',
-              icon && prefix ? 'pl-3xl' : '',
-              trailing ? 'pr-control' : '',
+              hasBothLeading
+                ? 'pl-3xl'
+                : hasLeading
+                  ? 'pl-control'
+                  : 'pl-md',
+              trailing ? 'pr-control' : 'pr-md',
               controlClassName,
             )}
           />

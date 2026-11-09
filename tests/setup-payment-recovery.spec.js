@@ -91,6 +91,15 @@ test('an uncertain company completion remains retryable after an offer change wi
   })
   await page.goto('/setup')
   await page
+    .getByRole('button', {
+      name: /^(Save and )?Continue to payment$/,
+      exact: true,
+    })
+    .click()
+  await expect(
+    page.getByRole('checkbox', { name: /I agree to recurring billing/ }),
+  ).toBeVisible()
+  await page
     .getByRole('checkbox', { name: /I agree to recurring billing/ })
     .check()
   await page

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDraftGuard } from "../hooks/useDraftGuard";
 import { useJourneyStatus } from "../hooks/useJourneyStatus";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
 import { getAuthClient } from "../services/auth";
 import { createOnboardingCoordinator } from "../services/onboardingCoordinator";
@@ -15,6 +15,11 @@ import { BillingPanel } from "../components/workspace/BillingPanel";
 import { GeographyFields } from "../components/workspace/GeographyFields";
 import { CheckoutTerms } from "../components/workspace/CheckoutTerms";
 import { PaymentHandoff } from "../components/workspace/PaymentHandoff";
+import { SetupCelebration } from "../components/workspace/SetupCelebration";
+import {
+  SetupStepper,
+  setupStepFromJourney,
+} from "../components/workspace/SetupStepper";
 import {
   Action,
   ErrorNotice,
@@ -36,8 +41,13 @@ import {
 
 export function SetupPage() {
   const journey = useJourneyStatus();
+  const [searchParams] = useSearchParams();
   const [handoff, setHandoff] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
+  const [wizardPhase, setWizardPhase] = useState("company");
+  const [celebration, setCelebration] = useState(() =>
+    searchParams.get("payment") === "success" ? "payment" : null,
+  );
   if (journey.loading) return <Loading label="Loading your setup progress…" />;
   if (!journey.data)
     return <ErrorNotice error={journey.error} retry={journey.reload} />;
@@ -79,6 +89,28 @@ export function SetupPage() {
     current.offer?.state === "available" &&
     current.offer.checkoutAllowed &&
     current.platform?.ready === true;
+  const resumeCheckout =
+    !assistedGrant &&
+    ["checkout_creating", "checkout_pending"].includes(
+      current.billing?.status,
+    );
+  const activeStep =
+    celebration === "payment"
+      ? "payment"
+      : wizardPhase === "payment"
+        ? "payment"
+        : wizardPhase === "celebrate"
+          ? "company"
+          : current.setup &&
+              (!current.setup.complete || collectAtFinish || resumeCheckout)
+            ? "company"
+            : setupStepFromJourney(current);
+  const completedThrough =
+    activeStep === "workspace"
+      ? "payment"
+      : activeStep === "payment" || wizardPhase === "celebrate"
+        ? "company"
+        : null;
   function changed(nextJourney, paymentRequest) {
     if (paymentRequest) {
       setPaymentError(null);
@@ -104,8 +136,9 @@ export function SetupPage() {
       <PageHeader
         eyebrow="LET’S MAKE IT YOURS"
         title="Your next chapter starts here."
-        description="Complete your company details, then follow the payment and workspace steps below."
+        description="Complete each setup step in order — company details, payment, then workspace."
       />
+      <SetupStepper current={activeStep} completedThrough={completedThrough} />
       <ErrorNotice error={journey.error} retry={journey.reload} />
       <ErrorNotice error={paymentError} />
       {journey.pollingExhausted && (
@@ -120,38 +153,54 @@ export function SetupPage() {
           payment remain in place. {current.platform?.reason}
         </p>
       )}
-      {current.setup && (
-        <CompanySetup
-          key={current.actorId}
-          actorId={current.actorId}
-          setup={current.setup}
-          organization={current.provisioning}
-          nextAction={action}
-          assistedGrantId={assistedGrant?.id}
-          assistedEligible={assistedGrant?.access?.eligible}
-          applicationId={current.application?.id}
-          paymentPreview={collectAtFinish ? current.offer : null}
-          resumeCheckout={
-            !assistedGrant &&
-            ["checkout_creating", "checkout_pending"].includes(
-              current.billing?.status,
-            )
-          }
-          changed={changed}
-        />
-      )}
-      {handoff ? (
-        <PaymentHandoff
-          request={handoff}
-          snapshot={current}
-          reload={journey.reload}
-          done={(error) => {
-            setHandoff(null);
-            if (error) setPaymentError(error);
-          }}
-        />
+      {celebration === "payment" ? (
+        <section className="panel setup-step-panel">
+          <SetupCelebration
+            title="Payment confirmed"
+            description="Your card details are saved. Next, finish preparing your workspace."
+            continueLabel="Continue to workspace"
+            autoAdvanceMs={0}
+            onContinue={() => setCelebration(null)}
+          />
+        </section>
+      ) : null}
+      {celebration === "payment"
+        ? null
+        : current.setup && (
+            <div className="setup-step-panel">
+              <CompanySetup
+                key={current.actorId}
+                actorId={current.actorId}
+                setup={current.setup}
+                organization={current.provisioning}
+                nextAction={action}
+                assistedGrantId={assistedGrant?.id}
+                assistedEligible={assistedGrant?.access?.eligible}
+                applicationId={current.application?.id}
+                paymentPreview={collectAtFinish ? current.offer : null}
+                resumeCheckout={resumeCheckout}
+                wizardPhase={
+                  resumeCheckout && !collectAtFinish ? "payment" : wizardPhase
+                }
+                onWizardPhaseChange={setWizardPhase}
+                changed={changed}
+              />
+            </div>
+          )}
+      {celebration === "payment" ? null : handoff ? (
+        <div className="setup-step-panel">
+          <PaymentHandoff
+            request={handoff}
+            snapshot={current}
+            reload={journey.reload}
+            done={(error) => {
+              setHandoff(null);
+              if (error) setPaymentError(error);
+            }}
+          />
+        </div>
       ) : assistedGrant ? (
-        <section className="panel">
+        <section className="panel setup-step-panel">
           <h2>Assisted billing checklist</h2>
           <p className="muted">
             Review your accepted agreement and future billing requirements
@@ -165,13 +214,16 @@ export function SetupPage() {
         current.billing &&
         current.offer &&
         action !== "contact_support" &&
-        !collectAtFinish ? (
-        <BillingPanel
-          key={current.application.id}
-          applicationId={current.application.id}
-          snapshot={current}
-          changed={changed}
-        />
+        !collectAtFinish &&
+        wizardPhase !== "celebrate" ? (
+        <div className="setup-step-panel">
+          <BillingPanel
+            key={current.application.id}
+            applicationId={current.application.id}
+            snapshot={current}
+            changed={changed}
+          />
+        </div>
       ) : null}
     </div>
   );
@@ -187,6 +239,8 @@ function CompanySetup({
   applicationId,
   paymentPreview,
   resumeCheckout,
+  wizardPhase,
+  onWizardPhaseChange,
   changed,
 }) {
   const mutation = useMutation();
@@ -217,10 +271,16 @@ function CompanySetup({
       setup.complete &&
       !["prepared", "active"].includes(organization?.status) &&
       organization?.provisioning?.state !== "in_progress");
+  const sectionTitle =
+    wizardPhase === "payment"
+      ? "Payment"
+      : wizardPhase === "celebrate"
+        ? "Company details"
+        : "Company details";
   return (
     <section className="panel">
       <div className="section-heading">
-        <h2>Company details</h2>
+        <h2>{sectionTitle}</h2>
         <Status value={setup.complete ? "complete" : "in progress"} />
       </div>
       {(setup.locked || setup.complete) && !editing ? (
@@ -280,7 +340,10 @@ function CompanySetup({
                   preparation.pending ||
                   preparation.uncertain
                 }
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  onWizardPhaseChange?.("company");
+                  setEditing(true);
+                }}
               >
                 Edit company details
               </Action>
@@ -295,6 +358,8 @@ function CompanySetup({
           applicationId={applicationId}
           paymentPreview={paymentPreview}
           resumeCheckout={resumeCheckout}
+          wizardPhase={wizardPhase}
+          onWizardPhaseChange={onWizardPhaseChange}
           saved={(nextJourney, paymentRequest) => {
             setEditing(false);
             changed(nextJourney, paymentRequest);
@@ -313,6 +378,8 @@ function CompanyForm({
   applicationId,
   paymentPreview,
   resumeCheckout,
+  wizardPhase = 'company',
+  onWizardPhaseChange,
 }) {
   const form = useAppForm(companySetupFormSchema, {
     defaultValues: companySetupDefaults(setup),
@@ -328,6 +395,12 @@ function CompanyForm({
   const subjectId = useRef(null)
   const [acceptedPayment, setAcceptedPayment] = useState('')
   const [redirectingToPayment, setRedirectingToPayment] = useState(false)
+  const steppedPayment = Boolean(paymentPreview) && !resumeCheckout
+  const phase = steppedPayment
+    ? wizardPhase
+    : resumeCheckout
+      ? 'payment'
+      : 'company'
   const paymentBody = paymentPreview
     ? {
         expectedOfferRevision: paymentPreview.offer.revision,
@@ -497,10 +570,14 @@ function CompanyForm({
       else saved(journey, paymentRequest)
     } catch (error) {
       setRedirectingToPayment(false)
+      const uncertain = !error.status || error.status >= 500
+      // Company field problems belong on the company step; keep uncertain
+      // payment retries on the payment step.
+      if (steppedPayment && !uncertain) onWizardPhaseChange?.('company')
       setState({
         pending: false,
         error,
-        uncertain: !error.status || error.status >= 500,
+        uncertain,
       })
     }
   }
@@ -523,6 +600,136 @@ function CompanyForm({
       ? state.error
       : null
   const formError = conflictError ? null : state.error
+
+  async function continueToPaymentStep() {
+    if (!coordinator || readOnly || redirectingToPayment) return
+    const valid = await form.trigger()
+    if (!valid) return
+    // One click: save dirty company details, then advance.
+    if (isDirty) {
+      setState({ pending: true, error: null, uncertain: false })
+      try {
+        const values = form.getValues()
+        coordinator.edit(companySetupPayload(values))
+        const result = await coordinator.save()
+        setRevision(result.revision)
+        setSavedRevision(true)
+        form.reset(values)
+        setState({ pending: false, error: null, uncertain: false })
+      } catch (error) {
+        setState({ pending: false, error, uncertain: false })
+        return
+      }
+    }
+    onWizardPhaseChange?.('celebrate')
+  }
+
+  if (phase === 'celebrate') {
+    return (
+      <SetupCelebration
+        title="Company details look great"
+        description="Taking you to billing next."
+        continueLabel="Continue to billing"
+        autoAdvanceMs={1400}
+        onContinue={() => onWizardPhaseChange?.('payment')}
+      />
+    )
+  }
+
+  if (phase === 'payment' && (paymentPreview || resumeCheckout)) {
+    return (
+      <div className="company-setup-form w-full space-y-lg">
+        <p className="muted m-0 max-w-form">
+          Review billing terms, then finish setup to open your secure Stripe
+          page.
+        </p>
+        <FormApiAlert error={formError} />
+        <ConflictReview
+          error={conflictError}
+          path="/onboarding/setup"
+          values={companySetupPayload(form.getValues())}
+          onReview={async (current) => {
+            try {
+              const instance = factory.current(current)
+              await instance.load()
+              setCoordinator(instance)
+              setRevision(current.revision)
+              form.reset(companySetupDefaults(current))
+              setState({ pending: false, error: null, uncertain: false })
+            } catch (error) {
+              setState({
+                pending: false,
+                error,
+                uncertain: !error.status || error.status >= 500,
+              })
+            }
+          }}
+        />
+        {paymentPreview && (
+          <section
+            className="company-setup-card w-full space-y-md"
+            aria-label="Billing terms before continuing"
+          >
+            <div className="space-y-xs">
+              <h3 className="m-0">Review your billing terms</h3>
+              <p className="muted m-0">
+                After you finish, your secure Stripe page will open
+                automatically. Subscription start remains a separate
+                confirmation.
+              </p>
+            </div>
+            <CheckoutTerms
+              preview={paymentPreview}
+              checked={paymentAccepted}
+              change={(checked) => {
+                clearApiError()
+                setAcceptedPayment(checked ? paymentKey : '')
+              }}
+              disabled={locked}
+            />
+          </section>
+        )}
+        {coordinator && (
+          <div className="company-setup-card company-setup-card-muted w-full space-y-md">
+            <p className="m-0">
+              Finish completes your company details and opens your secure Stripe
+              page automatically when ready.
+            </p>
+            <div className="actions">
+              {steppedPayment && (
+                <Action
+                  variant="secondary"
+                  disabled={completion.pending || redirectingToPayment}
+                  onClick={() => onWizardPhaseChange?.('company')}
+                >
+                  Back to company details
+                </Action>
+              )}
+              <Action
+                disabled={
+                  readOnly ||
+                  isSubmitting ||
+                  mutation.pending ||
+                  completion.pending ||
+                  redirectingToPayment ||
+                  (paymentPreview && !paymentAccepted && !completion.uncertain)
+                }
+                onClick={finish}
+              >
+                {redirectingToPayment
+                  ? 'Redirecting to payment…'
+                  : completion.pending
+                    ? 'Redirecting to payment…'
+                    : completion.uncertain
+                      ? 'Retry completion'
+                      : 'Finish setup and continue to payment'}
+              </Action>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="company-setup-form w-full space-y-lg">
@@ -627,61 +834,48 @@ function CompanyForm({
         }}
       />
       <p className="muted m-0 text-xs">Saved revision {revision}</p>
-      {paymentPreview && (
-        <section
-          className="company-setup-card w-full space-y-md"
-          aria-label="Billing terms before continuing"
-        >
-          <div className="space-y-xs">
-            <h3 className="m-0">Review your billing terms</h3>
-            <p className="muted m-0">
-              After your company details are completed, your secure Stripe page
-              will open automatically. Subscription start remains a separate
-              confirmation.
-            </p>
-          </div>
-          <CheckoutTerms
-            preview={paymentPreview}
-            checked={paymentAccepted}
-            change={(checked) => {
-              clearApiError()
-              setAcceptedPayment(checked ? paymentKey : '')
-            }}
-            disabled={locked}
-          />
-        </section>
-      )}
       {coordinator && (
         <div className="company-setup-card company-setup-card-muted w-full space-y-md">
           <p className="m-0">
             {savedRevision ? 'Details saved. ' : ''}
-            {paymentPreview || resumeCheckout
-              ? 'Finish completes your company details and opens your secure Stripe page automatically when ready.'
+            {steppedPayment
+              ? 'Continue saves any unsaved changes, then opens the Payment step automatically.'
               : 'Finish saves and completes these details, then checks the next workspace step. Subscription consent remains separate.'}
           </p>
-          <Action
-            disabled={
-              readOnly ||
-              isSubmitting ||
-              mutation.pending ||
-              completion.pending ||
-              redirectingToPayment ||
-              (paymentPreview && !paymentAccepted && !completion.uncertain)
-            }
-            onClick={finish}
-          >
-            {redirectingToPayment
-              ? 'Redirecting to payment…'
-              : completion.pending
-                ? paymentPreview || resumeCheckout
-                  ? 'Redirecting to payment…'
-                  : 'Completing…'
-                : completion.uncertain
-                  ? 'Retry completion'
-                  : paymentPreview || resumeCheckout
-                    ? 'Finish setup and continue to payment'
+          {steppedPayment ? (
+            <Action
+              disabled={
+                readOnly ||
+                isSubmitting ||
+                mutation.pending ||
+                completion.pending ||
+                redirectingToPayment
+              }
+              onClick={continueToPaymentStep}
+            >
+              {isDirty ? 'Save and continue to payment' : 'Continue to payment'}
+              <ArrowRight size={16} />
+            </Action>
+          ) : (
+            <Action
+              disabled={
+                readOnly ||
+                isSubmitting ||
+                mutation.pending ||
+                completion.pending ||
+                redirectingToPayment
+              }
+              onClick={finish}
+            >
+              {redirectingToPayment
+                ? 'Redirecting to payment…'
+                : completion.pending
+                  ? 'Completing…'
+                  : completion.uncertain
+                    ? 'Retry completion'
                     : 'Finish setup'}
-          </Action>
+            </Action>
+          )}
         </div>
       )}
     </div>

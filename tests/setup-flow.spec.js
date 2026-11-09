@@ -237,6 +237,9 @@ test('waiting states poll reads with backoff and do not reconcile or activate an
   await page.clock.install()
   const state = await mockFlow(page, journey({ nextAction: 'wait_billing' }))
   await page.goto('/setup?payment=success')
+  await page
+    .getByRole('button', { name: 'Continue to workspace', exact: true })
+    .click()
   await expect(
     page.getByRole('button', { name: 'Refresh billing status', exact: true }),
   ).toBeDisabled()

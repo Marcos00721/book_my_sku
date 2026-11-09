@@ -38,9 +38,10 @@ export const card =
 export const panel =
   'min-w-none rounded-card border border-border-subtle bg-surface p-md shadow-subtle'
 
-/** Shared control chrome — TextField and SelectField must stay identical. */
+/** Shared control chrome — TextField and SelectField must stay identical.
+ *  Horizontal padding is applied by TextField so icon/trailing gutters never clash. */
 export const input =
-  `box-border h-control w-full min-w-0 appearance-none rounded-control border border-border-control bg-surface px-md text-sm leading-none text-text-base shadow-xs placeholder:text-text-subtle hover:border-primary ${transition} ${focus} disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-60`
+  `box-border h-control w-full min-w-0 appearance-none rounded-control border border-border-control bg-surface text-sm leading-none text-text-base shadow-xs placeholder:text-text-subtle hover:border-primary ${transition} ${focus} disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-60`
 
 export const select =
   `box-border inline-flex h-control w-full min-w-0 cursor-pointer items-center justify-between gap-sm rounded-control border border-border-control bg-surface py-0 pr-md pl-md text-left text-sm leading-none text-text-base shadow-xs hover:border-primary ${transition} ${focus} disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-60`

@@ -143,7 +143,19 @@ async function setup(page, handle = async () => false) {
   return model
 }
 
+async function advanceToPaymentStep(page) {
+  const continueBtn = page.getByRole('button', {
+    name: /^(Save and )?Continue to payment$/,
+    exact: true,
+  })
+  await continueBtn.click()
+  await expect(
+    page.getByRole('checkbox', { name: /I agree to recurring billing/ }),
+  ).toBeVisible()
+}
+
 async function acceptAndFinish(page) {
+  await advanceToPaymentStep(page)
   await page
     .getByRole('checkbox', { name: /I agree to recurring billing/ })
     .check()
@@ -160,11 +172,18 @@ test('Finish opens Stripe automatically after completion and current offer conse
 }) => {
   const model = await setup(page)
   await page.goto('/setup')
-  const finish = page.getByRole('button', {
-    name: 'Finish setup and continue to payment',
-    exact: true,
-  })
-  await expect(finish).toBeDisabled()
+  await expect(
+    page.getByRole('textbox', { name: 'Industry', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', {
+      name: /^(Save and )?Continue to payment$/,
+      exact: true,
+    }),
+  ).toBeEnabled()
+  await expect(
+    page.getByRole('checkbox', { name: /I agree to recurring billing/ }),
+  ).toHaveCount(0)
   await page
     .getByRole('textbox', { name: 'Industry', exact: true })
     .fill('Education')
@@ -340,6 +359,9 @@ test('reloading completed details never invents consent or redirects from a succ
   model.setup = { ...model.setup, complete: true, locked: true }
   model.snapshot.nextAction = 'review_offer'
   await page.goto('/setup?payment=success')
+  await page
+    .getByRole('button', { name: 'Continue to workspace', exact: true })
+    .click()
   await expect(
     page.getByRole('button', {
       name: 'Continue to secure Checkout',

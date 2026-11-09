@@ -178,7 +178,10 @@ export function PaymentHandoff({ request, snapshot, reload, done }) {
   ])
 
   return (
-    <section className="panel" aria-label="Continue to secure payment">
+    <section className="panel setup-step-panel" aria-label="Continue to secure payment">
+      <div className="setup-handoff-hero" aria-hidden="true">
+        <span>✓</span>
+      </div>
       <h2>
         {state.pending
           ? 'Redirecting to payment…'

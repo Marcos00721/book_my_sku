@@ -287,6 +287,11 @@ export const SelectField = forwardRef(function SelectField(
     }
   }
 
+  // Native <dialog> is top-layer; body portals render behind it. Prefer the
+  // nearest open dialog so the menu stays visible inside modals.
+  const portalRoot =
+    buttonRef.current?.closest('dialog') || document.body
+
   const menu =
     open && coords
       ? createPortal(
@@ -296,6 +301,7 @@ export const SelectField = forwardRef(function SelectField(
             className={theme.dropdown.panel}
             style={{
               position: 'fixed',
+              zIndex: 1000,
               left: coords.left,
               width: coords.width,
               top: coords.top,
@@ -365,7 +371,7 @@ export const SelectField = forwardRef(function SelectField(
               )}
             </ul>
           </div>,
-          document.body,
+          portalRoot,
         )
       : null
 
