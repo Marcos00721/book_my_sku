@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
+import { theme } from '@/crm-theme';
 
 export function FormSubmitButton({
   children,
@@ -19,11 +20,11 @@ export function FormSubmitButton({
       aria-busy={formState.isSubmitting}
       whileHover={reducedMotion || isDisabled ? undefined : { y: -1 }}
       whileTap={reducedMotion || isDisabled ? undefined : { scale: 0.985 }}
-      className={[
-        'flex h-control w-full items-center justify-center gap-sm rounded-control bg-primary px-lg py-sm text-sm font-semibold text-on-primary shadow-subtle',
-        'hover:bg-primary-hover focus-visible:shadow-focus focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-primary-disabled motion-safe:transition-colors',
+      className={theme.cx(
+        theme.button.primary,
+        'h-control w-full px-lg disabled:bg-primary-disabled disabled:opacity-100',
         className,
-      ].join(' ')}
+      )}
     >
       <span aria-live="polite">{formState.isSubmitting ? pendingLabel : children}</span>
       {formState.isSubmitting ? (

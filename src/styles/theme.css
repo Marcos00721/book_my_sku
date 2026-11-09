@@ -1,4 +1,6 @@
-/* Shared design tokens for authentication, setup, and workspace. */
+/* Structural tokens + brand chrome. Colors live in src/crm-theme/tokens.css */
+@import '../crm-theme/tokens.css';
+
 .theme-toggle {
   color: rgb(var(--color-text-base));
 }
@@ -30,88 +32,8 @@
 }
 
 :root {
-  color-scheme: light;
-
-  /* Quiet paper palette. Emerald stays the only accent. */
-  --color-canvas: 244 244 241;
-  --palette-surface-base: 255 255 255;
-  --palette-surface-highlight: 255 255 255;
-  --palette-surface-shadow: 228 228 224;
-  --palette-brand: 5 150 105;
-  --palette-brand-hover: 4 120 87;
-  --palette-on-brand: 255 255 255;
-  --palette-secondary: 8 145 178;
-  --palette-secondary-hover: 14 116 144;
-  --palette-text: 24 24 27;
-  --palette-text-muted: 113 113 122;
-
-  --glass-bg: rgb(255 255 255 / 0.72);
-  --glass-bg-muted: rgb(255 255 255 / 0.52);
-  --glass-bg-raised: rgb(255 255 255 / 0.84);
-  --glass-border: rgb(255 255 255 / 0.72);
-  --glass-border-strong: rgb(100 116 139 / 0.24);
-  --glass-border-accent: rgb(5 150 105 / 0.25);
-  --glass-blur: 16px;
-
-  --color-primary: var(--palette-brand);
-  --color-primary-hover: var(--palette-brand-hover);
-  --color-primary-soft: 209 250 229;
-  --color-primary-disabled: var(--palette-surface-shadow);
-  --color-on-primary: var(--palette-on-brand);
-
-  --color-secondary: var(--palette-secondary);
-  --color-secondary-hover: var(--palette-secondary-hover);
-  --color-secondary-soft: 207 250 254;
-  --color-on-secondary: var(--palette-on-brand);
-
-  --color-accent: var(--palette-secondary);
-  --color-accent-hover: var(--palette-secondary-hover);
-  --color-accent-soft: 207 250 254;
-  --color-on-accent: var(--palette-on-brand);
-
-  --color-surface: var(--palette-surface-base);
-  --color-surface-muted: 241 245 249;
-  --color-surface-raised: var(--palette-surface-base);
-
-  --color-text-base: var(--palette-text);
-  --color-text-muted: var(--palette-text-muted);
-  --color-text-subtle: 161 161 170;
-
-  --color-border-subtle: var(--palette-surface-shadow);
-  --color-border-control: 148 163 184;
-
-  --color-danger: 183 39 49;
-  --color-danger-muted: 255 241 242;
-  --color-success: 46 111 74;
-  --color-success-muted: 233 243 233;
-  --color-warning: 234 88 12;
-  --color-warning-muted: 255 247 237;
-  --color-info: 59 130 246;
-  --color-info-muted: 219 234 254;
-
-  --color-focus-ring: var(--palette-brand);
-  --color-brand-surface: var(--palette-surface-base);
-  --color-brand-line: var(--palette-surface-shadow);
-  --color-brand-deep: var(--palette-text);
-
-  --color-neutral-50: 248 250 252;
-  --color-neutral-100: 241 245 249;
-  --color-neutral-200: 226 232 240;
-  --color-neutral-300: 203 213 225;
-  --color-neutral-400: 148 163 184;
-  --color-neutral-500: 100 116 139;
-  --color-neutral-600: 71 85 105;
-  --color-neutral-700: 51 65 85;
-  --color-neutral-800: 30 41 59;
-  --color-neutral-900: 15 23 42;
-  --color-neutral-950: 2 6 23;
-
-  --color-overlay: 15 23 42;
-
-  --color-transparent: transparent;
-
-  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Manrope', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -178,10 +100,10 @@
   --focus-offset: 3px;
 
   --shadow-none: none;
-  --shadow-xs: 0 1px 1px rgb(24 24 27 / 0.04);
-  --shadow-subtle: 0 1px 2px rgb(24 24 27 / 0.04);
-  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.05);
-  --shadow-float: 0 16px 40px rgb(24 24 27 / 0.12);
+  --shadow-xs: 0 1px 1px rgb(15 35 45 / 0.05);
+  --shadow-subtle: 0 1px 3px rgb(15 35 45 / 0.06);
+  --shadow-card: 0 8px 24px rgb(15 35 45 / 0.08);
+  --shadow-float: 0 16px 40px rgb(15 35 45 / 0.12);
   --shadow-overlay: 0 25px 60px rgb(var(--palette-text) / 0.25);
   --shadow-focus:
     0 0 0 var(--focus-width) rgb(var(--color-surface)),
@@ -201,59 +123,13 @@
 }
 
 .dark {
-  color-scheme: dark;
-
-  /* Ink workspace. Emerald stays the only accent. */
-  --color-canvas: 12 12 13;
-  --palette-surface-base: 23 23 26;
-  --palette-surface-highlight: 52 211 153;
-  --palette-surface-shadow: 0 0 0;
-  --palette-brand: 16 185 129; /* #10B981 */
-  --palette-brand-hover: 52 211 153;
-  --palette-on-brand: 4 31 25;
-  --palette-secondary: 6 182 212; /* #06B6D4 */
-  --palette-secondary-hover: 34 211 238;
-  --palette-text: 244 244 245;
-  --palette-text-muted: 161 161 170;
-
-  --color-primary-soft: 8 62 47;
-  --color-primary-disabled: 39 86 71;
-  --color-secondary-soft: 8 55 67;
-  --color-accent-soft: 8 55 67;
-
-  --glass-bg: rgb(23 23 26 / 0.86);
-  --glass-bg-muted: rgb(32 32 36 / 0.72);
-  --glass-bg-raised: rgb(32 32 36 / 0.94);
-  --glass-border: rgb(255 255 255 / 0.08);
-  --glass-border-strong: rgb(255 255 255 / 0.14);
-  --glass-border-accent: rgb(52 211 153 / 0.25);
-
-  --color-surface: var(--palette-surface-base);
-  --color-surface-muted: 32 32 36;
-  --color-surface-raised: 32 32 36;
-  --color-text-subtle: 113 113 122;
-  --color-border-subtle: 42 42 46;
-  --color-border-control: 63 63 70;
-
-  --color-danger: 242 157 145;
-  --color-danger-muted: 64 37 33;
-  --color-success: 52 211 153;
-  --color-success-muted: 6 48 39;
-  --color-warning: 251 191 36;
-  --color-warning-muted: 62 45 13;
-  --color-info: 96 165 250;
-  --color-info-muted: 23 37 84;
-
-  --color-focus-ring: var(--palette-brand);
-  --color-brand-surface: var(--palette-surface-base);
-  --color-brand-line: var(--palette-surface-highlight);
-  --color-brand-deep: var(--palette-text);
-
-  --color-overlay: 0 0 0;
+  --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.2);
+  --shadow-subtle: 0 1px 3px rgb(0 0 0 / 0.28);
+  --shadow-card: 0 10px 28px rgb(0 0 0 / 0.35);
+  --shadow-float: 0 18px 44px rgb(0 0 0 / 0.45);
   --shadow-focus:
     0 0 0 var(--focus-width) rgb(var(--color-surface)),
     0 0 0 calc(var(--focus-width) + var(--focus-offset))
       rgb(var(--color-focus-ring));
-
   --background-brand-panel: rgb(var(--color-brand-surface));
 }

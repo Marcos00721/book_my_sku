@@ -2,9 +2,13 @@ import { ShieldCheck } from 'lucide-react'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { BrandMark } from './BrandMark'
 
-export function AuthLayout({ variant, children }) {
+export function AuthLayout({ variant, tone, children }) {
+  const shellClass = ['auth-shell', `auth-${variant}`, tone && `auth-${tone}`]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className={`auth-shell auth-${variant}`}>
+    <div className={shellClass}>
       <main className="auth-main">
         <header className="auth-top">
           <BrandMark />

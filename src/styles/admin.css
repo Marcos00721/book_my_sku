@@ -311,3 +311,51 @@
     gap: 0.15rem;
   }
 }
+
+/* Admin surface polish — colors come from crm-theme/tokens.css */
+.admin-lagoon::before,
+.admin-lagoon::after {
+  position: absolute;
+  z-index: 0;
+  width: min(22rem, 70vw);
+  height: 22rem;
+  content: '';
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(110px);
+}
+
+.admin-lagoon::before {
+  top: 6rem;
+  right: 4%;
+  background: rgb(var(--palette-brand) / 0.14);
+}
+
+.admin-lagoon::after {
+  bottom: 8%;
+  left: 18%;
+  background: rgb(var(--palette-secondary) / 0.1);
+}
+
+.admin-lagoon .admin-sidebar,
+.admin-lagoon .admin-drawer,
+.admin-lagoon .admin-topbar {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.admin-lagoon .admin-topbar {
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.admin-lagoon .panel {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-card);
+}
+
+.admin-lagoon .admin-scope {
+  border-color: var(--glass-border-accent);
+}

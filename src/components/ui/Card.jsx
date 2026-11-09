@@ -1,3 +1,5 @@
+import { theme } from '@/crm-theme'
+
 /**
  * Flexible card container with theme-driven surface, border, shadow, and radius.
  *
@@ -14,17 +16,14 @@ export function Card({
   children,
   ...props
 }) {
-  const base = glass
-    ? 'glass rounded-card shadow-card'
-    : 'glass rounded-card shadow-subtle'
-
   return (
     <div
-      className={[
-        base,
+      className={theme.cx(
+        theme.card,
+        glass && 'backdrop-blur-glass',
         'motion-safe:transition-shadow hover:shadow-card',
         className,
-      ].join(' ')}
+      )}
       {...props}
     >
       {header && (

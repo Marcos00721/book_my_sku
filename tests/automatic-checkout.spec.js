@@ -155,10 +155,9 @@ async function acceptAndFinish(page) {
     .click()
 }
 
-test('Finish opens Stripe automatically after completion and current offer consent; autosave never opens payment', async ({
+test('Finish opens Stripe automatically after completion and current offer consent; save alone never opens payment', async ({
   page,
 }) => {
-  await page.clock.install()
   const model = await setup(page)
   await page.goto('/setup')
   const finish = page.getByRole('button', {
@@ -166,8 +165,10 @@ test('Finish opens Stripe automatically after completion and current offer conse
     exact: true,
   })
   await expect(finish).toBeDisabled()
-  await page.getByLabel('Industry', { exact: true }).fill('Education')
-  await page.clock.fastForward(1600)
+  await page
+    .getByRole('textbox', { name: 'Industry', exact: true })
+    .fill('Education')
+  await page.getByRole('button', { name: 'Save company details' }).click()
   await expect(
     page.getByText('Saved revision 9', { exact: true }),
   ).toBeVisible()
@@ -222,11 +223,11 @@ test('failed company completion preserves the form and never opens Checkout', as
   await page.goto('/setup')
   await acceptAndFinish(page)
   await expect(page.getByRole('alert').first()).toContainText(
-    'SETUP_INCOMPLETE',
+    'Company details require review.',
   )
-  await expect(page.getByLabel('Industry', { exact: true })).toHaveValue(
-    'Distributor',
-  )
+  await expect(
+    page.getByRole('textbox', { name: 'Industry', exact: true }),
+  ).toHaveValue('Distributor')
   expect(model.calls.some((call) => call.path.startsWith(billing))).toBe(false)
   await expect(page).toHaveURL('/setup')
 })
@@ -277,10 +278,10 @@ test('uncertain automatic Checkout retries its original body and key without com
   })
   await page.goto('/setup')
   await acceptAndFinish(page)
-  await expect(page.getByRole('alert')).toContainText('BILLING_RETRY_REQUIRED')
-  await page
-    .getByRole('button', { name: 'Retry opening payment', exact: true })
-    .click()
+  await expect(page.getByRole('alert')).toContainText(
+    'The Checkout response was interrupted.',
+  )
+  await page.getByRole('button', { name: 'Retry', exact: true }).click()
   await expect(page).toHaveURL(stripeUrl)
   const checkouts = model.calls.filter(
     (call) => call.path === `${billing}/checkout`,

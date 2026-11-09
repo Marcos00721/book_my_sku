@@ -1,0 +1,135 @@
+/**
+ * Lagoon Glass CSS variables — applied globally.
+ * Channel values mirror `colors.ts` (keep in sync).
+ */
+
+:root {
+  color-scheme: light;
+
+  --color-canvas: 232 241 244;
+  --palette-surface-base: 255 255 255;
+  --palette-surface-highlight: 255 255 255;
+  --palette-surface-shadow: 196 214 220;
+  --palette-brand: 15 143 132;
+  --palette-brand-hover: 13 120 110;
+  --palette-on-brand: 255 255 255;
+  --palette-secondary: 197 106 30;
+  --palette-secondary-hover: 180 90 20;
+  --palette-text: 15 35 45;
+  --palette-text-muted: 71 98 112;
+
+  --glass-bg: rgb(255 255 255 / 0.86);
+  --glass-bg-muted: rgb(255 255 255 / 0.72);
+  --glass-bg-raised: rgb(255 255 255 / 0.94);
+  --glass-border: rgb(15 60 72 / 0.12);
+  --glass-border-strong: rgb(15 60 72 / 0.2);
+  --glass-border-accent: rgb(15 143 132 / 0.28);
+  --glass-blur: 16px;
+
+  --color-primary: var(--palette-brand);
+  --color-primary-hover: var(--palette-brand-hover);
+  --color-primary-soft: 204 240 236;
+  --color-primary-disabled: 196 214 220;
+  --color-on-primary: var(--palette-on-brand);
+
+  --color-secondary: var(--palette-secondary);
+  --color-secondary-hover: var(--palette-secondary-hover);
+  --color-secondary-soft: 255 237 213;
+  --color-on-secondary: var(--palette-on-brand);
+
+  --color-accent: var(--palette-brand);
+  --color-accent-hover: var(--palette-brand-hover);
+  --color-accent-soft: 204 240 236;
+  --color-on-accent: var(--palette-on-brand);
+
+  --color-surface: var(--palette-surface-base);
+  --color-surface-muted: 236 244 246;
+  --color-surface-raised: var(--palette-surface-base);
+
+  --color-text-base: var(--palette-text);
+  --color-text-muted: var(--palette-text-muted);
+  --color-text-subtle: 120 148 162;
+
+  --color-border-subtle: 196 214 220;
+  --color-border-control: 148 176 188;
+
+  --color-danger: 183 39 49;
+  --color-danger-muted: 255 241 242;
+  --color-success: 15 118 90;
+  --color-success-muted: 220 252 231;
+  --color-warning: 180 83 9;
+  --color-warning-muted: 255 247 237;
+  --color-info: 3 105 161;
+  --color-info-muted: 224 242 254;
+
+  --color-focus-ring: var(--palette-brand);
+  --color-brand-surface: var(--palette-surface-base);
+  --color-brand-line: var(--palette-surface-shadow);
+  --color-brand-deep: var(--palette-text);
+
+  --color-neutral-50: 248 250 252;
+  --color-neutral-100: 241 245 249;
+  --color-neutral-200: 226 232 240;
+  --color-neutral-300: 203 213 225;
+  --color-neutral-400: 148 163 184;
+  --color-neutral-500: 100 116 139;
+  --color-neutral-600: 71 85 105;
+  --color-neutral-700: 51 65 85;
+  --color-neutral-800: 30 41 59;
+  --color-neutral-900: 15 23 42;
+  --color-neutral-950: 2 6 23;
+
+  --color-overlay: 7 19 31;
+  --color-transparent: transparent;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-canvas: 7 19 31;
+  --palette-surface-base: 18 32 46;
+  --palette-surface-highlight: 18 182 166;
+  --palette-surface-shadow: 0 0 0;
+  --palette-brand: 18 182 166;
+  --palette-brand-hover: 45 200 184;
+  --palette-on-brand: 4 24 28;
+  --palette-secondary: 224 138 58;
+  --palette-secondary-hover: 240 160 80;
+  --palette-text: 201 214 222;
+  --palette-text-muted: 148 170 184;
+
+  --color-primary-soft: 8 48 52;
+  --color-primary-disabled: 30 55 68;
+  --color-secondary-soft: 62 40 18;
+  --color-accent-soft: 8 48 52;
+
+  --glass-bg: rgb(18 32 46 / 0.9);
+  --glass-bg-muted: rgb(24 40 56 / 0.78);
+  --glass-bg-raised: rgb(24 40 56 / 0.96);
+  --glass-border: rgb(148 187 201 / 0.16);
+  --glass-border-strong: rgb(148 187 201 / 0.28);
+  --glass-border-accent: rgb(18 182 166 / 0.3);
+
+  --color-surface: var(--palette-surface-base);
+  --color-surface-muted: 14 28 42;
+  --color-surface-raised: 24 40 56;
+  --color-text-subtle: 110 135 150;
+  --color-border-subtle: 36 54 70;
+  --color-border-control: 55 78 96;
+
+  --color-danger: 242 157 145;
+  --color-danger-muted: 64 37 33;
+  --color-success: 61 207 154;
+  --color-success-muted: 6 48 39;
+  --color-warning: 251 191 36;
+  --color-warning-muted: 62 45 13;
+  --color-info: 96 165 250;
+  --color-info-muted: 23 37 84;
+
+  --color-focus-ring: var(--palette-brand);
+  --color-brand-surface: var(--palette-surface-base);
+  --color-brand-line: var(--palette-surface-highlight);
+  --color-brand-deep: var(--palette-text);
+
+  --color-overlay: 0 0 0;
+}

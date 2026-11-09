@@ -10,6 +10,7 @@ import {
   ConflictReview,
   DuplicateHints,
 } from '../../components/workspace/RecordTools'
+import { ButtonLink } from '../../components/common/ButtonLink'
 import {
   Action,
   Dialog,
@@ -156,13 +157,13 @@ export function SuppliersPage() {
                     </td>
                     <td>{dateLabel(supplier.createdAt)}</td>
                     <td>
-                      <Link
-                        className="button icon-button"
+                      <ButtonLink
+                        variant="icon"
                         aria-label={`Open ${supplier.name}`}
                         to={`/app/suppliers/${supplier._id}`}
                       >
                         <ArrowUpRight size={16} />
-                      </Link>
+                      </ButtonLink>
                     </td>
                   </tr>
                 ))}

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuthSession } from '../hooks/useAuthSession'
 import { useMutation } from '../hooks/useMutation'
 import { captureInvitation, clearInvitation } from '../services/invitation'
 import { getAuthClient } from '../services/auth'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { ButtonLink } from '../components/common/ButtonLink'
 import {
   Action,
   Empty,
@@ -26,9 +27,7 @@ export function InvitationPage() {
         <Empty
           title="Open your latest invitation email"
           action={
-            <Link className="button" to="/login">
-              Back to sign in
-            </Link>
+            <ButtonLink to="/login">Back to sign in</ButtonLink>
           }
         >
           This invitation is missing or has already been handled. Ask the

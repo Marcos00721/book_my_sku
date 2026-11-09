@@ -1,7 +1,7 @@
 import { useResource } from '../../hooks/useResource'
 import { ErrorNotice, Field, Loading } from './Elements'
 
-export function GeographyFields({ values, change }) {
+export function GeographyFields({ values, change, errors = {} }) {
   const countries = useResource('/reference/countries')
   const states = useResource(
     values.country
@@ -16,7 +16,10 @@ export function GeographyFields({ values, change }) {
     <>
       <ErrorNotice error={countries.error} retry={countries.reload} />
       <Field
+        name="country"
         label="Country"
+        required
+        error={errors.country}
         value={values.country}
         onChange={(event) =>
           change({ country: event.target.value, stateCode: '', region: '' })
@@ -34,11 +37,13 @@ export function GeographyFields({ values, change }) {
           </option>
         ))}
       </Field>
-      {values.country && (
+      {values.country ? (
         <>
           <ErrorNotice error={states.error} retry={states.reload} />
           <Field
+            name="stateCode"
             label={country?.stateLabel || 'State / region'}
+            error={errors.stateCode}
             value={values.stateCode}
             disabled={
               states.loading ||
@@ -66,14 +71,14 @@ export function GeographyFields({ values, change }) {
               </option>
             ))}
           </Field>
-          {!values.stateCode && values.region && (
+          {!values.stateCode && values.region ? (
             <p className="muted">
               Saved region: {values.region}. Select its state to complete this
               address.
             </p>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
     </>
   )
 }

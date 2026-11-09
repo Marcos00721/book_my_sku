@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../services/api'
 import { getAuthClient } from '../../services/auth'
 import { mutate, paymentDestination } from '../../services/workspace'
-import { Action, ErrorNotice, Loading } from './Elements'
+import { FormApiAlert } from '../forms/FormApiAlert'
+import { Action, Loading } from './Elements'
 
 export function PaymentHandoff({ request, snapshot, reload, done }) {
   const mounted = useRef(false)
@@ -100,17 +101,22 @@ export function PaymentHandoff({ request, snapshot, reload, done }) {
         return
       const url = recovering ? result.paymentUrl : result.checkoutUrl
       if (url) {
-        window.location.assign(paymentDestination(url))
+        // Same-tab navigation avoids popup blockers after async work.
+        window.location.href = paymentDestination(url)
         return
       }
       if (!recovering)
         throw new ApiError(
-          'The Checkout response was incomplete. Check the existing billing setup before continuing.',
+          'The payment link was missing. Please retry, or review billing here.',
           { status: 502, code: 'INVALID_CHECKOUT_RESPONSE' },
         )
+      // Recovery may still be processing; keep a Retry path instead of failing silently.
       setState({
         pending: false,
-        error: null,
+        error: new ApiError(
+          'The payment link was not ready yet. Retry when the waiting period ends.',
+          { status: 502, code: 'INVALID_PAYMENT_RESPONSE' },
+        ),
         result,
         retryAt: Date.now() + 120000,
       })
@@ -175,26 +181,43 @@ export function PaymentHandoff({ request, snapshot, reload, done }) {
     <section className="panel" aria-label="Continue to secure payment">
       <h2>
         {state.pending
-          ? 'Opening secure payment…'
+          ? 'Redirecting to payment…'
           : 'Your company details are saved'}
       </h2>
       <p>
         {state.result?.state === 'support_required'
           ? 'Your existing billing setup needs support review. Keep the request reference shown below.'
-          : state.result
-            ? 'Your existing payment setup is still processing. Check its status or retry opening it when the waiting period ends.'
-            : 'We will open your secure Stripe page automatically when your current setup step is ready.'}
+          : state.error
+            ? 'Payment could not be opened automatically. Retry below, or review billing here.'
+            : state.result
+              ? 'Your existing payment setup is still processing. Check its status or retry opening it when the waiting period ends.'
+              : 'We will open your secure Stripe page automatically when your current setup step is ready.'}
       </p>
-      {state.pending && <Loading label="Preparing your secure Stripe page…" />}
-      <ErrorNotice error={state.error} />
+      {state.pending && <Loading label="Redirecting to payment…" />}
+      <FormApiAlert
+        error={state.error}
+        onRetry={
+          !state.pending &&
+          state.error &&
+          state.result?.state !== 'support_required'
+            ? () => {
+                attempted.current = false
+                void openPayment()
+              }
+            : undefined
+        }
+        retryLabel="Retry"
+        retryDisabled={!ready || observed < delayUntil}
+      />
       {!state.pending &&
-        (state.error || state.result) &&
+        !state.error &&
+        state.result &&
         state.result?.state !== 'support_required' && (
           <Action
             disabled={!ready || observed < delayUntil}
             onClick={openPayment}
           >
-            Retry opening payment
+            Retry
           </Action>
         )}
       <Action

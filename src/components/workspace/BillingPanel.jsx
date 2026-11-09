@@ -5,6 +5,7 @@ import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { mutate, paymentDestination } from '../../services/workspace'
 import { CheckoutTerms } from './CheckoutTerms'
+import { ButtonLink } from '../common/ButtonLink'
 import {
   Action,
   Dialog,
@@ -215,9 +216,9 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
                         : 'Your existing billing setup has been checked. Review the next step above.'}
             </p>
             {recovery.paymentUrl && (
-              <a className="button" href={recovery.paymentUrl} rel="noreferrer">
+              <ButtonLink href={recovery.paymentUrl} rel="noreferrer">
                 Continue secure payment <ExternalLink size={15} />
-              </a>
+              </ButtonLink>
             )}
           </div>
         </div>

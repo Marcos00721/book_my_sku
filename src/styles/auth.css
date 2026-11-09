@@ -162,3 +162,42 @@
   }
 }
 
+/* Auth / MFA surface polish — colors come from crm-theme/tokens.css */
+.auth-lagoon .auth-main {
+  background: transparent;
+}
+
+.auth-lagoon .auth-main::before {
+  width: 22rem;
+  height: 22rem;
+  background: rgb(var(--palette-brand) / 0.18);
+}
+
+.auth-lagoon .auth-main::after {
+  width: 18rem;
+  height: 18rem;
+  background: rgb(var(--palette-secondary) / 0.12);
+}
+
+.auth-lagoon .auth-form {
+  border-color: var(--glass-border-accent);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.setup-layout.auth-lagoon::before {
+  background: rgb(var(--palette-brand) / 0.18);
+}
+
+.setup-layout.auth-lagoon::after {
+  background: rgb(var(--palette-secondary) / 0.12);
+}
+
+.setup-layout.auth-lagoon .panel {
+  border-color: var(--glass-border-accent);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { theme } from '@/crm-theme'
 import { getAuthClient } from '../../services/auth'
 import { Action, ErrorNotice, Field } from './Elements'
 
@@ -68,9 +69,9 @@ export function MfaChallenge({ verified }) {
     }
   }
   return (
-    <section className="panel">
-      <h2>Confirm with your authenticator</h2>
-      <p className="muted">
+    <section className={theme.cx('panel', theme.panel)}>
+      <h2 className={theme.pageTitle}>Confirm with your authenticator</h2>
+      <p className={theme.cx('muted', theme.text.muted)}>
         Platform administration requires a recent verification code.
       </p>
       <ErrorNotice error={error} />

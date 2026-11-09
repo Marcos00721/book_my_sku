@@ -1,8 +1,9 @@
 import { dateLabel, money } from '../utils/format'
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { ButtonLink } from '../components/common/ButtonLink'
 import { MfaChallenge } from '../components/workspace/MfaChallenge'
 import {
   Action,
@@ -46,13 +47,20 @@ export function AdminPage() {
   const tab = sections.includes(requested) ? requested : 'overview'
   if (identity.loading || identity.error)
     return (
-      <div className="setup-layout">
+      <div
+        className={[
+          'setup-layout',
+          identity.error?.code === 'ADMIN_MFA_REQUIRED' && 'auth-lagoon',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <header className="setup-top">
           <BrandMark />
           <div className="actions">
-            <Link className="button secondary" to="/app">
+            <ButtonLink variant="secondary" to="/app">
               Workspace
-            </Link>
+            </ButtonLink>
             <ThemeToggle />
           </div>
         </header>

@@ -10,6 +10,7 @@ import {
 import { BrandMark } from '../auth/BrandMark'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { Action, ErrorNotice, PageHeader } from '../workspace/Elements'
+import { Button } from '../common/Button'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { getAuthClient } from '../../services/auth'
 import { adminSections, adminSectionPath } from './adminSections'
@@ -78,7 +79,6 @@ export function AdminLayout({ section, children }) {
     <>
       <div className="admin-brand">
         <BrandMark to="/admin" />
-        {/* <span>ADMIN CONSOLE</span> */}
       </div>
       <div className="admin-scope">
         <span className="workspace-initial">
@@ -91,9 +91,6 @@ export function AdminLayout({ section, children }) {
       </div>
       <AdminNavigation section={section} close={navigateSection} />
       <div className="admin-sidebar-bottom">
-        {/* <Link className="admin-workspace-link" to="/app">
-          <ArrowUpRight size={17} aria-hidden="true" /> Open workspace
-        </Link> */}
         <div className="account-row">
           <span className="avatar-letter">
             {email.slice(0, 1).toUpperCase() || 'A'}
@@ -115,7 +112,7 @@ export function AdminLayout({ section, children }) {
     </>
   )
   return (
-    <div className="workspace-shell admin-shell">
+    <div className="workspace-shell admin-shell admin-lagoon">
       <a className="skip-link" href="#admin-main">
         Skip to content
       </a>
@@ -143,16 +140,16 @@ export function AdminLayout({ section, children }) {
       <div className="workspace-body admin-body">
         <header className="topbar admin-topbar">
           <div className="actions">
-            <button
+            <Button
               ref={menuButton}
-              type="button"
-              className="button icon-button mobile-only"
+              variant="icon"
+              className="mobile-only"
               aria-label="Open admin navigation"
               aria-haspopup="dialog"
               onClick={() => drawer.current.showModal()}
             >
               <Menu size={21} />
-            </button>
+            </Button>
             <span className="admin-breadcrumb">
               Administration <ChevronRight size={13} aria-hidden="true" />
               <strong>{current.label}</strong>

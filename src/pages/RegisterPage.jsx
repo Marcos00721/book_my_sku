@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Building2, Globe, Mail, UserRound } from 'lucide-react'
+import {
+  ArrowRight,
+  Building2,
+  Globe,
+  LayoutDashboard,
+  Mail,
+  RefreshCw,
+  UserRound,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthPageContent } from '../components/auth/AuthPageContent'
 import { RegistrationIdentity } from '../components/auth/RegistrationIdentity'
 import { UnifiedRegistration } from '../components/auth/UnifiedRegistration'
+import { Button } from '../components/common/Button'
+import { ButtonLink } from '../components/common/ButtonLink'
 import { AppFormProvider } from '../components/forms/AppFormProvider'
 import { FormCheckbox } from '../components/forms/FormCheckbox'
 import { FormSubmitButton } from '../components/forms/FormSubmitButton'
@@ -36,7 +46,7 @@ export function RegisterPage() {
     return <UnifiedRegistration session={session} />
 
   return (
-    <AuthLayout variant="register">
+    <AuthLayout variant="register" tone="lagoon">
       <AuthPageContent
         id="register-title"
         eyebrow="Make room for what's next"
@@ -83,6 +93,7 @@ function RegistrationApplication({ session }) {
   const [phase, setPhase] = useState(null)
   const [recovery, setRecovery] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [editing, setEditing] = useState(false)
   const submission = useRef(null)
   const retryAfter = useRef(0)
@@ -124,14 +135,14 @@ function RegistrationApplication({ session }) {
 
   async function refreshStatus() {
     setError(null)
-    setLoading(true)
+    setRefreshing(true)
     try {
       applyStatus(await loadStatus())
       setEditing(false)
     } catch (failure) {
       setError(failure)
     } finally {
-      setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -245,57 +256,87 @@ function RegistrationApplication({ session }) {
       ) : application && !editing ? (
         <>
           <RegistrationResult application={application} />
-          {application.status === 'approved' && (
-            <Link
-              className="app-link inline-flex min-h-touch items-center"
-              to="/setup"
+          <div className="flex w-full flex-col gap-sm">
+            {application.status === 'approved' && (
+              <ButtonLink variant="primary" to="/setup">
+                Continue to payment and company setup
+                <ArrowRight size={16} aria-hidden="true" />
+              </ButtonLink>
+            )}
+            <ButtonLink variant="secondary" to="/app">
+              <LayoutDashboard size={16} aria-hidden="true" />
+              Open an existing workspace
+            </ButtonLink>
+            {application.status === 'rejected' && (
+              <Button variant="secondary" onClick={correctApplication}>
+                Correct application
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              disabled={refreshing}
+              onClick={refreshStatus}
+              aria-busy={refreshing}
             >
-              Continue to payment and company setup
-            </Link>
-          )}
-          <Link
-            className="app-link inline-flex min-h-touch items-center"
-            to="/app"
-          >
-            Open an existing workspace
-          </Link>
-          {application.status === 'rejected' && (
-            <button
-              type="button"
-              className="app-link min-h-touch"
-              onClick={correctApplication}
-            >
-              Correct application
-            </button>
-          )}
-          <button
-            type="button"
-            className="app-link min-h-touch"
-            onClick={refreshStatus}
-          >
-            Refresh status
-          </button>
+              <RefreshCw
+                size={16}
+                aria-hidden="true"
+                className={refreshing ? 'motion-safe:animate-spin' : undefined}
+              />
+              {refreshing ? 'Refreshing…' : 'Refresh status'}
+            </Button>
+          </div>
         </>
       ) : phase === 'awaiting_email_verification' ? (
         <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg">
           <h2 className="text-xl font-semibold">Confirm your email</h2>
           <p className="text-sm">Your request is waiting for email confirmation and backend processing. Refresh this page after confirming your address.</p>
-          <button type="button" className="app-link min-h-touch" onClick={refreshStatus}>Refresh application status</button>
+          <Button
+            variant="secondary"
+            disabled={refreshing}
+            onClick={refreshStatus}
+            aria-busy={refreshing}
+          >
+            <RefreshCw
+              size={16}
+              aria-hidden="true"
+              className={refreshing ? 'motion-safe:animate-spin' : undefined}
+            />
+            {refreshing ? 'Refreshing…' : 'Refresh application status'}
+          </Button>
         </section>
       ) : recovery === 'retry_or_contact_support' ? (
         <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg">
           <h2 className="text-xl font-semibold">We’re checking your request</h2>
           <p className="text-sm">Please refresh later or contact support. We will not create another application automatically.</p>
-          <button type="button" className="app-link min-h-touch" onClick={refreshStatus}>Refresh application status</button>
+          <Button
+            variant="secondary"
+            disabled={refreshing}
+            onClick={refreshStatus}
+            aria-busy={refreshing}
+          >
+            <RefreshCw
+              size={16}
+              aria-hidden="true"
+              className={refreshing ? 'motion-safe:animate-spin' : undefined}
+            />
+            {refreshing ? 'Refreshing…' : 'Refresh application status'}
+          </Button>
         </section>
       ) : !termsVersion ? (
-        <button
-          type="button"
-          className="app-link min-h-touch"
+        <Button
+          variant="secondary"
+          disabled={refreshing}
           onClick={refreshStatus}
+          aria-busy={refreshing}
         >
-          Retry loading application
-        </button>
+          <RefreshCw
+            size={16}
+            aria-hidden="true"
+            className={refreshing ? 'motion-safe:animate-spin' : undefined}
+          />
+          {refreshing ? 'Retrying…' : 'Retry loading application'}
+        </Button>
       ) : (
         <AppFormProvider
           form={registerForm}

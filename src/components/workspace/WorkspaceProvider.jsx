@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { WorkspaceContext } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
@@ -9,6 +9,7 @@ import {
   readData,
 } from '../../services/workspace'
 import { Action, Empty, ErrorNotice, Loading } from './Elements'
+import { ButtonLink } from '../common/ButtonLink'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { BrandMark } from '../auth/BrandMark'
 import { getAuthClient } from '../../services/auth'
@@ -108,12 +109,10 @@ function WorkspaceSession({ session, children }) {
             }
             action={
               <div className="actions">
-                <Link className="button" to="/setup">
-                  Continue workspace setup
-                </Link>
-                <Link className="button secondary" to="/register">
+                <ButtonLink to="/setup">Continue workspace setup</ButtonLink>
+                <ButtonLink variant="secondary" to="/register">
                   Application status
-                </Link>
+                </ButtonLink>
               </div>
             }
           >
@@ -151,9 +150,9 @@ function WorkspaceSession({ session, children }) {
     return (
       <div className="setup-layout">
         <ErrorNotice error={error} retry={refreshAccess} />
-        <Link className="button secondary" to="/login">
+        <ButtonLink variant="secondary" to="/login">
           Back to sign in
-        </Link>
+        </ButtonLink>
       </div>
     )
   const owner = permissions.data?.owner === true

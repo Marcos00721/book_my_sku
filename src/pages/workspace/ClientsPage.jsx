@@ -10,6 +10,7 @@ import {
   DuplicateHints,
   ReferenceSelect,
 } from '../../components/workspace/RecordTools'
+import { ButtonLink } from '../../components/common/ButtonLink'
 import {
   Action,
   Dialog,
@@ -94,13 +95,13 @@ export function ClientsPage() {
                       </td>
                       <td className="muted">{dateLabel(client.createdAt)}</td>
                       <td>
-                        <Link
-                          className="button icon-button"
+                        <ButtonLink
+                          variant="icon"
                           aria-label={`Open ${client.name}`}
                           to={`/app/clients/${client._id}`}
                         >
                           <ArrowUpRight size={17} />
-                        </Link>
+                        </ButtonLink>
                       </td>
                     </tr>
                   ))}

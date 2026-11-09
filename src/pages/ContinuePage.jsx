@@ -1,10 +1,12 @@
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useResource } from '../hooks/useResource'
 import {
+  Action,
   ErrorNotice,
   Loading,
   PageHeader,
 } from '../components/workspace/Elements'
+import { ButtonLink } from '../components/common/ButtonLink'
 import { hasPendingInvitation } from '../services/invitation'
 import { ApiError } from '../services/api'
 import { useJourneyStatus } from '../hooks/useJourneyStatus'
@@ -95,12 +97,10 @@ function WorkspaceJourney() {
             Your workspaces remain available while the invitation is pending.
           </p>
           <div className="actions">
-            <Link className="button" to="/app">
-              Open a workspace
-            </Link>
-            <Link className="button secondary" to="/login">
+            <ButtonLink to="/app">Open a workspace</ButtonLink>
+            <ButtonLink variant="secondary" to="/login">
               Sign in with the invited email
-            </Link>
+            </ButtonLink>
           </div>
         </section>
       </div>
@@ -117,7 +117,25 @@ function WorkspaceJourney() {
     return <Navigate to="/assisted" replace />
   if (registerActions.has(action)) return <Navigate to="/register" replace />
   if (setupActions.has(action)) return <Navigate to="/setup" replace />
-  if (action === 'contact_support' || action === 'support_required') return <div className="setup-layout"><PageHeader title="Your workspace needs a review" description="Contact support with the request reference. Your existing application and payment remain in place." /><ErrorNotice error={journey.data.platform?.reason ? { message:journey.data.platform.reason } : null} /><button className="button secondary" onClick={journey.reload}>Check current status</button></div>
+  if (action === 'contact_support' || action === 'support_required')
+    return (
+      <div className="setup-layout">
+        <PageHeader
+          title="Your workspace needs a review"
+          description="Contact support with the request reference. Your existing application and payment remain in place."
+        />
+        <ErrorNotice
+          error={
+            journey.data.platform?.reason
+              ? { message: journey.data.platform.reason }
+              : null
+          }
+        />
+        <Action variant="secondary" onClick={journey.reload}>
+          Check current status
+        </Action>
+      </div>
+    )
   return (
     <div className="setup-layout">
       <PageHeader
@@ -131,17 +149,16 @@ function WorkspaceJourney() {
           {String(action || 'choose_onboarding').replaceAll('_', ' ')}.
         </p>
         <div className="actions">
-          <Link
-            className="button"
+          <ButtonLink
             to={action === 'resume_invitation' ? '/team/accept' : '/register'}
           >
             {action === 'resume_invitation'
               ? 'Open invitation'
               : 'Continue registration'}
-          </Link>
-          <Link className="button secondary" to="/app">
+          </ButtonLink>
+          <ButtonLink variant="secondary" to="/app">
             Choose a workspace
-          </Link>
+          </ButtonLink>
         </div>
       </section>
     </div>

@@ -1,16 +1,37 @@
-import { useEffect, useId, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { AlertCircle, ArrowRight, Inbox, LoaderCircle, X } from 'lucide-react'
+import { useId, useRef, useEffect } from 'react'
+import { AlertCircle, ArrowRight, X } from 'lucide-react'
+import { Button } from '../common/Button'
+import { TextLink } from '../common/TextLink'
+import { PageHeader } from '../common/PageHeader'
+import { EmptyState } from '../common/EmptyState'
+import { Loader } from '../common/Loader'
+import { TextField } from '../common/TextField'
+import { SelectField } from '../common/SelectField'
 
-export function Action({ children, variant = '', className = '', ...props }) {
+const actionVariants = {
+  '': 'primary',
+  secondary: 'secondary',
+  'danger-button': 'danger',
+  'icon-button': 'icon',
+  'text-button': 'ghost',
+}
+
+export function Action({
+  children,
+  variant = '',
+  className = '',
+  type = 'button',
+  ...props
+}) {
   return (
-    <button
-      type="button"
-      className={`button ${variant} ${className}`}
+    <Button
+      type={type}
+      variant={actionVariants[variant] || 'primary'}
+      className={className}
       {...props}
     >
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -40,9 +61,7 @@ export function ErrorNotice({ error, retry }) {
           </p>
         )}
         {error.status === 401 && (
-          <Link className="app-link" to="/login">
-            Sign in again
-          </Link>
+          <TextLink to="/login">Sign in again</TextLink>
         )}
         {retry && (
           <Action variant="secondary" onClick={retry}>
@@ -55,42 +74,16 @@ export function ErrorNotice({ error, retry }) {
 }
 
 export function Loading({ label = 'Loading your workspace…' }) {
-  return (
-    <div className="loading-state" role="status">
-      <LoaderCircle className="spin" size={22} aria-hidden="true" />
-      {label}
-    </div>
-  )
+  return <Loader label={label} />
 }
 
 export function Empty({ title = 'Nothing here yet', children, action }) {
   return (
-    <div className="empty-state">
-      <span className="empty-icon">
-        <Inbox size={26} aria-hidden="true" />
-      </span>
-      <h2>{title}</h2>
-      <p>{children}</p>
-      {action}
-    </div>
+    <EmptyState title={title} description={children} action={action} />
   )
 }
 
-export function PageHeader({ eyebrow, title, description, actions }) {
-  useEffect(() => {
-    document.title = `${title} | BookMySku`
-  }, [title])
-  return (
-    <header className="page-heading">
-      <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1>{title}</h1>
-        {description && <p className="muted">{description}</p>}
-      </div>
-      {actions && <div className="actions">{actions}</div>}
-    </header>
-  )
-}
+export { PageHeader }
 
 export function Status({ value }) {
   const tone = [
@@ -116,28 +109,29 @@ export function Status({ value }) {
   )
 }
 
-export function Field({ label, children, hint, ...props }) {
-  const id = useId()
+/** Workspace Field — same TextField / SelectField chrome app-wide. */
+export function Field({ label, children, hint, error, className = '', ...props }) {
+  if (children) {
+    return (
+      <SelectField
+        label={label}
+        hint={hint}
+        error={error}
+        className={className}
+        {...props}
+      >
+        {children}
+      </SelectField>
+    )
+  }
   return (
-    <label className="field" htmlFor={id}>
-      <span>
-        {label}
-        {props.required && (
-          <span className="required-mark" aria-hidden="true">
-            {' '}
-            *
-          </span>
-        )}
-      </span>
-      {children ? (
-        <select id={id} {...props}>
-          {children}
-        </select>
-      ) : (
-        <input id={id} {...props} />
-      )}
-      {hint && <small>{hint}</small>}
-    </label>
+    <TextField
+      label={label}
+      hint={hint}
+      error={error}
+      className={className}
+      {...props}
+    />
   )
 }
 

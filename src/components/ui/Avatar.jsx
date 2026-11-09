@@ -1,3 +1,5 @@
+import { theme } from '@/crm-theme'
+
 /**
  * User avatar with initials fallback.
  *
@@ -29,12 +31,12 @@ export function Avatar({
     <span
       role="img"
       aria-label={name || 'Avatar'}
-      className={[
+      className={theme.cx(
         'inline-flex shrink-0 items-center justify-center rounded-pill font-semibold',
         'bg-primary-soft text-primary',
         sizeClasses[size],
         className,
-      ].join(' ')}
+      )}
       {...props}
     >
       {src ? (

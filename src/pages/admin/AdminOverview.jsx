@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, Inbox, ShieldCheck } from 'lucide-react'
+import { ButtonLink } from '../../components/common/ButtonLink'
 import {
   adminSections,
   adminSectionPath,
@@ -20,9 +21,9 @@ export function AdminOverview() {
             Review incoming applications, shape the right offer, and help each
             business get started.
           </p>
-          <Link className="button" to={adminSectionPath('applications')}>
+          <ButtonLink to={adminSectionPath('applications')}>
             Review applications <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         </div>
         <div className="admin-welcome-art" aria-hidden="true">
           <Inbox size={62} strokeWidth={1.2} />

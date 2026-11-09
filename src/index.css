@@ -59,7 +59,7 @@
 @layer components {
   /* Inline link style */
   .app-link {
-    @apply rounded-control font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline focus-visible:outline-focus focus-visible:outline-offset-focus focus-visible:outline-focus-ring;
+    @apply rounded-control font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:shadow-focus focus-visible:outline-none;
     text-underline-offset: var(--underline-offset);
   }
 

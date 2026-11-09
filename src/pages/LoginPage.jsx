@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Mail } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { theme } from '@/crm-theme'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthPageContent } from '../components/auth/AuthPageContent'
 import { AppFormProvider } from '../components/forms/AppFormProvider'
@@ -36,7 +37,7 @@ export function LoginPage({ returnTo }) {
   }
 
   return (
-    <AuthLayout variant="login">
+    <AuthLayout variant="login" tone="lagoon">
       <AuthPageContent
         id="login-title"
         eyebrow="Your workspace awaits"
@@ -51,10 +52,7 @@ export function LoginPage({ returnTo }) {
           className="space-y-lg"
         >
           {error && (
-            <p
-              role="alert"
-              className="rounded-control border border-danger bg-danger-muted p-md text-sm"
-            >
+            <p role="alert" className={theme.notice.error}>
               {error}
             </p>
           )}
@@ -90,11 +88,11 @@ export function LoginPage({ returnTo }) {
             Sign in
           </FormSubmitButton>
         </AppFormProvider>
-        <p className="mt-xl text-center text-sm leading-relaxed text-text-muted">
+        <p className={theme.cx('mt-xl text-center text-sm leading-relaxed', theme.text.muted)}>
           New to BookMySKU?{' '}
           <Link
             to="/register"
-            className="app-link inline-flex min-h-touch items-center"
+            className={theme.cx('app-link', 'inline-flex min-h-touch items-center')}
           >
             Create an account
           </Link>
