@@ -15,6 +15,7 @@ import {
   PermissionDenied,
   SaveFooter,
   Status,
+  StickyPageChrome,
 } from '../../components/workspace/Elements'
 import {
   ConflictReview,
@@ -181,10 +182,12 @@ function MatrixRecord({ base, id }) {
   const blockers = matrixBlockers(matrix.content)
   return (
     <>
-      <Link className="back-link" to="/app/decoration-matrices">
-        ← Back to decoration matrices
-      </Link>
-      <PageHeader
+      <StickyPageChrome
+        before={
+          <Link className="back-link" to="/app/decoration-matrices">
+            ← Back to decoration matrices
+          </Link>
+        }
         title={matrix.content.name}
         description={`Draft revision ${matrix.revision} · Published version ${matrix.publishedVersion || 'None'}`}
         actions={
@@ -216,34 +219,39 @@ function MatrixRecord({ base, id }) {
             </div>
           )
         }
-      />
-      <Status value={matrix.status} />
-      {blockers.length > 0 && (
-        <p className="notice">Publication needs: {blockers.join(', ')}.</p>
-      )}
-      <div className="tabs" role="tablist" aria-label="Matrix views">
-        {['definition', 'versions', 'history'].map((value) => (
-          <button
-            role="tab"
-            key={value}
-            aria-selected={tab === value}
-            onClick={() => setTab(value)}
-          >
-            {value[0].toUpperCase() + value.slice(1)}
-          </button>
-        ))}
-      </div>
-      <section className="panel" role="tabpanel">
-        {tab === 'definition' ? (
-          <MatrixDefinition content={matrix.content} />
-        ) : (
-          <MatrixEvidence
-            key={`${tab}:${matrix.revision}`}
-            path={`${base}/${id}`}
-            kind={tab}
-          />
-        )}
-      </section>
+        meta={
+          <>
+            <Status value={matrix.status} />
+            {blockers.length > 0 && (
+              <p className="notice">
+                Publication needs: {blockers.join(', ')}.
+              </p>
+            )}
+          </>
+        }
+        tabs={{
+          label: 'Matrix views',
+          value: tab,
+          onChange: setTab,
+          items: [
+            { value: 'definition', label: 'Definition' },
+            { value: 'versions', label: 'Versions' },
+            { value: 'history', label: 'History' },
+          ],
+        }}
+      >
+        <section className="panel" role="tabpanel">
+          {tab === 'definition' ? (
+            <MatrixDefinition content={matrix.content} />
+          ) : (
+            <MatrixEvidence
+              key={`${tab}:${matrix.revision}`}
+              path={`${base}/${id}`}
+              kind={tab}
+            />
+          )}
+        </section>
+      </StickyPageChrome>
       {editor && (
         <MatrixEditor
           base={base}

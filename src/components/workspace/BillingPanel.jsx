@@ -31,6 +31,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
   const [recovery, setRecovery] = useState(null)
   const [canceling, setCanceling] = useState(false)
   const reconcileLocked = useRef(false)
+  const autoRefreshDone = useRef(false)
   const busy = Boolean(busyAction)
   function reload() {
     if (!snapshot) {
@@ -68,6 +69,23 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
       setBusyAction(null)
     }
   }
+  // Workspace billing page: sync once on open so writes unlock without a
+  // manual click. Setup waiting states keep refresh disabled/manual.
+  useEffect(() => {
+    if (autoRefreshDone.current || snapshot || waiting) return
+    if (offer.loading || billing.loading || offer.error || billing.error) return
+    if (!billing.data) return
+    autoRefreshDone.current = true
+    void reconcile('refresh')
+  }, [
+    snapshot,
+    waiting,
+    offer.loading,
+    offer.error,
+    billing.loading,
+    billing.error,
+    billing.data,
+  ])
   if (offer.loading || billing.loading)
     return <Loading label="Loading your billing details…" />
   if (offer.error || billing.error)

@@ -12,8 +12,14 @@
 | `src/crm-theme/` | Colors, CSS tokens, Tailwind class strings |
 | `src/services/` | HTTP + auth + workspace helpers |
 | `src/hooks/` | Data/auth hooks |
+| `src/utils/` | Shared helpers (`debounce`, format, phone) |
 | `src/styles/` | Workspace/admin CSS |
 | `src/schemas/` | Form/validation schemas |
+
+## Debounce (reuse everywhere)
+- Function (any JS): `import { debounce } from '@/utils/debounce'` → `debounce(fn, 400)` (+ `.cancel()` / `.flush()`)
+- React value: `useDebouncedValue(value, 400)` — search inputs, duplicate checks
+- React callback: `useDebouncedCallback(fn, 400)` — event handlers without recreating timers
 
 ## Common components (`src/components/common/`)
 | Name | Job | Main props |
@@ -50,7 +56,7 @@ Rules: actions → `Button`; normal nav → `TextLink`; intentional CTA nav → 
 | `/team/accept` | InvitationPage |
 | `/admin` | AdminPage (+ `?section=`) |
 | `/app` | Workspace (Overview) |
-| `/app/clients`, `/app/clients/:id` | Clients |
+| `/app/clients`, `/app/clients/:id`, `/app/clients/:id/edit` | Clients |
 | `/app/suppliers`, `/app/suppliers/:id` | Suppliers |
 | `/app/products`, `/app/products/:id` | Products |
 | `/app/decoration-matrices`, `.../:id` | Decoration |
@@ -64,6 +70,30 @@ Rules: actions → `Button`; normal nav → `TextLink`; intentional CTA nav → 
 - Writes: `useMutation` + `mutate()` in `src/services/workspace.js` (idempotency / conflict helpers)
 - Journey: `useJourneyStatus` → onboarding status for continue/setup
 - Typical paths: `/admin/me`, `/onboarding/me`, `/applications/:id/billing`, org-scoped workspace CRUD under selected org base URL
+
+## Redux — clients
+- Store: `src/store/index.ts` (Provider in `src/main.jsx`)
+- Slice: `src/store/clientSlice.ts` — `clients`, `loading`, `error`, `loaded`, `organizationId`
+- Type: `Client` in `src/types/client.ts` (reuse everywhere)
+- Selectors: `selectClients`, `selectClientsLoading`, `selectClientsError`, `selectClientsLoaded`, `selectClientsOrganizationId`
+- Hook:
+  ```js
+  const { clients, loading, error, refetch, saveClient } = useClients()
+  // force refresh: refetch()
+  // after create/edit: saveClient(client)
+  ```
+- `useClients()` auto-fetches when list empty / org changed; skips duplicate fetch if already loaded for current org
+- Client list API lives only in `fetchClients` thunk (pages through `state=all`)
+
+## Client section components
+- `src/pages/workspace/ClientsPage.jsx` — list page
+- `src/pages/workspace/ClientDetailPage.jsx` — detail + contacts tabs
+- `src/components/clients/ClientTable.jsx` / `ClientRow.jsx` / `ClientSearch.jsx` / `ClientForm.jsx` / `ClientFormFields.jsx`
+- Add = dialog `ClientForm`; Edit = page `ClientEditPage` (`/app/clients/:id/edit`); shared fields in `ClientFormFields`
+- Tab editors (RHF): `ContactEditor`, `AddressEditor`, `ManagementEditor`, `NoteEditor`
+- Activity: `src/utils/activityDisplay.js` formats labels and hides MongoDB ids
+- Forms: `useAppForm` + client/contact/tab schemas
+- Related: `ClientManagement.jsx`, `ClientAddresses.jsx`, `ClientActivity.jsx`, `ClientContactDefaults.jsx`
 
 ## Theme / styling
 1. Tokens + CSS vars: `src/crm-theme/tokens.css` (imported by `theme.css`)

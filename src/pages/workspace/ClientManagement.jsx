@@ -1,28 +1,27 @@
 import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
-import { useMutation } from '../../hooks/useMutation'
+import { useClients } from '../../hooks/useClients'
 import { queryPath } from '../../services/workspace'
+import { ManagementEditor } from '../../components/clients/ManagementEditor'
+import { NoteEditor } from '../../components/clients/NoteEditor'
+import { ButtonLink } from '../../components/common/ButtonLink'
 import {
   Action,
   Dialog,
   Empty,
   ErrorNotice,
-  Field,
   Loading,
-  SaveFooter,
   Status,
 } from '../../components/workspace/Elements'
-import {
-  ConflictReview,
-  Pager,
-  ReferenceSelect,
-} from '../../components/workspace/RecordTools'
+import { Pager } from '../../components/workspace/RecordTools'
 
 export function ClientManagement({ path, client, reload }) {
   const workspace = useWorkspace()
   const resource = useResource(`${path}/management`)
   const industry = useResource(client.industryId ? `${path}/industry` : null)
+  const { saveClient, refetch } = useClients({ autoFetch: false })
   const [editor, setEditor] = useState(null)
   const canEdit = workspace.can('clients.edit') && workspace.writesAllowed
   if (resource.loading) return <Loading />
@@ -35,6 +34,15 @@ export function ClientManagement({ path, client, reload }) {
         <div className="section-heading">
           <h2>Client overview</h2>
           <div className="actions">
+            {canEdit && client.status !== 'archived' && (
+              <ButtonLink
+                variant="secondary"
+                to={`/app/clients/${client._id}/edit`}
+              >
+                <Pencil size={15} />
+                Edit profile
+              </ButtonLink>
+            )}
             {canEdit && (
               <>
                 {client.status !== 'archived' && (
@@ -65,7 +73,19 @@ export function ClientManagement({ path, client, reload }) {
           {[
             ['Client code', client.clientCode],
             ['Account label', client.accountLabel],
-            ['Website', client.website],
+            [
+              'Website',
+              client.website ? (
+                <a
+                  className="app-link"
+                  href={client.website}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {client.website}
+                </a>
+              ) : null,
+            ],
             ['Industry', industry.data?.label],
             ['Relationship', management.relationshipStatus],
             [
@@ -98,9 +118,12 @@ export function ClientManagement({ path, client, reload }) {
         <ManagementEditor
           command={editor}
           path={path}
+          client={client}
           management={management}
           close={() => setEditor(null)}
-          saved={() => {
+          saved={(updated) => {
+            if (updated) saveClient(updated)
+            else void refetch()
             setEditor(null)
             resource.reload()
             reload()
@@ -108,90 +131,6 @@ export function ClientManagement({ path, client, reload }) {
         />
       )}
     </>
-  )
-}
-
-function ManagementEditor({ command, path, management, close, saved }) {
-  const [relationshipStatus, setStatus] = useState(
-    management.relationshipStatus || 'prospect',
-  )
-  const [accountManagerId, setManager] = useState(
-    management.accountManagerId || '',
-  )
-  const [reason, setReason] = useState('')
-  const [version, setVersion] = useState(management.clientVersion)
-  const mutation = useMutation()
-  async function submit(event) {
-    event.preventDefault()
-    const result = await mutation.run(
-      command === 'management' ? 'patch' : 'post',
-      `${path}/${command}`,
-      {
-        expectedVersion: version,
-        reason: reason.trim(),
-        ...(command === 'management'
-          ? { relationshipStatus, accountManagerId: accountManagerId || null }
-          : {}),
-      },
-    )
-    if (result) saved()
-  }
-  return (
-    <Dialog
-      title={
-        command === 'management'
-          ? 'Edit relationship'
-          : `${command === 'archive' ? 'Archive' : 'Restore'} client`
-      }
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <p className="muted">
-        History and existing obligations remain. Archiving clears defaults;
-        restoring does not reinstate them.
-      </p>
-      <form onSubmit={submit}>
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          {command === 'management' && (
-            <>
-              <Field
-                label="Relationship"
-                value={relationshipStatus}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                {['prospect', 'customer', 'dormant'].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </Field>
-              <ReferenceSelect
-                path={`${path}/manager-options`}
-                label="Account manager"
-                value={accountManagerId}
-                selectedLabel={management.accountManager?.label}
-                labelFor={(item) => item.actor?.label || 'Member unavailable'}
-                onChange={setManager}
-              />
-            </>
-          )}
-          <Field
-            label="Reason"
-            maxLength={250}
-            required
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        </fieldset>
-        <ConflictReview
-          error={mutation.error}
-          path={`${path}/management`}
-          values={{ relationshipStatus, accountManagerId }}
-          onReview={(current) => setVersion(current.clientVersion)}
-        />
-        <SaveFooter mutation={mutation} close={close} label="Confirm change" />
-      </form>
-    </Dialog>
   )
 }
 
@@ -299,56 +238,3 @@ function NoteVersions({ path }) {
   )
 }
 
-function NoteEditor({ path, note, close, saved }) {
-  const [text, setText] = useState(note.text || '')
-  const [reason, setReason] = useState('')
-  const mutation = useMutation()
-  async function submit(event) {
-    event.preventDefault()
-    if (
-      await mutation.run(
-        note.id ? 'patch' : 'post',
-        `${path}/notes${note.id ? `/${note.id}` : ''}`,
-        {
-          text: text.trim(),
-          ...(note.id
-            ? { expectedVersion: note.revision, reason: reason.trim() }
-            : {}),
-        },
-      )
-    )
-      saved()
-  }
-  return (
-    <Dialog
-      title={note.id ? 'Correct note' : 'Add note'}
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form onSubmit={submit}>
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          <label className="field">
-            Note
-            <textarea
-              required
-              maxLength={2000}
-              rows={5}
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
-          </label>
-          {note.id && (
-            <Field
-              label="Correction reason"
-              required
-              maxLength={250}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-            />
-          )}
-        </fieldset>
-        <SaveFooter mutation={mutation} close={close} label="Save note" />
-      </form>
-    </Dialog>
-  )
-}

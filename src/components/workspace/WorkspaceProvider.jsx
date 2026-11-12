@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { WorkspaceContext } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import {
   clearMutationIntents,
+  mutate,
   queryPath,
   readData,
 } from '../../services/workspace'
@@ -52,9 +53,35 @@ function WorkspaceSession({ session, children }) {
   const access = useResource(base ? `${base}/access` : null)
   const reloadPermissions = permissions.reload
   const reloadAccess = access.reload
+  const billingSyncInFlight = useRef(false)
+  const lastBillingSyncAt = useRef(0)
   const refreshAccess = useCallback(() => {
     reloadPermissions()
     reloadAccess()
+  }, [reloadPermissions, reloadAccess])
+  const syncStaleBillingAccess = useCallback(async () => {
+    if (billingSyncInFlight.current) return
+    if (Date.now() - lastBillingSyncAt.current < 60_000) return
+    billingSyncInFlight.current = true
+    lastBillingSyncAt.current = Date.now()
+    try {
+      const me = await readData('/onboarding/me')
+      const applicationId = me?.application?.id
+      if (applicationId) {
+        await mutate(
+          'post',
+          `/applications/${applicationId}/billing/refresh`,
+          {},
+          { idempotent: false },
+        )
+      }
+    } catch {
+      // Access reload below still picks up whatever evidence is available.
+    } finally {
+      billingSyncInFlight.current = false
+      reloadPermissions()
+      reloadAccess()
+    }
   }, [reloadPermissions, reloadAccess])
   useEffect(() => {
     window.addEventListener('workspace-access-changed', refreshAccess)
@@ -64,6 +91,24 @@ function WorkspaceSession({ session, children }) {
       window.removeEventListener('focus', refreshAccess)
     }
   }, [refreshAccess])
+  // Stale billing evidence expires (~5m). When access asks for refresh_billing,
+  // reconcile so Add / write actions reappear without a manual billing click.
+  useEffect(() => {
+    if (!base || permissions.loading || access.loading || access.error) return
+    if (permissions.data?.owner !== true) return
+    if (access.data?.writesAllowed === true) return
+    if (access.data?.nextAction !== 'refresh_billing') return
+    void syncStaleBillingAccess()
+  }, [
+    base,
+    permissions.loading,
+    permissions.data?.owner,
+    access.loading,
+    access.error,
+    access.data?.writesAllowed,
+    access.data?.nextAction,
+    syncStaleBillingAccess,
+  ])
   async function loadMore() {
     setLoadingMore(true)
     setPageError(null)

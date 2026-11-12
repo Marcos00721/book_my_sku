@@ -70,6 +70,11 @@ const ClientDetailPage = lazy(() =>
     default: page.ClientDetailPage,
   })),
 );
+const ClientEditPage = lazy(() =>
+  import("./pages/workspace/ClientEditPage").then((page) => ({
+    default: page.ClientEditPage,
+  })),
+);
 const TeamPage = lazy(() =>
   import("./pages/workspace/TeamPage").then((page) => ({
     default: page.TeamPage,
@@ -179,6 +184,7 @@ export default function App() {
         >
           <Route index element={<OverviewPage />} />
           <Route path="clients" element={<ClientsPage />} />
+          <Route path="clients/:clientId/edit" element={<ClientEditPage />} />
           <Route path="clients/:clientId" element={<ClientDetailPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route

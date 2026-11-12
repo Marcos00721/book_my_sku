@@ -1,7 +1,12 @@
 import { useResource } from '../../hooks/useResource'
 import { ErrorNotice, Field, Loading } from './Elements'
 
-export function GeographyFields({ values, change, errors = {} }) {
+export function GeographyFields({
+  values,
+  change,
+  errors = {},
+  requireState = false,
+}) {
   const countries = useResource('/reference/countries')
   const states = useResource(
     values.country
@@ -43,6 +48,9 @@ export function GeographyFields({ values, change, errors = {} }) {
           <Field
             name="stateCode"
             label={country?.stateLabel || 'State / region'}
+            required={
+              requireState && country?.stateRequirement !== 'not_applicable'
+            }
             error={errors.stateCode}
             value={values.stateCode}
             disabled={

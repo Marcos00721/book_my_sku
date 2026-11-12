@@ -1,30 +1,27 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Pencil, Plus } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { Directory } from '../../components/workspace/Directory'
+import { ContactEditor } from '../../components/clients/ContactEditor'
+import { ButtonLink } from '../../components/common/ButtonLink'
+import { TextLink } from '../../components/common/TextLink'
 import {
   Action,
-  Dialog,
   ErrorNotice,
   Field,
   Loading,
-  PageHeader,
   PermissionDenied,
-  SaveFooter,
+  SectionHeading,
+  StickyPageChrome,
 } from '../../components/workspace/Elements'
-import { ClientNameDialog } from './ClientsPage'
 import { ClientAddresses } from './ClientAddresses'
 import { ClientActivity } from './ClientActivity'
 import { ClientManagement } from './ClientManagement'
 import { ClientContactDefaults } from './ClientContactDefaults'
-import {
-  ConflictReview,
-  DuplicateHints,
-  MutationRetry,
-} from '../../components/workspace/RecordTools'
+import { MutationRetry } from '../../components/workspace/RecordTools'
 
 export function ClientDetailPage() {
   const workspace = useWorkspace()
@@ -41,67 +38,71 @@ export function ClientDetailPage() {
 function ClientRecord({ path }) {
   const workspace = useWorkspace()
   const resource = useResource(path)
-  const [renaming, setRenaming] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [flash, setFlash] = useState(location.state?.flash || '')
   const [tab, setTab] = useState('contacts')
+
+  useEffect(() => {
+    if (!location.state?.flash) return
+    setFlash(location.state.flash)
+    navigate(location.pathname, { replace: true, state: {} })
+  }, [location.pathname, location.state, navigate])
+
   if (resource.loading) return <Loading label="Loading client…" />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const client = resource.data
+  const tabItems = [
+    { value: 'overview', label: 'Overview' },
+    { value: 'contacts', label: 'Contacts' },
+    { value: 'addresses', label: 'Saved addresses' },
+    ...(workspace.can('clients.history.view')
+      ? [{ value: 'activity', label: 'Activity' }]
+      : []),
+  ]
+  const activeTabLabel =
+    tabItems.find((item) => item.value === tab)?.label || 'Overview'
+
   return (
-    <>
-      <Link to="/app/clients" className="back-link">
-        <ArrowLeft size={16} />
-        Back to clients
-      </Link>
-      <PageHeader
-        eyebrow="CLIENT RELATIONSHIPS"
-        title={client.name}
-        description="The people and places behind your next great project."
-        actions={
-          workspace.can('clients.edit') &&
-          workspace.writesAllowed &&
-          client.status !== 'archived' && (
-            <Action variant="secondary" onClick={() => setRenaming(true)}>
-              <Pencil size={15} />
-              Rename client
-            </Action>
-          )
-        }
-      />
-      <div className="tabs" role="tablist" aria-label="Client information">
-        {[
-          'overview',
-          'contacts',
-          'addresses',
-          ...(workspace.can('clients.history.view') ? ['activity'] : []),
-        ].map((value) => (
-          <button
-            key={value}
-            role="tab"
-            aria-selected={tab === value}
-            onClick={() => setTab(value)}
+    <StickyPageChrome
+      before={
+        <>
+          <TextLink to="/app/clients" className="back-link">
+            <ArrowLeft size={16} />
+            Back to clients
+          </TextLink>
+          {flash ? (
+            <p className="client-flash notice" role="status">
+              {flash}
+            </p>
+          ) : null}
+        </>
+      }
+      eyebrow="CLIENT RELATIONSHIPS"
+      title={client.name}
+      description="The people and places behind your next great project."
+      actions={
+        workspace.can('clients.edit') &&
+        workspace.writesAllowed &&
+        client.status !== 'archived' && (
+          <ButtonLink
+            variant="secondary"
+            to={`/app/clients/${client._id}/edit`}
           >
-            {value === 'overview'
-              ? 'Overview'
-              : value === 'contacts'
-                ? 'Contacts'
-                : value === 'activity'
-                  ? 'Activity'
-                  : 'Saved addresses'}
-          </button>
-        ))}
-      </div>
-      <section
-        className="panel"
-        role="tabpanel"
-        aria-label={
-          tab === 'contacts'
-            ? 'Contacts'
-            : tab === 'activity'
-              ? 'Activity'
-              : 'Saved addresses'
-        }
-      >
+            <Pencil size={15} />
+            Edit client
+          </ButtonLink>
+        )
+      }
+      tabs={{
+        label: 'Client information',
+        value: tab,
+        onChange: setTab,
+        items: tabItems,
+      }}
+    >
+      <section className="panel" role="tabpanel" aria-label={activeTabLabel}>
         {tab === 'overview' ? (
           <ClientManagement
             path={path}
@@ -127,18 +128,7 @@ function ClientRecord({ path }) {
           />
         )}
       </section>
-      {renaming && (
-        <ClientNameDialog
-          path={path}
-          client={client}
-          close={() => setRenaming(false)}
-          saved={() => {
-            setRenaming(false)
-            resource.reload()
-          }}
-        />
-      )}
-    </>
+    </StickyPageChrome>
   )
 }
 
@@ -159,13 +149,11 @@ function ClientContacts({ path, archived, reloadClient }) {
     )
   return (
     <>
-      <div className="section-heading">
-        <div>
-          <h2>People you work with</h2>
-          <p className="muted">The right contact, right when you need them.</p>
-        </div>
-        {create}
-      </div>
+      <SectionHeading
+        title="People you work with"
+        description="The right contact, right when you need them."
+        actions={create}
+      />
       <Field
         label="Contact status"
         value={state}
@@ -283,75 +271,3 @@ function ClientContacts({ path, archived, reloadClient }) {
   )
 }
 
-function ContactEditor({ path, contact, close, saved }) {
-  const [values, setValues] = useState({
-    name: contact.name || '',
-    email: contact.email || '',
-    phone: contact.phone || '',
-    jobTitle: contact.jobTitle || '',
-  })
-  const mutation = useMutation()
-  const [version, setVersion] = useState(contact.__v)
-  async function submit(event) {
-    event.preventDefault()
-    const payload = {
-      name: values.name.trim(),
-      email: values.email.trim() || null,
-      phone: values.phone.trim() || null,
-      jobTitle: values.jobTitle.trim() || null,
-      ...(contact._id ? { expectedVersion: version } : {}),
-    }
-    const result = await mutation.run(
-      contact._id ? 'patch' : 'post',
-      contact._id ? `${path}/${contact._id}` : path,
-      payload,
-    )
-    if (result) saved()
-  }
-  return (
-    <Dialog
-      title={contact._id ? 'Edit contact' : 'Add a contact'}
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form onSubmit={submit}>
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          {[
-            ['name', 'Full name', 160],
-            ['email', 'Email address', 254],
-            ['phone', 'Phone', 40],
-            ['jobTitle', 'Job title', 120],
-          ].map(([name, label, maxLength]) => (
-            <Field
-              key={name}
-              label={label}
-              required={name === 'name'}
-              type={name === 'email' ? 'email' : 'text'}
-              maxLength={maxLength}
-              value={values[name]}
-              onChange={(event) =>
-                setValues({ ...values, [name]: event.target.value })
-              }
-            />
-          ))}
-        </fieldset>
-        <DuplicateHints
-          path={`${path}/duplicate-candidates`}
-          query={values.email.trim() ? { email: values.email.trim() } : null}
-          labelFor={(item) => item.name}
-        />
-        <ConflictReview
-          error={mutation.error}
-          path={contact._id ? `${path}/${contact._id}` : null}
-          values={values}
-          onReview={(current) => setVersion(current.__v)}
-        />
-        <SaveFooter
-          mutation={mutation}
-          close={close}
-          label={contact._id ? 'Save contact' : 'Create contact'}
-        />
-      </form>
-    </Dialog>
-  )
-}

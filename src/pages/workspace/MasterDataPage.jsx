@@ -14,10 +14,10 @@ import {
   ErrorNotice,
   Field,
   Loading,
-  PageHeader,
   PermissionDenied,
   SaveFooter,
   Status,
+  StickyPageChrome,
 } from '../../components/workspace/Elements'
 
 const labels = {
@@ -49,215 +49,211 @@ export function MasterDataPage() {
   const entries = useResource(allowed ? path : null)
   const canEdit = workspace.owner && workspace.writesAllowed
   if (!allowed) return <PermissionDenied />
+
+  const tabItems = [
+    ...Object.entries(labels).map(([value, label]) => ({ value, label })),
+    ...(workspace.owner ? [{ value: '__activity__', label: 'Activity' }] : []),
+  ]
+
   return (
     <>
-      <PageHeader
+      <StickyPageChrome
         title="Business reference lists"
         description="Manage workspace industries, product categories, decoration methods and locations."
         actions={
           canEdit && <Action onClick={() => setEditing({})}>Add entry</Action>
         }
-      />
-      <section className="panel">
-        <div className="tabs" role="tablist" aria-label="Reference categories">
-          {Object.entries(labels).map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={!activity && category === key}
-              onClick={() => {
-                setCategory(key)
-                setActivity(false)
-                setHistory([])
-                setSearch('')
-              }}
-            >
-              {label}
-            </button>
-          ))}
-          {workspace.owner && (
-            <button
-              role="tab"
-              aria-selected={activity}
-              onClick={() => setActivity(true)}
-            >
-              Activity
-            </button>
-          )}
-        </div>
-        {activity ? (
-          <ActivityHistory
-            key={category}
-            path={`${workspace.base}/master-data/history`}
-            actions={[
-              'master.create',
-              'master.update',
-              'master.archive',
-              'master.restore',
-            ]}
-          />
-        ) : (
-          <>
-            <div className="toolbar">
-              <Field
-                label="Find reference entries"
-                value={search}
-                maxLength={80}
-                onChange={(event) => {
-                  setSearch(event.target.value)
-                  setHistory([])
+        tabs={{
+          label: 'Reference categories',
+          value: activity ? '__activity__' : category,
+          onChange: (value) => {
+            if (value === '__activity__') {
+              setActivity(true)
+              return
+            }
+            setCategory(value)
+            setActivity(false)
+            setHistory([])
+            setSearch('')
+          },
+          items: tabItems,
+        }}
+      >
+        <section className="panel" role="tabpanel">
+          {activity ? (
+            <ActivityHistory
+              key={category}
+              path={`${workspace.base}/master-data/history`}
+              actions={[
+                'master.create',
+                'master.update',
+                'master.archive',
+                'master.restore',
+              ]}
+            />
+          ) : (
+            <>
+              <div className="toolbar">
+                <Field
+                  label="Find reference entries"
+                  value={search}
+                  maxLength={80}
+                  onChange={(event) => {
+                    setSearch(event.target.value)
+                    setHistory([])
+                  }}
+                />
+                <Field
+                  label="List"
+                  value={category}
+                  onChange={(event) => {
+                    setCategory(event.target.value)
+                    setHistory([])
+                  }}
+                >
+                  {Object.entries(labels).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </Field>
+                <Field
+                  label="Status"
+                  value={status}
+                  onChange={(event) => {
+                    setStatus(event.target.value)
+                    setHistory([])
+                  }}
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                  <option value="all">All</option>
+                </Field>
+                <Action variant="secondary" onClick={() => entries.reload()}>
+                  Refresh
+                </Action>
+              </div>
+              {!workspace.owner && (
+                <p className="muted">
+                  You can view this list. Only the workspace owner can change its
+                  entries.
+                </p>
+              )}
+              <ErrorNotice
+                error={categories.error || entries.error}
+                retry={() => {
+                  categories.reload()
+                  entries.reload()
                 }}
               />
-              <Field
-                label="List"
-                value={category}
-                onChange={(event) => {
-                  setCategory(event.target.value)
-                  setHistory([])
-                }}
-              >
-                {Object.entries(labels).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </Field>
-              <Field
-                label="Status"
-                value={status}
-                onChange={(event) => {
-                  setStatus(event.target.value)
-                  setHistory([])
-                }}
-              >
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-                <option value="all">All</option>
-              </Field>
-              <Action variant="secondary" onClick={() => entries.reload()}>
-                Refresh
-              </Action>
-            </div>
-            {!workspace.owner && (
-              <p className="muted">
-                You can view this list. Only the workspace owner can change its
-                entries.
-              </p>
-            )}
-            <ErrorNotice
-              error={categories.error || entries.error}
-              retry={() => {
-                categories.reload()
-                entries.reload()
-              }}
-            />
-            {categories.loading || entries.loading ? (
-              <Loading label="Loading reference lists…" />
-            ) : entries.data?.items?.length ? (
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.data.items.map((entry) => (
-                      <tr key={entry.id}>
-                        <td>
-                          <strong>{entry.label}</strong>
-                          <small>Sort order {entry.sortOrder}</small>
-                        </td>
-                        <td>{entry.description || '—'}</td>
-                        <td>
-                          {entry.source
-                            ? `Template v${entry.source.version}`
-                            : 'Workspace entry'}
-                        </td>
-                        <td>
-                          <Status value={entry.status} />
-                        </td>
-                        <td>
-                          {canEdit && (
-                            <div className="actions">
-                              {entry.status === 'active' ? (
-                                <>
-                                  <Action
-                                    variant="secondary"
-                                    onClick={() => setEditing(entry)}
-                                  >
-                                    Edit
-                                  </Action>
+              {categories.loading || entries.loading ? (
+                <Loading label="Loading reference lists…" />
+              ) : entries.data?.items?.length ? (
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.data.items.map((entry) => (
+                        <tr key={entry.id}>
+                          <td>
+                            <strong>{entry.label}</strong>
+                            <small>Sort order {entry.sortOrder}</small>
+                          </td>
+                          <td>{entry.description || '—'}</td>
+                          <td>
+                            {entry.source
+                              ? `Template v${entry.source.version}`
+                              : 'Workspace entry'}
+                          </td>
+                          <td>
+                            <Status value={entry.status} />
+                          </td>
+                          <td>
+                            {canEdit && (
+                              <div className="actions">
+                                {entry.status === 'active' ? (
+                                  <>
+                                    <Action
+                                      variant="secondary"
+                                      onClick={() => setEditing(entry)}
+                                    >
+                                      Edit
+                                    </Action>
+                                    <EntryStatusButton
+                                      entry={entry}
+                                      path={`${workspace.base}/master-data/${category}/${entry.id}/archive`}
+                                      label="Archive"
+                                      saved={entries.reload}
+                                    />
+                                  </>
+                                ) : (
                                   <EntryStatusButton
                                     entry={entry}
-                                    path={`${workspace.base}/master-data/${category}/${entry.id}/archive`}
-                                    label="Archive"
+                                    path={`${workspace.base}/master-data/${category}/${entry.id}/restore`}
+                                    label="Restore"
                                     saved={entries.reload}
                                   />
-                                </>
-                              ) : (
-                                <EntryStatusButton
-                                  entry={entry}
-                                  path={`${workspace.base}/master-data/${category}/${entry.id}/restore`}
-                                  label="Restore"
-                                  saved={entries.reload}
-                                />
-                              )}
-                            </div>
-                          )}
-                          {workspace.owner && (
-                            <Action
-                              variant="text-button"
-                              onClick={() => setHistoryEntry(entry)}
-                            >
-                              History
-                            </Action>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              !entries.error && (
-                <Empty title="No entries yet">
-                  {category === 'decoration_location'
-                    ? 'An older workspace may have no decoration locations. Its owner can add independent local entries.'
-                    : 'New workspaces receive the published BookMySku starter lists. Owners can add labels that fit their business.'}
-                </Empty>
-              )
-            )}
-            {entries.data && (
-              <div className="table-bottom">
-                <span>{entries.data.items.length} entries</span>
-                <div className="actions">
-                  <Action
-                    variant="secondary"
-                    disabled={!history.length}
-                    onClick={() => setHistory((items) => items.slice(0, -1))}
-                  >
-                    Previous
-                  </Action>
-                  <Action
-                    variant="secondary"
-                    disabled={!entries.data.next}
-                    onClick={() =>
-                      setHistory((items) => [...items, entries.data.next])
-                    }
-                  >
-                    Next
-                  </Action>
+                                )}
+                              </div>
+                            )}
+                            {workspace.owner && (
+                              <Action
+                                variant="text-button"
+                                onClick={() => setHistoryEntry(entry)}
+                              >
+                                History
+                              </Action>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            )}
-          </>
-        )}
-      </section>
+              ) : (
+                !entries.error && (
+                  <Empty title="No entries yet">
+                    {category === 'decoration_location'
+                      ? 'An older workspace may have no decoration locations. Its owner can add independent local entries.'
+                      : 'New workspaces receive the published BookMySku starter lists. Owners can add labels that fit their business.'}
+                  </Empty>
+                )
+              )}
+              {entries.data && (
+                <div className="table-bottom">
+                  <span>{entries.data.items.length} entries</span>
+                  <div className="actions">
+                    <Action
+                      variant="secondary"
+                      disabled={!history.length}
+                      onClick={() => setHistory((items) => items.slice(0, -1))}
+                    >
+                      Previous
+                    </Action>
+                    <Action
+                      variant="secondary"
+                      disabled={!entries.data.next}
+                      onClick={() =>
+                        setHistory((items) => [...items, entries.data.next])
+                      }
+                    >
+                      Next
+                    </Action>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      </StickyPageChrome>
       {historyEntry && (
         <Dialog
           title={`${historyEntry.label} history`}

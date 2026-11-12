@@ -15,6 +15,7 @@ import {
   PermissionDenied,
   SaveFooter,
   Status,
+  StickyPageChrome,
 } from '../../components/workspace/Elements'
 import {
   ActivityHistory,
@@ -23,7 +24,7 @@ import {
   ReferenceSelect,
   MutationRetry,
 } from '../../components/workspace/RecordTools'
-import { SupplierEditor } from './SuppliersPage'
+import { SupplierEditor } from '../../components/suppliers/SupplierEditor'
 import { ProductConfiguration } from './ProductConfiguration'
 import { ProductMedia } from './ProductMedia'
 import { ProductPricing } from './ProductPricing'
@@ -233,12 +234,24 @@ function ProductRecord({ base, id }) {
     )
       resource.reload()
   }
+  const tabItems = [
+    { value: 'details', label: 'Details' },
+    { value: 'configuration', label: 'Variants' },
+    { value: 'images', label: 'Images' },
+    ...(pricingAllowed ? [{ value: 'pricing', label: 'Pricing' }] : []),
+    ...(workspace.can('products.history.view')
+      ? [{ value: 'activity', label: 'Activity' }]
+      : []),
+  ]
+
   return (
     <>
-      <Link className="back-link" to="/app/products">
-        ← Back to products
-      </Link>
-      <PageHeader
+      <StickyPageChrome
+        before={
+          <Link className="back-link" to="/app/products">
+            ← Back to products
+          </Link>
+        }
         title={product.name}
         description={`${product.productCode} · ${product.status} product`}
         actions={
@@ -302,123 +315,94 @@ function ProductRecord({ base, id }) {
             )}
           </div>
         }
-      />
-      <ErrorNotice error={mutation.error} retry={resource.reload} />
-      <MutationRetry mutation={mutation} saved={resource.reload} />
-      <Status value={product.status} />
-      {activationBlockers.length > 0 && (
-        <p className="notice">
-          Catalog activation needs:{' '}
-          {activationBlockers
-            .map((code) => code.replaceAll('_', ' ').toLowerCase())
-            .join(', ')}
-          .
-        </p>
-      )}
-      {product.status === 'active' && product.catalogSelectable === false && (
-        <p className="notice">
-          This product is active but its current source references or variants
-          prevent catalog selection.
-        </p>
-      )}
-      {product.readiness?.restoreBlockers?.map((blocker) => (
-        <p className="notice" key={blocker.code}>
-          {blocker.code === 'SUPPLIER_NOT_SELECTABLE'
-            ? 'The supplier must be active and supply products before restoring this draft.'
-            : 'The category must be active before restoring this draft.'}
-        </p>
-      ))}
-      <div className="tabs" role="tablist" aria-label="Product information">
-        <button
-          role="tab"
-          aria-selected={tab === 'details'}
-          onClick={() => setTab('details')}
-        >
-          Details
-        </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'configuration'}
-          onClick={() => setTab('configuration')}
-        >
-          Variants
-        </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'images'}
-          onClick={() => setTab('images')}
-        >
-          Images
-        </button>
-        {pricingAllowed && (
-          <button
-            role="tab"
-            aria-selected={tab === 'pricing'}
-            onClick={() => setTab('pricing')}
-          >
-            Pricing
-          </button>
-        )}
-        {workspace.can('products.history.view') && (
-          <button
-            role="tab"
-            aria-selected={tab === 'activity'}
-            onClick={() => setTab('activity')}
-          >
-            Activity
-          </button>
-        )}
-      </div>
-      <section className="panel" role="tabpanel">
-        {tab === 'configuration' ? (
-          <ProductConfiguration
-            path={`${base}/${id}`}
-            product={product}
-            changed={resource.reload}
-          />
-        ) : tab === 'images' ? (
-          <ProductMedia
-            path={`${base}/${id}`}
-            product={product}
-            changed={resource.reload}
-          />
-        ) : tab === 'pricing' ? (
-          pricingAllowed ? (
-            <ProductPricing path={`${base}/${id}`} product={product} />
-          ) : (
-            <PermissionDenied />
-          )
-        ) : tab === 'activity' ? (
-          workspace.can('products.history.view') ? (
-            <ActivityHistory path={`${base}/${id}/activity`} />
-          ) : (
-            <PermissionDenied />
-          )
-        ) : (
+        meta={
           <>
-            <h2>Product details</h2>
-            <dl className="detail-list">
-              {[
-                ['Supplier', product.supplier?.name],
-                ['Supplier item code', product.supplierItemCode],
-                ['Category', product.category?.label],
-                ['Description', product.description],
-                ['Private notes', product.privateNotes],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value || '—'}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="notice">
-              Catalog selection does not establish a price or authorize an
-              order. Private notes are visible to authorized workspace product
-              users.
-            </p>
+            <ErrorNotice error={mutation.error} retry={resource.reload} />
+            <MutationRetry mutation={mutation} saved={resource.reload} />
+            <Status value={product.status} />
+            {activationBlockers.length > 0 && (
+              <p className="notice">
+                Catalog activation needs:{' '}
+                {activationBlockers
+                  .map((code) => code.replaceAll('_', ' ').toLowerCase())
+                  .join(', ')}
+                .
+              </p>
+            )}
+            {product.status === 'active' &&
+              product.catalogSelectable === false && (
+                <p className="notice">
+                  This product is active but its current source references or
+                  variants prevent catalog selection.
+                </p>
+              )}
+            {product.readiness?.restoreBlockers?.map((blocker) => (
+              <p className="notice" key={blocker.code}>
+                {blocker.code === 'SUPPLIER_NOT_SELECTABLE'
+                  ? 'The supplier must be active and supply products before restoring this draft.'
+                  : 'The category must be active before restoring this draft.'}
+              </p>
+            ))}
           </>
-        )}
-      </section>
+        }
+        tabs={{
+          label: 'Product information',
+          value: tab,
+          onChange: setTab,
+          items: tabItems,
+        }}
+      >
+        <section className="panel" role="tabpanel">
+          {tab === 'configuration' ? (
+            <ProductConfiguration
+              path={`${base}/${id}`}
+              product={product}
+              changed={resource.reload}
+            />
+          ) : tab === 'images' ? (
+            <ProductMedia
+              path={`${base}/${id}`}
+              product={product}
+              changed={resource.reload}
+            />
+          ) : tab === 'pricing' ? (
+            pricingAllowed ? (
+              <ProductPricing path={`${base}/${id}`} product={product} />
+            ) : (
+              <PermissionDenied />
+            )
+          ) : tab === 'activity' ? (
+            workspace.can('products.history.view') ? (
+              <ActivityHistory path={`${base}/${id}/activity`} />
+            ) : (
+              <PermissionDenied />
+            )
+          ) : (
+            <>
+              <h2>Product details</h2>
+              <dl className="detail-list">
+                {[
+                  ['Supplier', product.supplier?.name],
+                  ['Supplier item code', product.supplierItemCode],
+                  ['Category', product.category?.label],
+                  ['Description', product.description],
+                  ['Private notes', product.privateNotes],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value || '—'}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="notice">
+                Catalog selection does not establish a price or authorize an
+                order. Private notes are visible to authorized workspace product
+                users.
+              </p>
+            </>
+          )}
+        </section>
+      </StickyPageChrome>
       {editing && (
         <ProductEditor
           base={base}

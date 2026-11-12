@@ -116,10 +116,7 @@ test('activity renders protected actor and changes as text, follows opaque curso
     page.getByText('QA Tester · actor-id', { exact: false }),
   ).toBeVisible()
   await expect(
-    page.getByRole('cell', {
-      name: '<img src=x onerror=alert(1)>',
-      exact: true,
-    }),
+    page.getByText('<img src=x onerror=alert(1)>', { exact: true }),
   ).toBeVisible()
   await expect(page.locator('article img')).toHaveCount(0)
   await page.getByRole('button', { name: 'Next activity' }).click()

@@ -3,6 +3,12 @@ import { AlertCircle, ArrowRight, X } from 'lucide-react'
 import { Button } from '../common/Button'
 import { TextLink } from '../common/TextLink'
 import { PageHeader } from '../common/PageHeader'
+import { StickyPageChrome, PageTabs } from '../common/StickyPageChrome'
+import { SectionHeading } from './SectionHeading'
+import { ActivityTimeline } from './ActivityTimeline'
+import { OffsetPager } from './OffsetPager'
+import { CursorPager } from './CursorPager'
+import { EntityDataTable } from './EntityDataTable'
 import { EmptyState } from '../common/EmptyState'
 import { Loader } from '../common/Loader'
 import { TextField } from '../common/TextField'
@@ -77,13 +83,22 @@ export function Loading({ label = 'Loading your workspace…' }) {
   return <Loader label={label} />
 }
 
-export function Empty({ title = 'Nothing here yet', children, action }) {
+export function Empty({ title = 'Nothing here yet', children, action, icon }) {
   return (
-    <EmptyState title={title} description={children} action={action} />
+    <EmptyState title={title} description={children} action={action} icon={icon} />
   )
 }
 
-export { PageHeader }
+export {
+  PageHeader,
+  StickyPageChrome,
+  PageTabs,
+  SectionHeading,
+  ActivityTimeline,
+  OffsetPager,
+  CursorPager,
+  EntityDataTable,
+}
 
 export function Status({ value }) {
   const tone = [
@@ -137,6 +152,7 @@ export function Field({ label, children, hint, error, className = '', ...props }
 
 export function Dialog({
   title,
+  description,
   children,
   close,
   locked = false,
@@ -145,6 +161,7 @@ export function Dialog({
   const ref = useRef(null)
   const dirty = useRef(false)
   const titleId = useId()
+  const descriptionId = useId()
   function allowDiscard() {
     return (
       !dirty.current ||
@@ -192,6 +209,7 @@ export function Dialog({
       ref={ref}
       className={`app-dialog ${className}`}
       aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
       onInputCapture={() => {
         dirty.current = true
         ref.current.dataset.dirty = 'true'
@@ -201,8 +219,15 @@ export function Dialog({
         if (!locked && allowDiscard()) close()
       }}
     >
-      <header>
-        <h2 id={titleId}>{title}</h2>
+      <header className="app-dialog-header">
+        <div className="app-dialog-heading">
+          <h2 id={titleId}>{title}</h2>
+          {description ? (
+            <p id={descriptionId} className="app-dialog-description">
+              {description}
+            </p>
+          ) : null}
+        </div>
         <Action
           variant="icon-button"
           aria-label="Close dialog"
