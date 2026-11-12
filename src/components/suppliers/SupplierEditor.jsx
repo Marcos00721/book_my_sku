@@ -100,7 +100,7 @@ export function SupplierEditor({
   return (
     <Dialog
       className="supplier-form-dialog"
-      title={supplier ? 'Edit supplier' : 'Add supplier'}
+      title={supplier ? 'Edit' : 'Create'}
       description={
         supplier
           ? 'Update the business profile your team uses for ordering and production.'
@@ -130,7 +130,7 @@ export function SupplierEditor({
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={supplier ? 'Save changes' : 'Create supplier'}
+          label={supplier ? 'Save' : 'Create'}
         />
       </AppFormProvider>
     </Dialog>

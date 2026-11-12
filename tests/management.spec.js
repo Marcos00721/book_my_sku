@@ -135,12 +135,12 @@ test('role creation uses supported catalog scopes and never adds legacy authorit
     })
   })
   await page.goto('/app/roles')
-  await page.getByRole('button', { name: 'Create role', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Role name').fill('Account team')
   await dialog.getByRole('checkbox', { name: 'View clients' }).check()
   await dialog.getByRole('checkbox', { name: 'Create clients' }).check()
-  await dialog.getByRole('button', { name: 'Save role' }).click()
+  await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(submitted).toEqual({
     name: 'Account team',

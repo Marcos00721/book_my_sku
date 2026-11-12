@@ -31,7 +31,7 @@ async function openRegistration(page, existing = null) {
 async function fillRegistration(page) {
   await page.getByLabel('First name').fill('Alex')
   await page.getByLabel('Last name').fill('Morgan')
-  await page.getByLabel('Phone with country code').fill('+14155550123')
+  await page.getByLabel('Phone', { exact: true }).fill('4155550123')
   await page.getByLabel('Company name').fill('Studio Goods')
   await page.getByLabel('Company website').fill('example.com')
   await page.getByRole('checkbox').check()
@@ -101,15 +101,15 @@ test('registration validates required fields, permits optional fields and locks 
   for (const label of [
     'First name',
     'Last name (optional)',
-    'Phone with country code',
+    'Phone',
     'Company name',
     'Company website (optional)',
   ]) {
     await expect(page.getByLabel(label, { exact: true })).toBeEditable()
   }
-  const phone = page.getByLabel('Phone with country code')
-  await phone.fill('+1 (415) 555-0123')
-  await expect(phone).toHaveValue('+1 (415) 555-0123')
+  const phone = page.getByLabel('Phone', { exact: true })
+  await phone.fill('4155550123')
+  await expect(phone).toHaveValue('415-555-0123')
   await submit(page)
   await expect(page.getByLabel('First name')).toBeFocused()
   await expect(page.getByLabel('Company website')).not.toHaveAttribute(
@@ -119,7 +119,7 @@ test('registration validates required fields, permits optional fields and locks 
   await phone.fill('415555012')
   await phone.press('Tab')
   await expect(
-    page.getByText('Include your country code, for example +14155552671.'),
+    page.getByText('Enter a valid 10-digit phone number.'),
   ).toBeVisible()
   await expect(page.getByRole('checkbox')).toHaveAttribute(
     'aria-invalid',
@@ -293,7 +293,7 @@ test('rejected applications can be corrected using the latest revision', async (
   ).toBeVisible()
   await page.getByRole('button', { name: 'Correct application' }).click()
   await expect(page.getByLabel('First name')).toHaveValue('Alex')
-  await expect(page.getByLabel('Phone with country code')).toHaveValue('+14155550123')
+  await expect(page.getByLabel('Phone', { exact: true })).toHaveValue('415-555-0123')
   await page.route('**/api/v1/onboarding/me', (route) => {
     write = {
       method: route.request().method(),

@@ -68,7 +68,7 @@ function MatrixDirectory() {
         actions={
           workspace.writesAllowed && (
             <Action onClick={() => setCreating(true)}>
-              Add decoration matrix
+              Create
             </Action>
           )
         }
@@ -433,7 +433,7 @@ function MatrixEditor({ base, matrix, close, saved }) {
   }
   return (
     <Dialog
-      title={matrix ? 'Edit decoration matrix' : 'Add decoration matrix'}
+      title={matrix ? 'Edit' : 'Create'}
       close={close}
       className="matrix-dialog"
       locked={mutation.pending || mutation.uncertain}

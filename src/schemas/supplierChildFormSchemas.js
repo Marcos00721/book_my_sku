@@ -3,6 +3,7 @@ import {
   addressPurposes,
   contactPurposes,
 } from '../components/suppliers/supplierPurposes'
+import { formatNumber, stripPhoneFormatting, usPhoneRegex } from '../utils/phone'
 
 const CONTACT_PURPOSE_VALUES = contactPurposes
 const ADDRESS_PURPOSE_VALUES = Object.keys(addressPurposes)
@@ -25,8 +26,12 @@ export const supplierContactFormSchema = z.object({
   phone: z
     .string()
     .trim()
-    .max(40, 'Use no more than 40 characters.')
-    .default(''),
+    .max(12, 'Use no more than 12 characters.')
+    .default('')
+    .refine(
+      (value) => !value || usPhoneRegex.test(stripPhoneFormatting(value)),
+      'Enter a valid 10-digit phone number.',
+    ),
   jobTitle: z
     .string()
     .trim()
@@ -97,7 +102,7 @@ export function supplierContactToFormValues(record) {
   return {
     name: record?.name || '',
     email: record?.email || '',
-    phone: record?.phone || '',
+    phone: formatNumber(record?.phone || ''),
     jobTitle: record?.jobTitle || '',
     purposes: Array.isArray(record?.purposes) ? [...record.purposes] : [],
     setAsDefault: false,

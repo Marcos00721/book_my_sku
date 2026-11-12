@@ -8,6 +8,7 @@ import {
   contactToFormValues,
 } from '../../schemas/contactFormSchema'
 import { AppFormProvider } from '../forms/AppFormProvider'
+import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextField } from '../forms/FormTextField'
 import { useAppForm } from '../forms/useAppForm'
 import { ConflictReview, DuplicateHints } from '../workspace/RecordTools'
@@ -85,7 +86,7 @@ export function ContactEditor({ path, contact, close, saved }) {
   return (
     <Dialog
       className="supplier-form-dialog"
-      title={contact._id ? 'Edit contact' : 'Add contact'}
+      title={contact._id ? 'Edit' : 'Create'}
       description="Keep the right person easy to find when your team needs them."
       close={close}
       locked={locked}
@@ -126,12 +127,10 @@ export function ContactEditor({ path, contact, close, saved }) {
                   disabled={locked}
                   placeholder="name@example.com"
                 />
-                <FormTextField
+                <FormPhoneField
                   name="phone"
                   label="Phone"
-                  maxLength={40}
                   disabled={locked}
-                  placeholder="+1 555 0100"
                 />
               </div>
               <ContactDuplicateHints path={path} />
@@ -146,7 +145,7 @@ export function ContactEditor({ path, contact, close, saved }) {
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={contact._id ? 'Save contact' : 'Create contact'}
+          label={contact._id ? 'Save' : 'Create'}
         />
       </AppFormProvider>
     </Dialog>

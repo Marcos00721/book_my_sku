@@ -91,7 +91,7 @@ test('entry forms save the chosen category without publishing or replacing other
 }) => {
   const { writes, publications } = await mockTemplates(page)
   await page.goto('/admin?section=masterData')
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   let dialog = page.getByRole('dialog')
   await dialog
     .getByRole('textbox', { name: 'Name', exact: true })
@@ -105,7 +105,7 @@ test('entry forms save the chosen category without publishing or replacing other
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(writes).toHaveLength(0)
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Category').selectOption('decoration_method')
   await dialog
@@ -148,7 +148,7 @@ test('an interrupted dialog save locks its draft and retries the original operat
 }) => {
   const { writes } = await mockTemplates(page, { interruptFirst: true })
   await page.goto('/admin?section=masterData')
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog
     .getByRole('textbox', { name: 'Name', exact: true })

@@ -63,7 +63,7 @@ function ProductDirectory() {
         actions={
           workspace.can('products.create') &&
           workspace.writesAllowed && (
-            <Action onClick={() => setCreating(true)}>Add product</Action>
+            <Action onClick={() => setCreating(true)}>Create</Action>
           )
         }
       />
@@ -287,7 +287,7 @@ function ProductRecord({ base, id }) {
                   )}
                 {!isArchived && workspace.can('products.edit') && (
                   <Action variant="secondary" onClick={() => setEditing(true)}>
-                    Edit product
+                    Edit
                   </Action>
                 )}
                 {workspace.can('products.create') && (
@@ -468,7 +468,7 @@ function ProductEditor({ base, product, close, saved }) {
   }
   return (
     <Dialog
-      title={product ? 'Edit product draft' : 'Add product draft'}
+      title={product ? 'Edit' : 'Create'}
       close={close}
       locked={mutation.pending || mutation.uncertain}
     >

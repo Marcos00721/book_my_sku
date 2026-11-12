@@ -146,7 +146,7 @@ function ClientNotes({ path, editable }) {
     <section className="panel">
       <div className="section-heading">
         <h2>Notes</h2>
-        {editable && <Action onClick={() => setEditing({})}>Add note</Action>}
+        {editable && <Action onClick={() => setEditing({})}>Create</Action>}
       </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
@@ -162,7 +162,7 @@ function ClientNotes({ path, editable }) {
             <div className="actions">
               {editable && (
                 <Action variant="secondary" onClick={() => setEditing(note)}>
-                  Correct note
+                  Edit
                 </Action>
               )}
               {workspace.can('clients.history.view') && (

@@ -61,7 +61,7 @@ export function MasterDataPage() {
         title="Business reference lists"
         description="Manage workspace industries, product categories, decoration methods and locations."
         actions={
-          canEdit && <Action onClick={() => setEditing({})}>Add entry</Action>
+          canEdit && <Action onClick={() => setEditing({})}>Create</Action>
         }
         tabs={{
           label: 'Reference categories',
@@ -337,7 +337,7 @@ function EntryEditor({ base, entry, close, saved }) {
   }
   return (
     <Dialog
-      title={entry.id ? 'Edit reference entry' : 'Add reference entry'}
+      title={entry.id ? 'Edit' : 'Create'}
       close={close}
       locked={mutation.pending || mutation.uncertain}
     >
@@ -381,7 +381,7 @@ function EntryEditor({ base, entry, close, saved }) {
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={entry.id ? 'Save entry' : 'Create entry'}
+          label={entry.id ? 'Save' : 'Create'}
         />
       </form>
     </Dialog>

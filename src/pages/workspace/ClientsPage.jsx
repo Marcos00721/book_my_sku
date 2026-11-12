@@ -62,7 +62,7 @@ export function ClientsPage() {
   const create = workspace.can('clients.create') && workspace.writesAllowed && (
     <Action onClick={() => setCreating(true)}>
       <Plus size={17} />
-      Add client
+      Create
     </Action>
   )
 

@@ -142,11 +142,11 @@ test('client mutations recover an uncertain response with the same UUID and body
       : route.fulfill({ status: 201, json: { data: client } })
   })
   await page.goto('/app/clients')
-  await page.getByRole('button', { name: 'Add client', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Client name').fill('Acme Promotions')
   await dialog
-    .getByRole('button', { name: 'Create client', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   await expect(dialog.getByLabel('Client name')).toBeDisabled()
   await dialog.getByRole('button', { name: 'Retry same request' }).click()
@@ -186,7 +186,7 @@ test('restricted billing preserves reads while hiding client writes', async ({
     page.getByRole('link', { name: 'Acme Promotions', exact: true }),
   ).toBeVisible()
   await expect(
-    page.getByRole('button', { name: 'Add client', exact: true }),
+    page.getByRole('button', { name: 'Create', exact: true }),
   ).toHaveCount(0)
   await expect(
     page.getByText('Workspace changes are paused.', { exact: false }),
@@ -306,12 +306,12 @@ test('contact edits use server revisions and clear optional fields explicitly', 
   await page.getByRole('button', { name: 'Edit', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Email address').fill('')
-  await dialog.getByRole('button', { name: 'Save contact' }).click()
+  await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(dialog.getByRole('alert')).toContainText('VERSION_CONFLICT')
   expect(submitted).toEqual({
     name: contact.name,
     email: null,
-    phone: contact.phone,
+    phone: '555-123-4567',
     jobTitle: contact.jobTitle,
     expectedVersion: 7,
   })
@@ -352,7 +352,7 @@ test('address creation selects supported geography and can become both defaults'
   })
   await page.goto(`/app/clients/${clientId}`)
   await page.getByRole('tab', { name: 'Saved addresses' }).click()
-  await page.getByRole('button', { name: 'Add address' }).click()
+  await page.getByRole('button', { name: 'Create' }).click()
   const dialog = page.getByRole('dialog')
   await dialog
     .getByLabel('Label', { exact: true })
@@ -382,7 +382,7 @@ test('address creation selects supported geography and can become both defaults'
     .getByRole('combobox', { name: 'State', exact: true })
     .selectOption('US-TX')
   await dialog
-    .getByRole('button', { name: 'Save address', exact: true })
+    .getByRole('button', { name: 'Save', exact: true })
     .click()
   await expect(dialog).toHaveCount(0)
   expect(submitted.address).toMatchObject({

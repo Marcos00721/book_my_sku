@@ -221,7 +221,7 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
         Back to client
       </TextLink>
       <PageHeader
-        title="Edit client"
+        title="Edit"
         description="Update the company profile used across your workspace."
       />
       <Card className="client-edit-card">
@@ -255,7 +255,7 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
                 ? 'Saving…'
                 : mutation.uncertain
                   ? 'Retry same request'
-                  : 'Save Changes'}
+                  : 'Save'}
             </Button>
           </div>
         </AppFormProvider>

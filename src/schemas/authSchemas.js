@@ -1,10 +1,21 @@
 import { z } from 'zod';
+import { stripPhoneFormatting, usPhoneRegex } from '../utils/phone';
 
 const emailFieldSchema = z
   .string()
   .trim()
   .min(1, 'Enter your email address.')
   .email('Enter a valid email address.');
+
+const contactNumberFieldSchema = z
+  .string()
+  .trim()
+  .min(1, 'Enter your phone number.')
+  .refine(
+    (value) => usPhoneRegex.test(stripPhoneFormatting(value)),
+    'Enter a valid 10-digit phone number.',
+  )
+  .transform((value) => `+1${stripPhoneFormatting(value)}`);
 
 export const loginFormSchema = z.object({
   email: emailFieldSchema,
@@ -37,9 +48,7 @@ export const registerFormSchema = z
     firstName: z.string().trim().min(1, 'Enter your first name.').max(80),
     lastName: z.string().trim().max(80).default(''),
     email: emailFieldSchema.max(254).toLowerCase(),
-    contactNumber: z.string().trim().max(40)
-      .transform(value => value.replace(/[ ()-]/g, ''))
-      .pipe(z.string().regex(/^\+[1-9]\d{6,14}$/, 'Include your country code, for example +14155552671.')),
+    contactNumber: contactNumberFieldSchema,
     companyName: z.string().trim().min(1, 'Enter your company name.').max(160),
     companyWebsite: z.string().trim().max(500).default('')
       .transform(value => value && !value.includes('://') ? `https://${value}` : value)

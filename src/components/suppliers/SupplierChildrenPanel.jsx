@@ -12,6 +12,7 @@ import {
   Loading,
   Status,
 } from '../workspace/Elements'
+import { formatNumber } from '../../utils/phone'
 import { purposeLabel } from './supplierPurposes'
 import { SupplierChildEditor } from './SupplierChildEditor'
 
@@ -64,7 +65,7 @@ export function SupplierChildrenPanel({
         actions={
           canEdit && (
             <Action onClick={() => setOpen({})}>
-              Add {kind === 'contacts' ? 'contact' : 'address'}
+              Create
             </Action>
           )
         }
@@ -112,7 +113,7 @@ export function SupplierChildrenPanel({
                   {child.email || 'Email required before editing or restoring'}
                 </p>
                 <p>
-                  {child.phone} {child.jobTitle}
+                  {child.phone ? formatNumber(child.phone) : ''} {child.jobTitle}
                 </p>
               </>
             ) : (

@@ -1,5 +1,6 @@
 import { SectionHeading } from '../../components/workspace/SectionHeading'
 import { Status } from '../../components/workspace/Elements'
+import { formatNumber } from '../../utils/phone'
 
 export function SupplierOverview({ supplier }) {
   return (
@@ -20,7 +21,7 @@ export function SupplierOverview({ supplier }) {
           ],
           ['Website', supplier.website],
           ['General email', supplier.email],
-          ['Phone', supplier.phone],
+          ['Phone', supplier.phone ? formatNumber(supplier.phone) : ''],
           ['Our account number', supplier.accountNumber],
         ].map(([label, value]) => (
           <div key={label}>

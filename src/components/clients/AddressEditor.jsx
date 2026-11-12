@@ -104,7 +104,7 @@ export function AddressEditor({ path, address, close, saved }) {
   return (
     <Dialog
       className="supplier-form-dialog"
-      title={address.id ? 'Edit saved address' : 'Save an address'}
+      title={address.id ? 'Edit' : 'Create'}
       description="Store a billing or shipping place your team can reuse on the next project."
       close={close}
       locked={locked}
@@ -211,7 +211,7 @@ export function AddressEditor({ path, address, close, saved }) {
             </section>
           ) : null}
         </div>
-        <SaveFooter mutation={mutation} close={close} label="Save address" />
+        <SaveFooter mutation={mutation} close={close} label="Save" />
       </AppFormProvider>
     </Dialog>
   )

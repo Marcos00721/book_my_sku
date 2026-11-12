@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { formatNumber, stripPhoneFormatting, usPhoneRegex } from '../utils/phone'
 
 function optionalHttpUrl(value) {
   if (!value) return true
@@ -52,8 +53,12 @@ export const supplierFormSchema = z.object({
   phone: z
     .string()
     .trim()
-    .max(40, 'Use no more than 40 characters.')
-    .default(''),
+    .max(12, 'Use no more than 12 characters.')
+    .default('')
+    .refine(
+      (value) => !value || usPhoneRegex.test(stripPhoneFormatting(value)),
+      'Enter a valid 10-digit phone number.',
+    ),
   accountNumber: z
     .string()
     .trim()
@@ -71,7 +76,7 @@ export function supplierToFormValues(supplier) {
     capabilities: capabilities.length ? capabilities : ['supplier'],
     website: supplier?.website || '',
     email: supplier?.email || '',
-    phone: supplier?.phone || '',
+    phone: formatNumber(supplier?.phone || ''),
     accountNumber: supplier?.accountNumber || '',
   }
 }

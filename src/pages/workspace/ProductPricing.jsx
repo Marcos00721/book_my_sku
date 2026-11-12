@@ -92,7 +92,7 @@ function PricingWorkspace({ path, product, edit, publish, preview, cost }) {
         <h2>Manual goods pricing</h2>
         {edit && cost && writable && (
           <Action onClick={() => setCreating(true)}>
-            Add pricing schedule
+            Create
           </Action>
         )}
       </div>
@@ -394,7 +394,7 @@ function ScheduleEditor({ path, schedule, cost, editable, close, saved }) {
   }
   return (
     <Dialog
-      title={schedule ? 'Edit pricing draft' : 'Add pricing draft'}
+      title={schedule ? 'Edit' : 'Create'}
       close={close}
       locked={mutation.pending || mutation.uncertain}
     >
@@ -586,7 +586,7 @@ function ScheduleEditor({ path, schedule, cost, editable, close, saved }) {
                   ])
                 }
               >
-                Add pricing variant
+                Create
               </Action>
             </>
           ) : (

@@ -77,7 +77,7 @@ export function ClientAddresses({ path, client, reloadClient }) {
         {editable && (
           <Action onClick={() => setEditing({})}>
             <Plus size={16} />
-            Add address
+            Create
           </Action>
         )}
       </div>

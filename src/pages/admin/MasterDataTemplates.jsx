@@ -214,7 +214,7 @@ export function MasterDataTemplates() {
             disabled={busy || remaining <= 0 || draft.entries.length >= 400}
             onClick={() => setEditor({ category })}
           >
-            <Plus size={16} aria-hidden="true" /> Add entry
+            <Plus size={16} aria-hidden="true" /> Create
           </Action>
         </div>
         <div className="tabs" role="tablist" aria-label="Template categories">
@@ -518,7 +518,7 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
   return (
     <Dialog
       className="master-entry-dialog"
-      title={editing ? 'Edit master data entry' : 'Add master data entry'}
+      title={editing ? 'Edit' : 'Create'}
       close={close}
       locked={locked}
     >

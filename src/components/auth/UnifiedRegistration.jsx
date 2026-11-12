@@ -7,6 +7,7 @@ import { AppFormProvider } from '../forms/AppFormProvider'
 import { FormCheckbox } from '../forms/FormCheckbox'
 import { FormPasswordField } from '../forms/FormPasswordField'
 import { FormSubmitButton } from '../forms/FormSubmitButton'
+import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextField } from '../forms/FormTextField'
 import { useAppForm } from '../forms/useAppForm'
 import { unifiedSignupSchema } from '../../schemas/authSchemas'
@@ -85,7 +86,7 @@ export function UnifiedRegistration({ session }) {
     {session && !session.user.email_confirmed_at ? <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg"><h2 className="text-xl font-semibold">Confirm your email</h2><p className="wrap-break-words text-sm">If an application was attached to this address, it will be reviewed after email verification. Check {session.user.email} and keep your application details ready if the backend asks you to resubmit.</p><button type="button" className="app-link min-h-touch" disabled={resendWait > 0} onClick={() => { setEmail(session.user.email); void resend(session.user.email) }}>{resendWait ? `Try again in ${resendWait}s` : 'Resend confirmation email'}</button></section> : message ? <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg"><h2 className="text-xl font-semibold">Check your email</h2><p className="wrap-break-words text-sm">{message}</p><button type="button" className="app-link min-h-touch" disabled={resendWait > 0} onClick={resend}>{resendWait ? `Try again in ${resendWait}s` : 'Resend confirmation email'}</button><p className="text-sm text-text-muted">If you already have an account, <Link className="app-link" to="/login">sign in</Link>.</p></section> : <AppFormProvider form={form} onSubmit={submit} animated={false} aria-labelledby="register-title" className="auth-signup-grid space-y-lg">
       <div className="auth-signup-name-fields grid gap-md sm:grid-cols-2"><FormTextField name="firstName" label="First name" autoComplete="given-name" icon={<UserRound />} maxLength={80} required /><FormTextField name="lastName" label="Last name (optional)" autoComplete="family-name" icon={<UserRound />} maxLength={80} /></div>
       <FormTextField name="email" label="Work email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} icon={<Mail />} maxLength={254} required />
-      <FormTextField name="contactNumber" label="Phone with country code" type="tel" placeholder="+14155552671" hint="Include the + sign and your country code." maxLength={40} required />
+      <FormPhoneField name="contactNumber" label="Phone" required />
       <FormTextField name="companyName" label="Company name" autoComplete="organization" icon={<Building2 />} maxLength={160} required />
       <FormTextField name="companyWebsite" label="Company website (optional)" type="url" autoComplete="url" placeholder="https://example.com" icon={<Globe />} maxLength={500} />
       <FormPasswordField name="password" label="Password" autoComplete="new-password" hint="Use at least 8 characters." required />

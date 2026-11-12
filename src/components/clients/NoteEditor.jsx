@@ -67,7 +67,7 @@ export function NoteEditor({ path, note, close, saved }) {
   return (
     <Dialog
       className="client-form-dialog"
-      title={isEdit ? 'Correct note' : 'Add note'}
+      title={isEdit ? 'Edit' : 'Create'}
       close={close}
       locked={locked}
     >
@@ -89,7 +89,7 @@ export function NoteEditor({ path, note, close, saved }) {
             />
           ) : null}
         </div>
-        <SaveFooter mutation={mutation} close={close} label="Save note" />
+        <SaveFooter mutation={mutation} close={close} label="Save" />
       </AppFormProvider>
     </Dialog>
   )

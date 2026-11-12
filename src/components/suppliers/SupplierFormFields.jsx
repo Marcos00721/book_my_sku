@@ -5,6 +5,7 @@ import { useResource } from '../../hooks/useResource'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { queryPath } from '../../services/workspace'
 import { supplierCapabilityOptions } from '../../schemas/supplierFormSchema'
+import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextField } from '../forms/FormTextField'
 
 function SupplierDuplicateHints({ excludeId }) {
@@ -185,13 +186,10 @@ export function SupplierFormFields({
           />
         </div>
         <div className="form-grid">
-          <FormTextField
+          <FormPhoneField
             name="phone"
             label="Phone"
-            type="tel"
-            maxLength={40}
             disabled={disabled}
-            placeholder="+1 555 0100"
           />
           <div className="supplier-form-field-note" aria-hidden="true">
             <p className="supplier-form-field-note-title">Tip</p>

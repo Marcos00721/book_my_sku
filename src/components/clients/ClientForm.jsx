@@ -86,7 +86,7 @@ export function ClientForm({ path, client, close, saved }) {
   return (
     <Dialog
       className="client-form-dialog"
-      title={client ? 'Edit client' : 'Add client'}
+      title={client ? 'Edit' : 'Create'}
       close={close}
       locked={locked}
     >
@@ -106,7 +106,7 @@ export function ClientForm({ path, client, close, saved }) {
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={client ? 'Save changes' : 'Create client'}
+          label={client ? 'Save' : 'Create'}
         />
       </AppFormProvider>
     </Dialog>

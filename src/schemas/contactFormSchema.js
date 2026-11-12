@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { formatNumber, stripPhoneFormatting, usPhoneRegex } from '../utils/phone'
 
 export const contactFormSchema = z.object({
   name: z
@@ -18,14 +19,11 @@ export const contactFormSchema = z.object({
   phone: z
     .string()
     .trim()
-    .max(40, 'Use no more than 40 characters.')
+    .max(12, 'Use no more than 12 characters.')
     .default('')
     .refine(
-      (value) =>
-        !value ||
-        (/^[\d +().xX#-]+$/.test(value) &&
-          (value.match(/\d/g) ?? []).length >= 3),
-      'Enter a valid phone number.',
+      (value) => !value || usPhoneRegex.test(stripPhoneFormatting(value)),
+      'Enter a valid 10-digit phone number.',
     ),
   jobTitle: z
     .string()
@@ -38,7 +36,7 @@ export function contactToFormValues(contact) {
   return {
     name: contact?.name || '',
     email: contact?.email || '',
-    phone: contact?.phone || '',
+    phone: formatNumber(contact?.phone || ''),
     jobTitle: contact?.jobTitle || '',
   }
 }

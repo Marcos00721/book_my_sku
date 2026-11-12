@@ -101,7 +101,7 @@ test('decoration locations extend saved drafts without changing historical three
   ).toBeVisible()
   await page
     .locator('.section-heading')
-    .getByRole('button', { name: 'Add entry', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   await page
     .getByRole('dialog')
@@ -611,7 +611,7 @@ test('pricing drafts retain decimal strings and retry keys; publication requires
   await page.goto(`/app/products/${productId}`)
   await page.getByRole('tab', { name: 'Pricing', exact: true }).click()
   await page
-    .getByRole('button', { name: 'Add pricing schedule', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   const dialog = page.getByRole('dialog')
   for (const [label, value] of [
@@ -622,7 +622,7 @@ test('pricing drafts retain decimal strings and retry keys; publication requires
   ])
     await dialog.getByRole('textbox', { name: label, exact: true }).fill(value)
   await dialog
-    .getByRole('button', { name: 'Add pricing variant', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   await dialog
     .getByRole('combobox', { name: 'Pricing variant 1', exact: true })
@@ -758,7 +758,7 @@ test('sale-only editors never render costs and stale previews require explicit s
   await page.goto(`/app/products/${productId}`)
   await page.getByRole('tab', { name: 'Pricing', exact: true }).click()
   await expect(
-    page.getByRole('button', { name: 'Add pricing schedule', exact: true }),
+    page.getByRole('button', { name: 'Create', exact: true }),
   ).toHaveCount(0)
   await page.getByRole('button', { name: 'Open editor', exact: true }).click()
   const dialog = page.getByRole('dialog')
@@ -967,7 +967,7 @@ test('overlapping decoration rectangles preserve the draft and block a save', as
   })
   await page.goto('/app/decoration-matrices')
   await page
-    .getByRole('button', { name: 'Add decoration matrix', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   const dialog = page.getByRole('dialog')
   await dialog

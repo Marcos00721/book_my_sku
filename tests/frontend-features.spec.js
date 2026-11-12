@@ -86,7 +86,7 @@ test('client profiles save optional fields and use client-specific industry opti
   await page.goto('/app/clients')
   await page
     .locator('.page-heading')
-    .getByRole('button', { name: 'Add client', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   const dialog = page.getByRole('dialog')
   await dialog
@@ -102,7 +102,7 @@ test('client profiles save optional fields and use client-specific industry opti
     .getByRole('combobox', { name: 'Client industry', exact: true })
     .selectOption(categoryId)
   await dialog
-    .getByRole('button', { name: 'Create client', exact: true })
+    .getByRole('button', { name: 'Create', exact: true })
     .click()
   await expect(page).toHaveURL(`/app/clients/${clientId}`)
   expect(saved).toEqual({
@@ -221,8 +221,8 @@ test('product creation retries the exact SKU and UUID and opens current detail',
     },
   })
   await page.goto('/app/products')
-  await page.getByRole('button', { name: 'Add product', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add product draft' })
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Create' })
   await dialog
     .getByRole('textbox', { name: 'Product name', exact: true })
     .fill('Cotton polo')
@@ -310,7 +310,7 @@ test('supplier contacts require email and receiving defaults send canonical geog
   })
   await mockGeography(page)
   await page.goto(`/app/suppliers/${supplierId}`)
-  await page.getByRole('button', { name: 'Add contact', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   await expect(
     page
       .getByRole('dialog')
@@ -321,7 +321,7 @@ test('supplier contacts require email and receiving defaults send canonical geog
     .getByRole('button', { name: 'Close dialog', exact: true })
     .click()
   await page.getByRole('tab', { name: 'Addresses', exact: true }).click()
-  await page.getByRole('button', { name: 'Add address', exact: true }).click()
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Label', { exact: true }).fill('Receiving dock')
   await dialog
@@ -340,7 +340,7 @@ test('supplier contacts require email and receiving defaults send canonical geog
       exact: true,
     })
     .check()
-  await dialog.getByRole('button', { name: 'Save record', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect.poll(() => body).toBeTruthy()
   expect(body).toMatchObject({
     purposes: ['receiving'],
@@ -373,7 +373,7 @@ test('normal members cannot enter administration or edit workspace master data',
     'Business reference lists',
   )
   await expect(
-    page.getByRole('button', { name: 'Add entry', exact: true }),
+    page.getByRole('button', { name: 'Create', exact: true }),
   ).toHaveCount(0)
   await expect(
     page.getByRole('tab', { name: 'Activity', exact: true }),
@@ -483,7 +483,7 @@ test('product conflicts preserve the draft and require review before using the c
     },
   })
   await page.goto(`/app/products/${productId}`)
-  await page.getByRole('button', { name: 'Edit product', exact: true }).click()
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog
     .getByRole('textbox', { name: 'Product name', exact: true })

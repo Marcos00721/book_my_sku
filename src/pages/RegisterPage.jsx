@@ -18,8 +18,10 @@ import { ButtonLink } from '../components/common/ButtonLink'
 import { AppFormProvider } from '../components/forms/AppFormProvider'
 import { FormCheckbox } from '../components/forms/FormCheckbox'
 import { FormSubmitButton } from '../components/forms/FormSubmitButton'
+import { FormPhoneField } from '../components/forms/FormPhoneField'
 import { FormTextField } from '../components/forms/FormTextField'
 import { useAppForm } from '../components/forms/useAppForm'
+import { formatNumber } from '../utils/phone'
 import { api, ApiError } from '../services/api'
 import { useAuthSession } from '../hooks/useAuthSession'
 import {
@@ -151,7 +153,7 @@ function RegistrationApplication({ session }) {
       firstName: application.firstName ?? '',
       lastName: application.lastName ?? '',
       email: application.email,
-      contactNumber: application.contactNumber ?? '',
+      contactNumber: formatNumber(application.contactNumber ?? ''),
       companyName: application.companyName,
       companyWebsite: application.companyWebsite ?? '',
       termsAccepted: false,
@@ -379,13 +381,9 @@ function RegistrationApplication({ session }) {
             hint="Your verified sign-in email."
             required
           />
-          <FormTextField
+          <FormPhoneField
             name="contactNumber"
-            label="Phone with country code"
-            type="tel"
-            placeholder="+14155552671"
-            hint="Include the + sign and your country code."
-            maxLength={40}
+            label="Phone"
             required
           />
           <FormTextField

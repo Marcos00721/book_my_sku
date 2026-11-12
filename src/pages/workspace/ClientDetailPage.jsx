@@ -22,6 +22,7 @@ import { ClientActivity } from './ClientActivity'
 import { ClientManagement } from './ClientManagement'
 import { ClientContactDefaults } from './ClientContactDefaults'
 import { MutationRetry } from '../../components/workspace/RecordTools'
+import { formatNumber } from '../../utils/phone'
 
 export function ClientDetailPage() {
   const workspace = useWorkspace()
@@ -91,7 +92,7 @@ function ClientRecord({ path }) {
             to={`/app/clients/${client._id}/edit`}
           >
             <Pencil size={15} />
-            Edit client
+            Edit
           </ButtonLink>
         )
       }
@@ -144,7 +145,7 @@ function ClientContacts({ path, archived, reloadClient }) {
     !archived && (
       <Action onClick={() => setEditing({})}>
         <Plus size={16} />
-        Add contact
+        Create
       </Action>
     )
   return (
@@ -205,7 +206,7 @@ function ClientContacts({ path, archived, reloadClient }) {
                       <small>{contact.jobTitle || '—'}</small>
                     </td>
                     <td>{contact.email || '—'}</td>
-                    <td>{contact.phone || '—'}</td>
+                    <td>{contact.phone ? formatNumber(contact.phone) : '—'}</td>
                     <td>
                       {workspace.can('contacts.edit') &&
                         workspace.writesAllowed &&

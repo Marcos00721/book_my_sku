@@ -73,7 +73,7 @@ export function SuppliersPage() {
     workspace.writesAllowed && (
       <Action onClick={() => setCreating(true)}>
         <Plus size={16} />
-        Add supplier
+        Create
       </Action>
     )
 

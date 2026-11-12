@@ -10,6 +10,7 @@ import {
   supplierContactToFormValues,
 } from '../../schemas/supplierChildFormSchemas'
 import { AppFormProvider } from '../forms/AppFormProvider'
+import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextField } from '../forms/FormTextField'
 import { useAppForm } from '../forms/useAppForm'
 import { ConflictReview } from '../workspace/RecordTools'
@@ -174,13 +175,10 @@ function ContactFormFields({ locked, showDefault, defaults }) {
             disabled={locked}
             placeholder="name@example.com"
           />
-          <FormTextField
+          <FormPhoneField
             name="phone"
             label="Phone"
-            type="tel"
-            maxLength={40}
             disabled={locked}
-            placeholder="+1 555 0100"
           />
         </div>
       </FormSection>
@@ -438,7 +436,7 @@ export function SupplierChildEditor({ kind, base, record, close, saved }) {
       saved()
   }
 
-  const title = `${record._id ? (restoring ? 'Restore' : 'Edit') : 'Add'} ${isContact ? 'contact' : 'address'}`
+  const title = record._id ? (restoring ? 'Restore' : 'Edit') : 'Create'
   const description = restoring
     ? 'Provide a current email to restore this contact.'
     : isContact
@@ -488,7 +486,7 @@ export function SupplierChildEditor({ kind, base, record, close, saved }) {
         <SaveFooter
           mutation={mutation}
           close={close}
-          label="Save record"
+          label="Save"
         />
       </AppFormProvider>
     </Dialog>

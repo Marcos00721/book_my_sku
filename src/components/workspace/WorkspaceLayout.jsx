@@ -184,7 +184,9 @@ export function WorkspaceLayout() {
             </span>
             <div>
               <strong>
-                {workspace.owner ? 'Workspace owner' : 'Team member'}
+                {workspace.owner
+                  ? 'Owner'
+                  : workspace.permissions?.role?.name || 'Team member'}
               </strong>
               <small title={workspace.session.user.email}>
                 {workspace.session.user.email}

@@ -1,4 +1,5 @@
 import { dateLabel, money } from '../utils/format'
+import { formatNumber } from '../utils/phone'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BrandMark } from '../components/auth/BrandMark'
@@ -251,7 +252,12 @@ function ApplicationOverview({ id, back }) {
           {[
             ['Contact', `${application.firstName} ${application.lastName}`],
             ['Email', application.email],
-            ['Phone', application.contactNumber],
+            [
+              'Phone',
+              application.contactNumber
+                ? formatNumber(application.contactNumber)
+                : '',
+            ],
             ['Website', application.companyWebsite],
             ['Submitted', dateLabel(application.submittedAt)],
           ].map(([label, value]) => (
