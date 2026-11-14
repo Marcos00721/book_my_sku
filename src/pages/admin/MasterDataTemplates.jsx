@@ -17,6 +17,7 @@ import {
   ErrorNotice,
   Field,
   Loading,
+  ListSkeleton,
   SaveFooter,
   Status,
 } from '../../components/workspace/Elements'
@@ -178,7 +179,7 @@ export function MasterDataTemplates() {
   }
 
   if (resource.loading)
-    return <Loading label="Loading the platform template…" />
+    return <ListSkeleton label="Loading the platform template…" columns={['Name', 'Description', 'Order', 'Status', '']} />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const busy = refreshing || publish.pending || publish.uncertain
@@ -517,6 +518,7 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
 
   return (
     <Dialog
+      size="md"
       className="master-entry-dialog"
       title={editing ? 'Edit' : 'Create'}
       close={close}
@@ -609,7 +611,7 @@ function TemplateHistory() {
       <h2>Published versions</h2>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading published versions…" variant="list" rows={4} />
       ) : resource.data?.items?.length ? (
         resource.data.items.map((version) => (
           <div className="grant-row" key={version.id}>

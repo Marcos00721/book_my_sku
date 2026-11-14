@@ -14,7 +14,7 @@ import {
   Action,
   Empty,
   ErrorNotice,
-  Loading,
+  ListSkeleton,
   PermissionDenied,
 } from './Elements'
 import { SectionHeading } from './SectionHeading'
@@ -194,7 +194,7 @@ export function ActivityTimeline({
       <ErrorNotice error={resource.error} retry={resource.reload} />
 
       {resource.loading ? (
-        <Loading label="Loading activity history…" />
+        <ListSkeleton label="Loading activity history…" variant="list" rows={4} />
       ) : (
         resource.data && (
           <>

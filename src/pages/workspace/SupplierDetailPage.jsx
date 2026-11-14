@@ -6,6 +6,7 @@ import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
 import { useSuppliers } from '../../hooks/useSuppliers'
 import { TextLink } from '../../components/common/TextLink'
+import { askConfirm } from '../../components/common/confirm'
 import { SupplierEditor } from '../../components/suppliers/SupplierEditor'
 import { SupplierChildrenPanel } from '../../components/suppliers/SupplierChildrenPanel'
 import { SupplierDefaultsPanel } from '../../components/suppliers/SupplierDefaultsPanel'
@@ -52,12 +53,14 @@ function SupplierRecord({ base }) {
 
   async function lifecycle() {
     const action = supplier.status === 'active' ? 'archive' : 'restore'
-    if (
-      !window.confirm(
-        `${action === 'archive' ? 'Archive' : 'Restore'} ${supplier.name}? Existing history remains. Defaults are not restored automatically.`,
-      )
-    )
-      return
+    const ok = await askConfirm({
+      title: action === 'archive' ? 'Archive supplier?' : 'Restore supplier?',
+      message: `${action === 'archive' ? 'Archive' : 'Restore'} ${supplier.name}? Existing history remains. Defaults are not restored automatically.`,
+      confirmLabel: action === 'archive' ? 'Archive' : 'Restore',
+      cancelLabel: 'Cancel',
+      tone: action === 'archive' ? 'danger' : 'primary',
+    })
+    if (!ok) return
     if (
       await mutation.run('post', `${base}/${action}`, {
         expectedRevision: supplier.revision,

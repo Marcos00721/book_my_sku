@@ -8,6 +8,7 @@ import { Directory } from '../../components/workspace/Directory'
 import { ContactEditor } from '../../components/clients/ContactEditor'
 import { ButtonLink } from '../../components/common/ButtonLink'
 import { TextLink } from '../../components/common/TextLink'
+import { askConfirm } from '../../components/common/confirm'
 import {
   Action,
   ErrorNotice,
@@ -226,14 +227,19 @@ function ClientContacts({ path, archived, reloadClient }) {
                             variant="secondary"
                             disabled={lifecycle.pending || lifecycle.uncertain}
                             onClick={async () => {
-                              if (
-                                !window.confirm(
-                                  contact.active === false
-                                    ? 'Restore this contact without restoring previous defaults?'
-                                    : 'Archive this contact and clear any defaults using it?',
-                                )
-                              )
-                                return
+                              const restoring = contact.active === false
+                              const ok = await askConfirm({
+                                title: restoring
+                                  ? 'Restore contact?'
+                                  : 'Archive contact?',
+                                message: restoring
+                                  ? 'Restore this contact without restoring previous defaults?'
+                                  : 'Archive this contact and clear any defaults using it?',
+                                confirmLabel: restoring ? 'Restore' : 'Archive',
+                                cancelLabel: 'Cancel',
+                                tone: restoring ? 'primary' : 'danger',
+                              })
+                              if (!ok) return
                               if (
                                 await lifecycle.run(
                                   'post',

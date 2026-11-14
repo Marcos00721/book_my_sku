@@ -11,6 +11,7 @@ import {
   ErrorNotice,
   Field,
   Loading,
+  ListSkeleton,
   PageHeader,
   PermissionDenied,
   SaveFooter,
@@ -95,7 +96,7 @@ function MatrixDirectory() {
         </Field>
         <ErrorNotice error={resource.error} retry={resource.reload} />
         {resource.loading ? (
-          <Loading />
+          <ListSkeleton label="Loading decoration matrices…" columns={['Name', 'Draft revision', 'Published version', 'Status']} />
         ) : resource.data?.items?.length ? (
           <div className="table-scroll">
             <table className="data-table">
@@ -822,7 +823,7 @@ function MatrixEvidence({ path, kind }) {
       <h2>{kind === 'history' ? 'Matrix history' : 'Immutable versions'}</h2>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading published versions…" variant="list" rows={4} />
       ) : resource.data?.items?.length ? (
         resource.data.items.map((item) => (
           <article className="panel" key={item.id}>

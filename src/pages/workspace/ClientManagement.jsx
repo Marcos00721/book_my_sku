@@ -13,6 +13,7 @@ import {
   Empty,
   ErrorNotice,
   Loading,
+  ListSkeleton,
   Status,
 } from '../../components/workspace/Elements'
 import { Pager } from '../../components/workspace/RecordTools'
@@ -150,7 +151,7 @@ function ClientNotes({ path, editable }) {
       </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading notes…" variant="list" rows={4} />
       ) : resource.data?.items?.length ? (
         resource.data.items.map((note) => (
           <article className="note-card" key={note.id}>
@@ -215,7 +216,7 @@ function NoteVersions({ path }) {
     <>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading versions…" variant="list" rows={4} />
       ) : (
         resource.data?.items?.map((version) => (
           <article key={version.id || version.revision}>

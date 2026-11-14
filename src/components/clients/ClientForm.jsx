@@ -85,6 +85,7 @@ export function ClientForm({ path, client, close, saved }) {
 
   return (
     <Dialog
+      size="lg"
       className="client-form-dialog"
       title={client ? 'Edit' : 'Create'}
       close={close}

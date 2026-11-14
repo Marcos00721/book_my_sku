@@ -1,6 +1,8 @@
 /**
  * Shared data table shell for client/supplier directories.
  */
+import { theme } from '@/crm-theme'
+
 export function EntityDataTable({ columns, rows, rowKey }) {
   return (
     <div className="table-scroll">
@@ -8,7 +10,7 @@ export function EntityDataTable({ columns, rows, rowKey }) {
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key} scope="col">
+              <th key={column.key} scope="col" className={theme.tableHeader}>
                 {column.srOnly ? (
                   <span className="sr-only">{column.label}</span>
                 ) : (
@@ -20,7 +22,7 @@ export function EntityDataTable({ columns, rows, rowKey }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)}>
+            <tr key={rowKey(row)} className={theme.tableRow}>
               {columns.map((column) => (
                 <td key={column.key} className={column.className}>
                   {column.render(row)}

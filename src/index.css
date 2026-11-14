@@ -19,7 +19,8 @@
   body {
     @apply m-none min-w-none;
     min-height: 100svh;
-    background: rgb(var(--color-canvas));
+    background: var(--background-canvas);
+    background-attachment: fixed;
   }
 
   /* Themed scrollbar — auto-adapts via CSS variables */
@@ -61,14 +62,6 @@
   .app-link {
     @apply rounded-control font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:shadow-focus focus-visible:outline-none;
     text-underline-offset: var(--underline-offset);
-  }
-
-  /* Frosted glass card */
-  .glass {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
   }
 
   .dark .border-border-subtle {

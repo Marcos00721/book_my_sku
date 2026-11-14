@@ -99,6 +99,7 @@ export function SupplierEditor({
 
   return (
     <Dialog
+      size="lg"
       className="supplier-form-dialog"
       title={supplier ? 'Edit' : 'Create'}
       description={

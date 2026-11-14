@@ -57,11 +57,19 @@ export class ApiError extends Error {
 
 // Preserve the original file bytes and the exact media type for private catalog
 // uploads. The caller retains the asset reservation and bytes for an explicit retry.
-export async function uploadBytes(path, bytes, type, signal) {
+export async function uploadBytes(path, bytes, type, signal, onProgress) {
   const headers = await authHeaders({})
   headers.set('Content-Type', type)
   return client
-    .put(path, bytes, { headers, signal, transformRequest: [(data) => data] })
+    .put(path, bytes, {
+      headers,
+      signal,
+      transformRequest: [(data) => data],
+      onUploadProgress: (event) => {
+        if (!onProgress || !event.total) return
+        onProgress(Math.round((event.loaded / event.total) * 100))
+      },
+    })
     .then(readResponse)
     .catch(handleError)
 }

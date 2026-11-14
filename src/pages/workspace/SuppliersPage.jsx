@@ -11,7 +11,7 @@ import {
   Action,
   Empty,
   ErrorNotice,
-  Loading,
+  ListSkeleton,
   PageHeader,
   PermissionDenied,
 } from '../../components/workspace/Elements'
@@ -36,7 +36,7 @@ export function SuppliersPage() {
   const workspace = useWorkspace()
   const navigate = useNavigate()
   const canView = workspace.can('suppliers.view')
-  const { suppliers, loading, error, refetch, saveSupplier } = useSuppliers({
+  const { suppliers, loading, loaded, error, refetch, saveSupplier } = useSuppliers({
     autoFetch: canView,
   })
   const [creating, setCreating] = useState(false)
@@ -124,8 +124,8 @@ export function SuppliersPage() {
           }
           retry={() => refetch()}
         />
-        {loading && !suppliers.length ? (
-          <Loading label="Loading suppliers…" />
+        {loading || (!loaded && !error) ? (
+          <ListSkeleton label="Loading suppliers…" columns={['Business', 'Capabilities', 'Status', 'Added', '']} />
         ) : pageItems.length ? (
           <>
             <SupplierTable suppliers={pageItems} />

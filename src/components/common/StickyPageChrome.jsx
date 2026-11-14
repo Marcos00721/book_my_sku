@@ -40,7 +40,7 @@ export function StickyPageChrome({
 
 export function PageTabs({ label, items = [], value, onChange }) {
   return (
-    <div className="tabs" role="tablist" aria-label={label}>
+    <div className={theme.cx('tabs', theme.tabs)} role="tablist" aria-label={label}>
       {items.map((item) => (
         <button
           key={item.value}

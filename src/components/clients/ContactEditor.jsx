@@ -85,6 +85,7 @@ export function ContactEditor({ path, contact, close, saved }) {
 
   return (
     <Dialog
+      size="lg"
       className="supplier-form-dialog"
       title={contact._id ? 'Edit' : 'Create'}
       description="Keep the right person easy to find when your team needs them."

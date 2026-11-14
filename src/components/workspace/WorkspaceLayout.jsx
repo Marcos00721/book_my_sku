@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { Suspense, useRef, useState } from 'react'
 import {
   Link,
-  NavLink,
   Outlet,
   useLocation,
   useNavigate,
@@ -10,27 +9,28 @@ import {
   ArrowUpRight,
   Building2,
   Boxes,
-  ChevronDown,
   CreditCard,
   LayoutDashboard,
-  LogOut,
-  Menu,
+  ListTree,
+  Paintbrush,
   Shield,
   Users,
   Truck,
-  X,
 } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { getAuthClient } from '../../services/auth'
-import { BrandMark } from '../auth/BrandMark'
-import { ThemeToggle } from '../ui/ThemeToggle'
-import { Action, ErrorNotice } from './Elements'
+import { GlassSidebar } from '../common/GlassSidebar'
+import { AppTopbar } from '../common/AppTopbar'
+import { Action, ErrorNotice, ListSkeleton, Loading } from './Elements'
 
 export function WorkspaceLayout() {
   const workspace = useWorkspace()
   const navigate = useNavigate()
   const location = useLocation()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const drawer = useRef(null)
+  const menuButton = useRef(null)
+  const content = useRef(null)
+  const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState(null)
   const links = [
     { to: '/app', label: 'Overview', Icon: LayoutDashboard, end: true },
@@ -44,14 +44,14 @@ export function WorkspaceLayout() {
       ? [{ to: '/app/products', label: 'Products', Icon: Boxes }]
       : []),
     ...(workspace.can('master_data.view')
-      ? [{ to: '/app/master-data', label: 'Reference lists', Icon: Boxes }]
+      ? [{ to: '/app/master-data', label: 'Reference lists', Icon: ListTree }]
       : []),
     ...(workspace.owner && workspace.can('master_data.view')
       ? [
           {
             to: '/app/decoration-matrices',
             label: 'Decoration matrices',
-            Icon: Boxes,
+            Icon: Paintbrush,
           },
         ]
       : []),
@@ -63,170 +63,64 @@ export function WorkspaceLayout() {
         ]
       : []),
   ]
+  const activeLinks = links.map((link) => ({
+    ...link,
+    active: link.end
+      ? location.pathname === link.to
+      : location.pathname === link.to || location.pathname.startsWith(link.to + '/'),
+  }))
+  const groups = [
+    { label: 'Overview', paths: ['/app'] },
+    { label: 'Relationships', paths: ['/app/clients', '/app/suppliers'] },
+    { label: 'Catalog', paths: ['/app/products', '/app/decoration-matrices'] },
+    { label: 'Workspace', paths: ['/app/master-data', '/app/team', '/app/roles', '/app/billing'] },
+  ].map(({ label, paths }) => ({ label, items: activeLinks.filter((link) => paths.includes(link.to)) }))
   async function signOut() {
-    const { error } = await getAuthClient().auth.signOut()
-    if (error) setError(error)
-    else navigate('/login', { replace: true })
+    setSigningOut(true)
+    setError(null)
+    try {
+      const { error } = await getAuthClient().auth.signOut()
+      if (error) throw error
+      navigate('/login', { replace: true })
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setSigningOut(false)
+    }
   }
   return (
-    <div className="workspace-shell">
+    <div className="workspace-shell has-glass-sidebar">
       <a className="skip-link" href="#workspace-main">
         Skip to content
       </a>
-      {mobileOpen && (
-        <button
-          className="sidebar-scrim"
-          aria-label="Close navigation"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-      <aside
-        className={`sidebar ${mobileOpen ? 'is-open' : ''}`}
-        aria-label="Workspace navigation"
+      <GlassSidebar
+        groups={groups}
+        brandTo="/app"
+        scope={{ label: workspace.organization.name, subtitle: 'CRM Workspace', Icon: Building2 }}
+        email={workspace.session.user.email || ''}
+        role={workspace.owner ? 'Owner' : workspace.permissions?.role?.name || 'Team member'}
+        signOut={signOut}
+        signingOut={signingOut}
+        drawerRef={drawer}
+        menuButtonRef={menuButton}
+        mainRef={content}
       >
-        <div className="sidebar-brand">
-          <BrandMark to="/app" />
-          <Action
-            className="mobile-only"
-            variant="icon-button"
-            aria-label="Close navigation"
-            onClick={() => setMobileOpen(false)}
-          >
-            <X size={20} />
-          </Action>
-        </div>
-        <div className="workspace-selector">
-          <span className="workspace-initial">
-            {workspace.organization.name.slice(0, 1).toUpperCase()}
-          </span>
-          <label>
-            <span className="sr-only">Switch workspace</span>
-            <select
-              value={workspace.organization.id}
-              onChange={(event) => {
-                if (!workspace.selectOrganization(event.target.value)) return
-                navigate('/app')
-                setMobileOpen(false)
-              }}
-            >
-              {workspace.organizations.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <small>Your workspace</small>
-          </label>
-          <ChevronDown size={14} aria-hidden="true" />
-        </div>
         {workspace.nextOrganization && (
-          <Action
-            variant="text-button"
-            disabled={workspace.loadingOrganizations}
-            onClick={workspace.loadOrganizations}
-          >
+          <Action variant="text-button" disabled={workspace.loadingOrganizations} onClick={workspace.loadOrganizations}>
             Load more workspaces
           </Action>
         )}
         <ErrorNotice error={workspace.organizationError} />
-        <p className="nav-label">Records</p>
-        <nav>
-          {links
-            .filter((link) =>
-              [
-                '/app',
-                '/app/clients',
-                '/app/suppliers',
-                '/app/products',
-                '/app/master-data',
-              ].includes(link.to),
-            )
-            .map(({ to, label, Icon, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Icon size={16} aria-hidden="true" />
-                {label}
-              </NavLink>
-            ))}
-        </nav>
-        {links.some((link) =>
-          ['/app/team', '/app/roles', '/app/billing'].includes(link.to),
-        ) && (
-          <>
-            <p className="nav-label">Workspace</p>
-            <nav>
-              {links
-                .filter((link) =>
-                  ['/app/team', '/app/roles', '/app/billing'].includes(link.to),
-                )
-                .map(({ to, label, Icon, end }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={end}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <Icon size={16} aria-hidden="true" />
-                    {label}
-                  </NavLink>
-                ))}
-            </nav>
-          </>
-        )}
-        <div className="sidebar-bottom">
-          <div className="account-row">
-            <span className="avatar-letter">
-              {workspace.session.user.email?.slice(0, 1).toUpperCase()}
-            </span>
-            <div>
-              <strong>
-                {workspace.owner
-                  ? 'Owner'
-                  : workspace.permissions?.role?.name || 'Team member'}
-              </strong>
-              <small title={workspace.session.user.email}>
-                {workspace.session.user.email}
-              </small>
-            </div>
-            <Action
-              variant="icon-button"
-              aria-label="Sign out"
-              onClick={signOut}
-            >
-              <LogOut size={18} />
-            </Action>
-          </div>
-        </div>
-      </aside>
+      </GlassSidebar>
       <div className="workspace-body">
-        <header className="topbar">
-          <div className="actions">
-            <Action
-              className="mobile-only"
-              variant="icon-button"
-              aria-label="Open navigation"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu size={21} />
-            </Action>
-            <span className="breadcrumb">
-              Workspace <span>/</span>{' '}
-              {links.find((link) =>
-                link.end
-                  ? location.pathname === link.to
-                  : location.pathname.startsWith(link.to),
-              )?.label || 'Client details'}
-            </span>
-          </div>
-          <div className="actions">
-            <ThemeToggle />
-          </div>
-        </header>
-        <main id="workspace-main" className="workspace-main">
+        <AppTopbar
+          scope={workspace.organization.name}
+          pageLabel={activeLinks.find((link) => link.active)?.label || 'Workspace'}
+          Icon={activeLinks.find((link) => link.active)?.Icon || LayoutDashboard}
+          menuButtonRef={menuButton}
+          onOpenNavigation={() => drawer.current.showModal()}
+        />
+        <main id="workspace-main" ref={content} tabIndex={-1} className="workspace-main">
           <ErrorNotice error={error} />
           {!workspace.writesAllowed && (
             <div className="notice billing-notice">
@@ -244,7 +138,15 @@ export function WorkspaceLayout() {
               )}
             </div>
           )}
-          <Outlet />
+          <Suspense
+            fallback={
+              /^\/app\/(clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
+                ? <ListSkeleton label="Loading list…" />
+                : <Loading />
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
         <footer className="workspace-footer">
           <span>BookMySku</span>

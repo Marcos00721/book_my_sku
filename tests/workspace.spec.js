@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { contrastRatio } from './helpers/contrast'
 import { mockSignedIn, mockOnboardingStatus } from './helpers/auth'
 import { mockGeography } from './helpers/geography'
 
@@ -636,20 +637,17 @@ test('dark workspace action and theme icons stay visible before hover', async ({
   const action = page.locator('.data-table .icon-button').first()
   await expect(action).toBeVisible()
   await expect(action).toHaveCSS('opacity', '1')
-  await expect(action).toHaveCSS('color', 'rgb(244, 244, 245)')
-  await expect(action.locator('svg')).toHaveCSS('stroke', 'rgb(244, 244, 245)')
+  expect(await contrastRatio(action.locator('svg'), 'stroke')).toBeGreaterThanOrEqual(3)
   const theme = page.getByRole('button', { name: 'Switch to light mode' })
-  await expect(theme.locator('svg')).toHaveCSS('stroke', 'rgb(244, 244, 245)')
-  await expect(
-    page.getByRole('button', { name: 'Sign out' }).locator('svg'),
-  ).toHaveCSS('stroke', 'rgb(244, 244, 245)')
+  expect(await contrastRatio(theme.locator('svg'), 'stroke')).toBeGreaterThanOrEqual(3)
+  expect(await contrastRatio(page.getByRole('button', { name: 'Sign out' }).locator('svg'), 'stroke')).toBeGreaterThanOrEqual(3)
   await page.screenshot({
     path: 'test-results/dark-visible-icons.png',
     fullPage: true,
   })
   await theme.click()
   await expect(action).toHaveCSS('opacity', '1')
-  await expect(action.locator('svg')).toHaveCSS('stroke', 'rgb(24, 24, 27)')
+  expect(await contrastRatio(action.locator('svg'), 'stroke')).toBeGreaterThanOrEqual(3)
 })
 
 test('company setup saves and completes with the returned revision and no storage selector', async ({
@@ -770,7 +768,7 @@ test('platform access is never inferred from workspace ownership', async ({
 })
 
 for (const width of [375, 1440]) {
-  test(`workspace has solid themed surfaces and fits ${width}px in both modes`, async ({
+  test(`workspace has shared themed surfaces and fits ${width}px in both modes`, async ({
     page,
   }, testInfo) => {
     await workspace(page)
@@ -804,12 +802,11 @@ for (const width of [375, 1440]) {
           .evaluate((node) => getComputedStyle(node).backgroundColor),
       )
       .not.toBe(lightSurface)
-    const backgrounds = await page
-      .locator('*')
-      .evaluateAll((nodes) =>
-        nodes.map((node) => getComputedStyle(node).backgroundImage),
-      )
-    expect(backgrounds.some((value) => value.includes('gradient'))).toBe(false)
+    await expect(page.locator('.workspace-shell')).toHaveCSS(
+      'background-image',
+      /radial-gradient/,
+    )
+    await expect(page.locator('main')).toHaveCSS('background-image', 'none')
     await page.screenshot({
       path: testInfo.outputPath('workspace-dark.png'),
       fullPage: true,

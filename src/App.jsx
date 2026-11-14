@@ -106,13 +106,18 @@ const MasterDataPage = lazy(() =>
   })),
 );
 const ProductsPage = lazy(() =>
-  import("./pages/workspace/ProductsPage").then((page) => ({
-    default: page.ProductsPage,
+  import("./pages/workspace/CustomProductsPage").then((page) => ({
+    default: page.CustomProductsPage,
   })),
 );
 const ProductDetailPage = lazy(() =>
-  import("./pages/workspace/ProductsPage").then((page) => ({
-    default: page.ProductDetailPage,
+  import("./pages/workspace/CustomProductDetailPage").then((page) => ({
+    default: page.CustomProductDetailPage,
+  })),
+);
+const ProductEditPage = lazy(() =>
+  import("./pages/workspace/CustomProductEditPage").then((page) => ({
+    default: page.CustomProductEditPage,
   })),
 );
 const DecorationMatricesPage = lazy(() =>
@@ -193,6 +198,10 @@ export default function App() {
           />
           <Route path="master-data" element={<MasterDataPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route
+            path="products/:productId/edit"
+            element={<ProductEditPage />}
+          />
           <Route path="products/:productId" element={<ProductDetailPage />} />
           <Route
             path="decoration-matrices"

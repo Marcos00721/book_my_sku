@@ -207,7 +207,22 @@ function WorkspaceSession({ session, children }) {
     session,
     organization,
     organizations: items,
-    selectOrganization: id => { if (!window.dispatchEvent(new Event('workspace-before-switch', { cancelable:true }))) return false; setSelectedId(id); return true },
+    selectOrganization: (id) =>
+      new Promise((resolve) => {
+        const event = new CustomEvent('workspace-before-switch', {
+          cancelable: true,
+          detail: {
+            proceed: () => {
+              setSelectedId(id)
+              resolve(true)
+            },
+            cancel: () => resolve(false),
+          },
+        })
+        if (!window.dispatchEvent(event)) return
+        setSelectedId(id)
+        resolve(true)
+      }),
     base,
     owner,
     can,

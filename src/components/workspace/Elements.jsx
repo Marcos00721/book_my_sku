@@ -4,6 +4,7 @@ import { Button } from '../common/Button'
 import { TextLink } from '../common/TextLink'
 import { PageHeader } from '../common/PageHeader'
 import { StickyPageChrome, PageTabs } from '../common/StickyPageChrome'
+import { askConfirm } from '../common/confirm'
 import { SectionHeading } from './SectionHeading'
 import { ActivityTimeline } from './ActivityTimeline'
 import { OffsetPager } from './OffsetPager'
@@ -13,6 +14,7 @@ import { EmptyState } from '../common/EmptyState'
 import { Loader } from '../common/Loader'
 import { TextField } from '../common/TextField'
 import { SelectField } from '../common/SelectField'
+import { ListSkeleton } from './ListSkeleton'
 
 const actionVariants = {
   '': 'primary',
@@ -98,6 +100,7 @@ export {
   OffsetPager,
   CursorPager,
   EntityDataTable,
+  ListSkeleton,
 }
 
 export function Status({ value }) {
@@ -156,20 +159,33 @@ export function Dialog({
   children,
   close,
   locked = false,
+  hasUnsavedChanges = false,
   className = '',
+  size,
 }) {
   const ref = useRef(null)
   const dirty = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
-  function allowDiscard() {
-    return (
-      !dirty.current ||
-      window.confirm(
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    dirty.current = true
+    ref.current.dataset.dirty = 'true'
+  }, [hasUnsavedChanges])
+
+  async function allowDiscard() {
+    if (!dirty.current) return true
+    return askConfirm({
+      title: 'Discard changes?',
+      message:
         'Discard unsaved changes? Choose Cancel to stay and save your draft.',
-      )
-    )
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep editing',
+      tone: 'danger',
+    })
   }
+
   useEffect(() => {
     const node = ref.current
     node.showModal()
@@ -182,17 +198,38 @@ export function Dialog({
       }
     }
     const navigation = (event) => {
-      if (
-        topmost() &&
-        dirty.current &&
-        !window.confirm('Discard unsaved changes and leave this form?')
-      ) {
-        event.preventDefault()
-        event.stopPropagation()
-      } else if (topmost()) dirty.current = false
+      if (!topmost()) return
+      if (!dirty.current) {
+        dirty.current = false
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      void askConfirm({
+        title: 'Discard changes?',
+        message: 'Discard unsaved changes and leave this form?',
+        confirmLabel: 'Discard',
+        cancelLabel: 'Keep editing',
+        tone: 'danger',
+      }).then((ok) => {
+        if (ok) {
+          dirty.current = false
+          event.detail?.proceed?.()
+        } else {
+          event.detail?.cancel?.()
+        }
+      })
     }
     const link = (event) => {
-      if (event.target.closest('a[href]')) navigation(event)
+      const anchor = event.target.closest('a[href]')
+      if (!anchor || !topmost() || !dirty.current) return
+      event.preventDefault()
+      event.stopPropagation()
+      void allowDiscard().then((ok) => {
+        if (!ok) return
+        dirty.current = false
+        window.location.assign(anchor.href)
+      })
     }
     window.addEventListener('beforeunload', beforeUnload)
     window.addEventListener('workspace-before-switch', navigation)
@@ -207,7 +244,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`app-dialog ${className}`}
+      className={`app-dialog ${size ? `app-dialog--${size}` : ''} ${className}`}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onInputCapture={() => {
@@ -216,7 +253,16 @@ export function Dialog({
       }}
       onCancel={(event) => {
         event.preventDefault()
-        if (!locked && allowDiscard()) close()
+        if (locked) return
+        void allowDiscard().then((ok) => {
+          if (ok) close()
+        })
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget || locked) return
+        void allowDiscard().then((ok) => {
+          if (ok) close()
+        })
       }}
     >
       <header className="app-dialog-header">
@@ -233,7 +279,9 @@ export function Dialog({
           aria-label="Close dialog"
           disabled={locked}
           onClick={() => {
-            if (allowDiscard()) close()
+            void allowDiscard().then((ok) => {
+              if (ok) close()
+            })
           }}
         >
           <X size={20} />
@@ -264,14 +312,22 @@ export function SaveFooter({
             variant="secondary"
             disabled={mutation.pending || mutation.uncertain}
             onClick={(event) => {
-              if (
-                event.currentTarget.closest('dialog')?.dataset.dirty !==
-                  'true' ||
-                window.confirm(
-                  'Discard unsaved changes? Choose Cancel to keep editing.',
-                )
-              )
+              const isDirty =
+                event.currentTarget.closest('dialog')?.dataset.dirty === 'true'
+              if (!isDirty) {
                 close()
+                return
+              }
+              void askConfirm({
+                title: 'Discard changes?',
+                message:
+                  'Discard unsaved changes? Choose Cancel to keep editing.',
+                confirmLabel: 'Discard',
+                cancelLabel: 'Keep editing',
+                tone: 'danger',
+              }).then((ok) => {
+                if (ok) close()
+              })
             }}
           >
             Cancel

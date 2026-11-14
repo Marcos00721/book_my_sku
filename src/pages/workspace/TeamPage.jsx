@@ -11,7 +11,7 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
+  ListSkeleton,
   PageHeader,
   PermissionDenied,
   SaveFooter,
@@ -85,7 +85,10 @@ function TeamList({ kind, edit }) {
       </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton
+          label={invitations ? 'Loading invitations…' : 'Loading workspace members…'}
+          columns={[invitations ? 'Email' : 'Member', 'Role', invitations ? 'Status / expires' : 'Access', 'Manage']}
+        />
       ) : resource.data?.items.length ? (
         <div className="table-scroll">
           <table className="data-table">
@@ -264,6 +267,7 @@ function TeamEditor({ command, close, saved }) {
   }
   return (
     <Dialog
+      size="md"
       title={title}
       close={close}
       locked={mutation.pending || mutation.uncertain}

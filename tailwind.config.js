@@ -111,6 +111,7 @@ export default {
           'xs',
           'sm',
           'md',
+          'ml',
           'lg',
           'xl',
           '2xl',
@@ -174,6 +175,12 @@ export default {
       spring: token('ease-spring'),
     },
     extend: {
+      textColor: {
+        primary: color('primary-ink'),
+        'primary-hover': color('primary-ink-hover'),
+        secondary: color('primary-ink'),
+        accent: color('primary-ink'),
+      },
       minWidth: { none: token('space-none') },
       minHeight: { screen: token('size-viewport') },
       maxWidth: {
@@ -183,6 +190,11 @@ export default {
       gridTemplateColumns: { auth: token('layout-auth-columns') },
       backgroundImage: { 'brand-panel': token('background-brand-panel') },
       backdropBlur: { glass: token('glass-blur') },
+      zIndex: {
+        dropdown: token('layer-dropdown'),
+        sidebar: token('layer-sidebar'),
+        navbar: token('layer-navbar'),
+      },
       keyframes: {
         shimmer: {
           '0%': { transform: 'translateX(-100%)' },

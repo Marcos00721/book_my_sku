@@ -1,134 +1,228 @@
 import { useState } from 'react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
-import { useMutation } from '../../hooks/useMutation'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { queryPath } from '../../services/workspace'
 import {
   Action,
-  Dialog,
   Empty,
   ErrorNotice,
   Field,
-  Loading,
-  SaveFooter,
+  ListSkeleton,
+  Status,
 } from '../../components/workspace/Elements'
-import { ConflictReview, Pager } from '../../components/workspace/RecordTools'
-
-const keyPattern = '[a-z][a-z0-9_-]{0,31}'
-const emptyValue = () => ({ id: '', label: '' })
-const emptyVariant = () => ({
-  key: crypto.randomUUID(),
-  selections: {},
-  partCode: '',
-  unitsEnabled: false,
-  salesUnit: 'each',
-  procurementUnit: 'each',
-  salesUnitsPerProcurementUnit: '1',
-  procurementMinimum: '',
-  procurementMultiple: '',
-})
+import { Pager } from '../../components/workspace/RecordTools'
+import { ConfigurationEditor } from '../../components/customProducts/ConfigurationEditor'
+import { ColorSizeEditor } from '../../components/customProducts/ColorSizeEditor'
+import { VariantEditor } from '../../components/customProducts/VariantEditor'
+import { VariantCorrectionDialog } from '../../components/customProducts/VariantCorrectionDialog'
+import { PricingAdoptionDialog } from '../../components/productPricing/PricingAdoptionDialog'
+import {
+  hasColorSizeOptions,
+  packagingDescription,
+  variantName,
+} from '../../components/customProducts/variantHelpers'
 
 export function ProductConfiguration({ path, product, changed }) {
   const workspace = useWorkspace()
   const [status, setStatus] = useState('selectable')
+  const [partCode, setPartCode] = useState('')
+  const search = useDebouncedValue(partCode.trim(), 350)
   const [pages, setPages] = useState([])
   const [editor, setEditor] = useState(null)
+  const [flash, setFlash] = useState('')
   const variants = useResource(
-    queryPath(`${path}/variants`, { status, limit: 25, after: pages.at(-1) }),
+    queryPath(`${path}/variants`, {
+      status,
+      partCode: search,
+      limit: 25,
+      after: pages.at(-1),
+    }),
   )
   const editable =
     workspace.can('products.edit') &&
     workspace.writesAllowed &&
-    product.status === 'draft'
+    product.status !== 'archived'
+  const canAdopt =
+    workspace.can('products.pricing.edit') &&
+    workspace.can('products.pricing.cost') &&
+    workspace.can('products.pricing.preview') &&
+    workspace.writesAllowed &&
+    product.status !== 'archived'
   const configuration = product.configuration || {
     mode: 'unresolved',
     dimensions: [],
-    customIdentification: null,
+  }
+  const configured = configuration.mode !== 'unresolved'
+  const simpleOptions = hasColorSizeOptions(configuration)
+  const isDraft = product.status === 'draft'
+  function saved(message, adoption = false) {
+    setEditor(adoption ? { type: 'adoption' } : null)
+    variants.reload()
+    changed()
+    setFlash(message)
   }
   return (
-    <>
+    <div className="product-variants">
       <div className="section-heading">
-        <h2>Configuration and variants</h2>
-        {editable && (
+        <div>
+          <h2>Variants</h2>
+          <p className="product-pricing-lead">
+            Add colors and sizes, then choose the combinations you sell.
+          </p>
+        </div>
+        {editable && isDraft && (
           <div className="actions">
             <Action
               variant="secondary"
-              onClick={() => setEditor('configuration')}
+              onClick={() => setEditor({ type: 'configuration' })}
             >
-              Edit configuration
+              {simpleOptions
+                ? configured
+                  ? 'Edit colors & sizes'
+                  : 'Add colors & sizes'
+                : 'Edit options'}
             </Action>
-            {configuration.mode !== 'unresolved' && (
-              <Action onClick={() => setEditor('variants')}>
-                Manage variants
+            {configured && (
+              <Action onClick={() => setEditor({ type: 'variants' })}>
+                {product.selectableVariantCount > 0
+                  ? 'Manage variants'
+                  : 'Add variants'}
               </Action>
             )}
           </div>
         )}
       </div>
-      <p>
-        Mode: {configuration.mode} · Selectable variants:{' '}
-        {product.selectableVariantCount ?? 'Not loaded'}
-      </p>
-      {configuration.customIdentification && (
-        <p>Reviewed identification: {configuration.customIdentification}</p>
+      {configuration.dimensions.length > 0 && (
+        <div className="color-size-summary">
+          {configuration.dimensions.map((dimension) => (
+            <div key={dimension.id}>
+              <strong>
+                {/^(color|colour)$/i.test(dimension.label)
+                  ? 'Color'
+                  : dimension.label}
+              </strong>
+              <ul
+                className="color-size-values"
+                aria-label={`Saved ${dimension.label.toLowerCase()} options`}
+              >
+                {dimension.values.map((value) => (
+                  <li key={value.id}>{value.label}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
-      {configuration.dimensions.map((dimension) => (
-        <p key={dimension.id}>
-          <strong>{dimension.label}:</strong>{' '}
-          {dimension.values.map((value) => value.label).join(', ')}
+      {flash && (
+        <p className="notice" role="status">
+          {flash}
         </p>
-      ))}
+      )}
+      {configuration.customIdentification && (
+        <p className="product-form-hint">
+          Reviewed item: {configuration.customIdentification}
+        </p>
+      )}
       {product.status === 'active' && (
         <p className="notice">
-          Archive and restore this product to a draft before changing its
-          physical specification.
+          Use Correct details to fix a part code, label or packaging on this
+          active product. To add or retire variants, archive the product and
+          restore it as a draft.
         </p>
       )}
-      <Field
-        label="Variant status"
-        value={status}
-        onChange={(event) => {
-          setStatus(event.target.value)
-          setPages([])
-        }}
-      >
-        <option value="selectable">Selectable</option>
-        <option value="archived">Archived</option>
-        <option value="all">All</option>
-      </Field>
+      <div className="form-grid variant-filters">
+        <Field
+          label="Find by exact part code"
+          placeholder="Enter supplier part code"
+          maxLength={120}
+          value={partCode}
+          onChange={(event) => {
+            setPartCode(event.target.value)
+            setPages([])
+          }}
+        />
+        <Field
+          label="Variant status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value)
+            setPages([])
+          }}
+        >
+          <option value="selectable">Available</option>
+          <option value="archived">Retired</option>
+          <option value="all">All variants</option>
+        </Field>
+      </div>
       <ErrorNotice error={variants.error} retry={variants.reload} />
       {variants.loading ? (
-        <Loading />
+        <ListSkeleton
+          label="Loading variants…"
+          columns={[
+            'Variant',
+            'Packaging',
+            'Status',
+            ...(editable ? ['Actions'] : []),
+          ]}
+        />
       ) : variants.data?.items?.length ? (
         <div className="table-scroll">
-          <table className="data-table">
+          <table className="data-table variant-table">
             <thead>
               <tr>
-                <th>Variant</th>
-                <th>Part code</th>
-                <th>Units</th>
-                <th>Status</th>
+                <th scope="col">Variant</th>
+                <th scope="col">Packaging</th>
+                <th scope="col">Status</th>
+                {editable && <th scope="col">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {variants.data.items.map((variant) => (
                 <tr key={variant.id}>
+                  <th scope="row">{variantName(variant)}</th>
                   <td>
-                    {variant.selections
-                      ?.map(
-                        (selection) =>
-                          `${selection.dimensionLabel}: ${selection.valueLabel}`,
-                      )
-                      .join(' · ') || 'Default specification'}
-                    <small>{variant.id}</small>
+                    {packagingDescription(variant.units)}
+                    {variant.units?.procurementMinimum != null && (
+                      <small>
+                        Minimum {variant.units.procurementMinimum} purchase
+                        units
+                      </small>
+                    )}
+                    {variant.units?.procurementMultiple != null && (
+                      <small>
+                        Order in multiples of{' '}
+                        {variant.units.procurementMultiple}
+                      </small>
+                    )}
                   </td>
-                  <td>{variant.partCode || 'Unknown'}</td>
                   <td>
-                    {variant.units
-                      ? `${variant.units.salesUnitsPerProcurementUnit} ${variant.units.salesUnit} / ${variant.units.procurementUnit}`
-                      : 'Unknown'}
+                    <Status
+                      value={
+                        variant.status === 'selectable'
+                          ? 'available'
+                          : 'retired'
+                      }
+                    />
                   </td>
-                  <td>{variant.status}</td>
+                  {editable && (
+                    <td>
+                      {variant.status === 'selectable' && (
+                        <Action
+                          variant="secondary"
+                          onClick={() =>
+                            setEditor({ type: 'correction', variant })
+                          }
+                        >
+                          Correct details
+                          <span className="sr-only">
+                            {' '}
+                            for {variantName(variant)}
+                          </span>
+                        </Action>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -136,469 +230,70 @@ export function ProductConfiguration({ path, product, changed }) {
         </div>
       ) : (
         !variants.error && (
-          <Empty title="No variants in this view">
-            Choose a configuration, then explicitly add the combinations you
-            supply.
+          <Empty title={search ? 'No matching part code' : 'No variants yet'}>
+            {search
+              ? 'Check the exact spelling or clear the part code to see all variants.'
+              : configured
+                ? 'Use Add variants to choose a color and size. Packaging can be added later.'
+                : 'Use Add colors & sizes to enter your choices. Leave both empty if this product has no options.'}
           </Empty>
         )
       )}
-      <Pager
-        resource={variants}
-        pages={pages}
-        setPages={setPages}
-        label="variants"
-      />
-      {editor === 'configuration' && (
-        <ConfigurationEditor
-          path={path}
-          product={product}
-          close={() => setEditor(null)}
-          saved={() => {
-            setEditor(null)
-            variants.reload()
-            changed()
-          }}
+      {(pages.length > 0 || variants.data?.next) && (
+        <Pager
+          resource={variants}
+          pages={pages}
+          setPages={setPages}
+          label="variants"
         />
       )}
-      {editor === 'variants' && (
+      {editor?.type === 'configuration' &&
+        (simpleOptions ? (
+          <ColorSizeEditor
+            path={path}
+            product={product}
+            close={() => setEditor(null)}
+            saved={() =>
+              saved(
+                'Colors and sizes saved. Use Add variants to choose the combinations you sell.',
+              )
+            }
+          />
+        ) : (
+          <ConfigurationEditor
+            path={path}
+            product={product}
+            close={() => setEditor(null)}
+            saved={() =>
+              saved('Options saved. Next, add the variants you supply.')
+            }
+          />
+        ))}
+      {editor?.type === 'variants' && (
         <VariantEditor
           path={path}
           product={product}
           close={() => setEditor(null)}
-          saved={() => {
-            setEditor(null)
-            variants.reload()
-            changed()
-          }}
+          saved={() =>
+            saved(
+              'Variants saved. You can now set their prices in the Pricing tab.',
+            )
+          }
         />
       )}
-    </>
-  )
-}
-
-function ConfigurationEditor({ path, product, close, saved }) {
-  const initial = product.configuration || {
-    mode: 'unresolved',
-    dimensions: [],
-    customIdentification: null,
-  }
-  const [mode, setMode] = useState(initial.mode)
-  const [dimensions, setDimensions] = useState(
-    structuredClone(initial.dimensions),
-  )
-  const [identification, setIdentification] = useState(
-    initial.customIdentification || '',
-  )
-  const [revision, setRevision] = useState(product.revision)
-  const mutation = useMutation()
-  function dimension(index, patch) {
-    setDimensions((current) =>
-      current.map((item, position) =>
-        position === index ? { ...item, ...patch } : item,
-      ),
-    )
-  }
-  async function submit(event) {
-    event.preventDefault()
-    if (
-      await mutation.run('post', `${path}/configure`, {
-        expectedRevision: revision,
-        mode,
-        dimensions: mode === 'variants' ? dimensions : [],
-        customIdentification: identification.trim() || null,
-      })
-    )
-      saved()
-  }
-  return (
-    <Dialog
-      title="Product configuration"
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form onSubmit={submit}>
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          <Field
-            label="Configuration mode"
-            value={mode}
-            onChange={(event) => setMode(event.target.value)}
-          >
-            <option value="unresolved">Not decided</option>
-            <option value="single">Single specification</option>
-            <option value="variants">Explicit variants</option>
-          </Field>
-          <Field
-            label="Reviewed custom identification (optional)"
-            maxLength={500}
-            value={identification}
-            onChange={(event) => setIdentification(event.target.value)}
-            hint="Describe a reviewed supplier item when its item code is unavailable."
-          />
-          {mode === 'variants' && (
-            <>
-              {dimensions.map((item, index) => (
-                <section className="panel" key={index}>
-                  <div className="form-grid">
-                    <Field
-                      label={`Dimension ${index + 1} key`}
-                      required
-                      pattern={keyPattern}
-                      maxLength={32}
-                      value={item.id}
-                      onChange={(event) =>
-                        dimension(index, { id: event.target.value })
-                      }
-                    />
-                    <Field
-                      label={`Dimension ${index + 1} label`}
-                      required
-                      maxLength={80}
-                      value={item.label}
-                      onChange={(event) =>
-                        dimension(index, { label: event.target.value })
-                      }
-                    />
-                  </div>
-                  {item.values.map((value, position) => (
-                    <div className="form-grid" key={position}>
-                      <Field
-                        label={`Value ${position + 1} key`}
-                        required
-                        pattern={keyPattern}
-                        maxLength={32}
-                        value={value.id}
-                        onChange={(event) =>
-                          dimension(index, {
-                            values: item.values.map((row, i) =>
-                              i === position
-                                ? { ...row, id: event.target.value }
-                                : row,
-                            ),
-                          })
-                        }
-                      />
-                      <Field
-                        label={`Value ${position + 1} label`}
-                        required
-                        maxLength={80}
-                        value={value.label}
-                        onChange={(event) =>
-                          dimension(index, {
-                            values: item.values.map((row, i) =>
-                              i === position
-                                ? { ...row, label: event.target.value }
-                                : row,
-                            ),
-                          })
-                        }
-                      />
-                      <Action
-                        variant="text-button"
-                        disabled={item.values.length <= 1}
-                        onClick={() =>
-                          dimension(index, {
-                            values: item.values.filter(
-                              (_, i) => i !== position,
-                            ),
-                          })
-                        }
-                      >
-                        Remove value {position + 1}
-                      </Action>
-                    </div>
-                  ))}
-                  <div className="actions">
-                    <Action
-                      variant="secondary"
-                      disabled={item.values.length >= 50}
-                      onClick={() =>
-                        dimension(index, {
-                          values: [...item.values, emptyValue()],
-                        })
-                      }
-                    >
-                      Add value
-                    </Action>
-                    <Action
-                      variant="text-button"
-                      onClick={() =>
-                        setDimensions((current) =>
-                          current.filter((_, i) => i !== index),
-                        )
-                      }
-                    >
-                      Remove dimension
-                    </Action>
-                  </div>
-                </section>
-              ))}
-              <Action
-                variant="secondary"
-                disabled={dimensions.length >= 3}
-                onClick={() =>
-                  setDimensions((current) => [
-                    ...current,
-                    { id: '', label: '', values: [emptyValue()] },
-                  ])
-                }
-              >
-                Add dimension
-              </Action>
-              <p className="muted">
-                Changing configuration must preserve every selectable tuple.
-                Archive incompatible variants first.
-              </p>
-            </>
-          )}
-        </fieldset>
-        <ConflictReview
-          error={mutation.error}
+      {editor?.type === 'correction' && (
+        <VariantCorrectionDialog
           path={path}
-          values={{
-            configuration: {
-              mode,
-              dimensions,
-              customIdentification: identification,
-            },
-          }}
-          onReview={(current) => setRevision(current.revision)}
+          product={product}
+          variant={editor.variant}
+          canAdopt={canAdopt}
+          close={() => setEditor(null)}
+          saved={(adopt) => saved('Variant correction saved.', adopt)}
         />
-        <SaveFooter
-          mutation={mutation}
-          close={close}
-          disabled={mode === 'variants' && !dimensions.length}
-          label="Save configuration"
-        />
-      </form>
-    </Dialog>
-  )
-}
-
-function VariantEditor({ path, product, close, saved }) {
-  const [rows, setRows] = useState([emptyVariant()])
-  const [archive, setArchive] = useState([])
-  const [pages, setPages] = useState([])
-  const [revision, setRevision] = useState(product.revision)
-  const existing = useResource(
-    queryPath(`${path}/variants`, {
-      status: 'selectable',
-      limit: 50,
-      after: pages.at(-1),
-    }),
-  )
-  const mutation = useMutation()
-  const dimensions = product.configuration.dimensions
-  function update(key, patch) {
-    setRows((current) =>
-      current.map((row) => (row.key === key ? { ...row, ...patch } : row)),
-    )
-  }
-  async function submit(event) {
-    event.preventDefault()
-    const changes = [
-      ...archive.map((variantId) => ({ action: 'archive', variantId })),
-      ...rows.map((row) => ({
-        action: 'add',
-        selections: dimensions.map((dimension) => ({
-          dimensionId: dimension.id,
-          valueId: row.selections[dimension.id],
-        })),
-        ...(row.partCode.trim() ? { partCode: row.partCode.trim() } : {}),
-        ...(row.unitsEnabled
-          ? {
-              units: {
-                salesUnit: row.salesUnit,
-                procurementUnit: row.procurementUnit,
-                salesUnitsPerProcurementUnit: Number(
-                  row.salesUnitsPerProcurementUnit,
-                ),
-                ...(row.procurementMinimum
-                  ? { procurementMinimum: Number(row.procurementMinimum) }
-                  : {}),
-                ...(row.procurementMultiple
-                  ? { procurementMultiple: Number(row.procurementMultiple) }
-                  : {}),
-              },
-            }
-          : {}),
-      })),
-    ]
-    if (
-      await mutation.run('post', `${path}/variants`, {
-        expectedRevision: revision,
-        changes,
-      })
-    )
-      saved()
-  }
-  return (
-    <Dialog
-      title="Manage product variants"
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form onSubmit={submit}>
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          <p>
-            Only explicitly added combinations exist. Archive an old
-            specification and add its replacement together.
-          </p>
-          <p className="muted">
-            Current manual goods pricing recognizes sales unit each and
-            procurement units each, pack or carton. Other or unknown unit
-            definitions retain partial-cost status.
-          </p>
-          <ErrorNotice error={existing.error} retry={existing.reload} />
-          {existing.data?.items?.map((variant) => (
-            <label className="check-label" key={variant.id}>
-              <input
-                type="checkbox"
-                checked={archive.includes(variant.id)}
-                onChange={(event) =>
-                  setArchive((current) =>
-                    event.target.checked
-                      ? [...current, variant.id]
-                      : current.filter((id) => id !== variant.id),
-                  )
-                }
-              />
-              Archive{' '}
-              {variant.partCode ||
-                variant.selections
-                  ?.map((value) => value.valueLabel)
-                  .join(' / ') ||
-                'Default specification'}
-            </label>
-          ))}
-          <Pager
-            resource={existing}
-            pages={pages}
-            setPages={setPages}
-            label="existing variants"
-          />
-          {rows.map((row, index) => (
-            <section className="panel" key={row.key}>
-              <h3>New variant {index + 1}</h3>
-              {dimensions.map((dimension) => (
-                <Field
-                  label={dimension.label}
-                  key={dimension.id}
-                  required
-                  value={row.selections[dimension.id] || ''}
-                  onChange={(event) =>
-                    update(row.key, {
-                      selections: {
-                        ...row.selections,
-                        [dimension.id]: event.target.value,
-                      },
-                    })
-                  }
-                >
-                  <option value="">
-                    Choose {dimension.label.toLowerCase()}
-                  </option>
-                  {dimension.values.map((value) => (
-                    <option key={value.id} value={value.id}>
-                      {value.label}
-                    </option>
-                  ))}
-                </Field>
-              ))}
-              <Field
-                label="Supplier part code (optional)"
-                maxLength={120}
-                value={row.partCode}
-                onChange={(event) =>
-                  update(row.key, { partCode: event.target.value })
-                }
-              />
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={row.unitsEnabled}
-                  onChange={(event) =>
-                    update(row.key, { unitsEnabled: event.target.checked })
-                  }
-                />
-                Specify sales and procurement units
-              </label>
-              {row.unitsEnabled && (
-                <div className="form-grid">
-                  {[
-                    ['salesUnit', 'Sales unit'],
-                    ['procurementUnit', 'Procurement unit'],
-                  ].map(([key, label]) => (
-                    <Field
-                      key={key}
-                      label={label}
-                      required
-                      maxLength={80}
-                      value={row[key]}
-                      onChange={(event) =>
-                        update(row.key, { [key]: event.target.value })
-                      }
-                    />
-                  ))}
-                  {[
-                    [
-                      'salesUnitsPerProcurementUnit',
-                      'Sales units per procurement unit',
-                    ],
-                    ['procurementMinimum', 'Procurement minimum (optional)'],
-                    ['procurementMultiple', 'Procurement multiple (optional)'],
-                  ].map(([key, label]) => (
-                    <Field
-                      key={key}
-                      label={label}
-                      type="number"
-                      min="1"
-                      max="1000000"
-                      step="1"
-                      required={key === 'salesUnitsPerProcurementUnit'}
-                      value={row[key]}
-                      onChange={(event) =>
-                        update(row.key, { [key]: event.target.value })
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-              <Action
-                variant="text-button"
-                onClick={() =>
-                  setRows((current) =>
-                    current.filter((item) => item.key !== row.key),
-                  )
-                }
-              >
-                Remove new variant {index + 1}
-              </Action>
-            </section>
-          ))}
-          <Action
-            variant="secondary"
-            disabled={rows.length + archive.length >= 50}
-            onClick={() => setRows((current) => [...current, emptyVariant()])}
-          >
-            Add combination
-          </Action>
-        </fieldset>
-        <ConflictReview
-          error={mutation.error}
-          path={path}
-          values={{ configuration: product.configuration }}
-          onReview={(current) => setRevision(current.revision)}
-        />
-        <SaveFooter
-          mutation={mutation}
-          close={close}
-          disabled={
-            (!rows.length && !archive.length) ||
-            rows.length + archive.length > 50
-          }
-          label="Save variant changes"
-        />
-      </form>
-    </Dialog>
+      )}
+      {editor?.type === 'adoption' && (
+        <PricingAdoptionDialog path={path} close={() => setEditor(null)} />
+      )}
+    </div>
   )
 }

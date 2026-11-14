@@ -257,7 +257,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
       )}
       <div
         className="actions"
-        style={{ marginTop: pendingRecovery || busy || waiting ? '1rem' : '1.5rem' }}
+        style={{ marginTop: pendingRecovery || busy || waiting ? 'var(--space-md)' : 'var(--space-lg)' }}
         aria-busy={busy || undefined}
       >
         {status.flowVersion === 2 && status.status !== 'canceled' && (

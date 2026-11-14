@@ -25,10 +25,7 @@ export function FieldFrame({
         <label htmlFor={fieldId} className={theme.label}>
           {label}
           {required ? (
-            <span className="required-mark" aria-hidden="true">
-              {' '}
-              *
-            </span>
+            <span className="required-mark" aria-hidden="true" />
           ) : null}
         </label>
       ) : null}

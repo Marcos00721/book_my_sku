@@ -445,6 +445,7 @@ export function SupplierChildEditor({ kind, base, record, close, saved }) {
 
   return (
     <Dialog
+      size={restoring ? 'sm' : 'lg'}
       className="supplier-form-dialog"
       title={title}
       description={description}

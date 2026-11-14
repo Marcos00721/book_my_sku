@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { contrastRatio } from './helpers/contrast'
 
 test('password and theme icons remain clear against dark authentication surfaces', async ({
   page,
@@ -11,33 +12,7 @@ test('password and theme icons remain clear against dark authentication surfaces
       .getByRole('button', { name: label, exact: true })
       .locator('svg')
     await expect(icon).toBeVisible()
-    const contrast = await icon.evaluate((node) => {
-      const rgb = (value) =>
-        (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number)
-      const luminance = (channels) =>
-        channels
-          .map((value) => value / 255)
-          .map((value) =>
-            value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
-          )
-          .reduce(
-            (sum, value, index) =>
-              sum + value * [0.2126, 0.7152, 0.0722][index],
-            0,
-          )
-      const foreground = luminance(rgb(getComputedStyle(node).stroke))
-      const background = luminance(
-        rgb(
-          getComputedStyle(
-            node.closest('.auth-form') || document.documentElement,
-          ).backgroundColor,
-        ),
-      )
-      return (
-        (Math.max(foreground, background) + 0.05) /
-        (Math.min(foreground, background) + 0.05)
-      )
-    })
+    const contrast = await contrastRatio(icon, 'stroke')
     expect(contrast).toBeGreaterThanOrEqual(3)
   }
 })

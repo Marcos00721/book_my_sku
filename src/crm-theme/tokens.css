@@ -1,135 +1,229 @@
-/**
- * Lagoon Glass CSS variables — applied globally.
- * Channel values mirror `colors.ts` (keep in sync).
- */
-
+/* Single source of literal design tokens. CSS and Tailwind consume these values. */
 :root {
   color-scheme: light;
-
-  --color-canvas: 232 241 244;
-  --palette-surface-base: 255 255 255;
-  --palette-surface-highlight: 255 255 255;
-  --palette-surface-shadow: 196 214 220;
-  --palette-brand: 15 143 132;
-  --palette-brand-hover: 13 120 110;
-  --palette-on-brand: 255 255 255;
-  --palette-secondary: 197 106 30;
-  --palette-secondary-hover: 180 90 20;
-  --palette-text: 15 35 45;
-  --palette-text-muted: 71 98 112;
-
-  --glass-bg: rgb(255 255 255 / 0.86);
-  --glass-bg-muted: rgb(255 255 255 / 0.72);
-  --glass-bg-raised: rgb(255 255 255 / 0.94);
-  --glass-border: rgb(15 60 72 / 0.12);
-  --glass-border-strong: rgb(15 60 72 / 0.2);
-  --glass-border-accent: rgb(15 143 132 / 0.28);
-  --glass-blur: 16px;
-
-  --color-primary: var(--palette-brand);
-  --color-primary-hover: var(--palette-brand-hover);
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  --font-size-hero: clamp(1.5rem, 2.5vw, 2.25rem);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-none: 1;
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-widest: 0.1em;
+  --underline-offset: 0.25em;
+  --space-none: 0;
+  --space-hairline: 1px;
+  --space-micro: 0.25rem;
+  --space-tiny: 0.375rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-ml: 1.25rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 5rem;
+  --space-5xl: 6rem;
+  --size-icon-sm: 1rem;
+  --size-icon: 1.25rem;
+  --size-control: 2.75rem;
+  --size-touch: 2.75rem;
+  --size-form: 28rem;
+  --size-illustration: 27rem;
+  --size-viewport: 100svh;
+  --size-sidebar: 16rem;
+  --size-navbar: 4.5rem;
+  --size-content: 90rem;
+  --layout-auth-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  --radius-none: 0;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-control: 0.75rem;
+  --radius-lg: 0.75rem;
+  --radius-card: 1.25rem;
+  --radius-xl: 1.25rem;
+  --radius-panel: 1rem;
+  --radius-pill: 9999px;
+  --border-width: 1px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --opacity-disabled: 0.5;
+  --opacity-overlay: 0.6;
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-reduced: 0.01ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --layer-sticky: 15;
+  --layer-navbar: 20;
+  --layer-scrim: 35;
+  --layer-sidebar: 40;
+  --layer-dropdown: 80;
+  --layer-skip: 100;
+  --layer-confirm: 1000;
+  /* Lagoon teal brand with slate surfaces and a peach accent. */
+  --color-canvas: 241 244 249;
+  --color-surface: 250 251 253;
+  --color-surface-muted: 229 234 242;
+  --color-surface-raised: 255 255 255;
+  --color-primary: 15 143 132;
+  --color-primary-hover: 18 160 147;
   --color-primary-soft: 204 240 236;
-  --color-primary-disabled: 196 214 220;
-  --color-on-primary: var(--palette-on-brand);
-
-  --color-secondary: var(--palette-secondary);
-  --color-secondary-hover: var(--palette-secondary-hover);
-  --color-secondary-soft: 255 237 213;
-  --color-on-secondary: var(--palette-on-brand);
-
-  --color-accent: var(--palette-brand);
-  --color-accent-hover: var(--palette-brand-hover);
-  --color-accent-soft: 204 240 236;
-  --color-on-accent: var(--palette-on-brand);
-
-  --color-surface: var(--palette-surface-base);
-  --color-surface-muted: 236 244 246;
-  --color-surface-raised: var(--palette-surface-base);
-
-  --color-text-base: var(--palette-text);
-  --color-text-muted: var(--palette-text-muted);
-  --color-text-subtle: 120 148 162;
-
-  --color-border-subtle: 196 214 220;
-  --color-border-control: 148 176 188;
-
-  --color-danger: 183 39 49;
-  --color-danger-muted: 255 241 242;
-  --color-success: 15 118 90;
-  --color-success-muted: 220 252 231;
-  --color-warning: 180 83 9;
-  --color-warning-muted: 255 247 237;
-  --color-info: 3 105 161;
-  --color-info-muted: 224 242 254;
-
-  --color-focus-ring: var(--palette-brand);
-  --color-brand-surface: var(--palette-surface-base);
-  --color-brand-line: var(--palette-surface-shadow);
-  --color-brand-deep: var(--palette-text);
-
-  --color-neutral-50: 248 250 252;
-  --color-neutral-100: 241 245 249;
-  --color-neutral-200: 226 232 240;
-  --color-neutral-300: 203 213 225;
-  --color-neutral-400: 148 163 184;
-  --color-neutral-500: 100 116 139;
-  --color-neutral-600: 71 85 105;
-  --color-neutral-700: 51 65 85;
-  --color-neutral-800: 30 41 59;
-  --color-neutral-900: 15 23 42;
-  --color-neutral-950: 2 6 23;
-
-  --color-overlay: 7 19 31;
+  --color-primary-disabled: 178 207 205;
+  /* Deep ink keeps small labels readable on the brand fill. */
+  --color-on-primary: 3 20 24;
+  --color-primary-ink: 8 102 94;
+  --color-primary-ink-hover: 7 81 75;
+  --color-secondary: var(--color-accent);
+  --color-secondary-hover: var(--color-accent-hover);
+  --color-secondary-soft: var(--color-accent-soft);
+  --color-on-secondary: var(--color-on-accent);
+  --color-accent: 217 152 105;
+  --color-accent-hover: 232 173 130;
+  --color-accent-soft: 247 231 218;
+  --color-on-accent: 30 26 24;
+  --color-text-base: 25 33 49;
+  --color-text-muted: 73 84 104;
+  --color-text-subtle: 88 99 119;
+  --color-border-subtle: 196 205 219;
+  --color-border-control: 122 135 155;
+  --color-danger: 171 37 48;
+  --color-danger-muted: 255 236 238;
+  --color-on-danger: 255 255 255;
+  --color-success: 20 108 67;
+  --color-success-muted: 228 245 235;
+  --color-warning: 133 77 14;
+  --color-warning-muted: 254 243 220;
+  --color-info: 30 91 160;
+  --color-info-muted: 231 240 254;
+  --color-focus-ring: var(--color-primary-ink);
+  --color-overlay: 3 7 18;
   --color-transparent: transparent;
+  --color-brand-surface: var(--color-surface);
+  --color-brand-line: var(--color-border-subtle);
+  --color-brand-deep: var(--color-text-base);
+  /* Compatibility aliases for existing page layouts. */
+  --palette-brand: var(--color-primary);
+  --palette-brand-hover: var(--color-primary-hover);
+  --palette-secondary: var(--color-secondary);
+  --palette-on-brand: var(--color-on-primary);
+  --palette-text: var(--color-text-base);
+  --palette-text-muted: var(--color-text-muted);
+  --palette-surface-base: var(--color-surface);
+  --palette-surface-highlight: var(--color-primary);
+  --palette-surface-shadow: var(--color-border-subtle);
+  --color-neutral-50: 250 250 250;
+  --color-neutral-100: 245 245 245;
+  --color-neutral-200: 229 229 229;
+  --color-neutral-300: 212 212 212;
+  --color-neutral-400: 163 163 163;
+  --color-neutral-500: 115 115 115;
+  --color-neutral-600: 82 82 82;
+  --color-neutral-700: 64 64 64;
+  --color-neutral-800: 38 38 38;
+  --color-neutral-900: 23 23 23;
+  --color-neutral-950: 10 10 10;
+  --glass-tint: 255 255 255;
+  --glass-opacity: 0.68;
+  --glass-hover-opacity: 0.78;
+  --glass-border-opacity: 0.6;
+  --glass-border-hover-opacity: 0.85;
+  --glass-border-tint: 255 255 255;
+  --glass-highlight-opacity: 0.5;
+  --glass-bg: rgb(var(--glass-tint) / var(--glass-opacity));
+  --glass-bg-hover: rgb(var(--glass-tint) / var(--glass-hover-opacity));
+  --glass-bg-muted: rgb(var(--color-surface-muted) / 0.65);
+  --glass-bg-raised: rgb(var(--color-surface-raised) / 0.92);
+  --glass-bg-fallback: rgb(var(--color-surface));
+  --glass-border: rgb(var(--glass-border-tint) / var(--glass-border-opacity));
+  --glass-border-strong: rgb(var(--glass-border-tint) / var(--glass-border-hover-opacity));
+  --glass-border-accent: rgb(var(--color-primary) / 0.35);
+  --glass-blur: 32px;
+  --glass-header-blur: 44px;
+  --glass-saturation: 200%;
+  --canvas-glow-opacity-1: 0.06;
+  --canvas-glow-opacity-2: 0.05;
+  --canvas-glow-opacity-3: 0.02;
+  --background-canvas:
+    radial-gradient(ellipse 80% 80% at 20% 80%, rgb(var(--color-primary) / var(--canvas-glow-opacity-1)), transparent 50%),
+    radial-gradient(ellipse 60% 60% at 80% 20%, rgb(var(--color-primary) / var(--canvas-glow-opacity-2)), transparent 50%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgb(var(--color-primary) / var(--canvas-glow-opacity-3)), transparent 60%)
+    rgb(var(--color-canvas));
+  --control-bg: rgb(var(--color-surface-raised) / 0.78);
+  --surface-hover: rgb(var(--color-text-base) / 0.05);
+  --shadow-none: none;
+  --shadow-xs: none;
+  --shadow-glass-edge: inset 0 1px 0 rgb(var(--glass-border-tint) / var(--glass-highlight-opacity)),
+    inset 1px 0 0 rgb(var(--glass-border-tint) / 0.12);
+  --shadow-subtle: var(--shadow-glass-edge), 0 2px 8px rgb(var(--color-overlay) / 0.08);
+  --shadow-card: var(--shadow-glass-edge), 0 8px 24px rgb(var(--color-overlay) / 0.08);
+  --shadow-float: var(--shadow-glass-edge), 0 18px 48px rgb(var(--color-overlay) / 0.22);
+  --shadow-overlay: var(--shadow-glass-edge), 0 28px 72px rgb(var(--color-overlay) / 0.35);
+  --shadow-active-side: inset 2px 0 0 rgb(var(--color-primary));
+  --shadow-active-tab: inset 0 -2px 0 rgb(var(--color-primary));
+  --shadow-success-halo: 0 0 0 10px rgb(var(--color-success) / 0.08);
+  --shadow-timeline: 0 0 0 3px rgb(var(--color-surface));
+  --shadow-focus: 0 0 0 var(--focus-offset) rgb(var(--color-surface)),
+    0 0 0 calc(var(--focus-width) + var(--focus-offset)) rgb(var(--color-focus-ring));
+  --background-brand-panel: rgb(var(--color-brand-surface));
 }
-
 .dark {
   color-scheme: dark;
-
-  --color-canvas: 7 19 31;
-  --palette-surface-base: 18 32 46;
-  --palette-surface-highlight: 18 182 166;
-  --palette-surface-shadow: 0 0 0;
-  --palette-brand: 18 182 166;
-  --palette-brand-hover: 45 200 184;
-  --palette-on-brand: 4 24 28;
-  --palette-secondary: 224 138 58;
-  --palette-secondary-hover: 240 160 80;
-  --palette-text: 201 214 222;
-  --palette-text-muted: 148 170 184;
-
+  --color-canvas: 15 23 42;
+  --color-surface: 58 65 80;
+  --color-surface-muted: 45 52 67;
+  --color-surface-raised: 65 71 86;
+  --color-primary: 18 182 166;
+  --color-primary-hover: 45 202 185;
   --color-primary-soft: 8 48 52;
-  --color-primary-disabled: 30 55 68;
-  --color-secondary-soft: 62 40 18;
-  --color-accent-soft: 8 48 52;
-
-  --glass-bg: rgb(18 32 46 / 0.9);
-  --glass-bg-muted: rgb(24 40 56 / 0.78);
-  --glass-bg-raised: rgb(24 40 56 / 0.96);
-  --glass-border: rgb(148 187 201 / 0.16);
-  --glass-border-strong: rgb(148 187 201 / 0.28);
-  --glass-border-accent: rgb(18 182 166 / 0.3);
-
-  --color-surface: var(--palette-surface-base);
-  --color-surface-muted: 14 28 42;
-  --color-surface-raised: 24 40 56;
-  --color-text-subtle: 110 135 150;
-  --color-border-subtle: 36 54 70;
-  --color-border-control: 55 78 96;
-
-  --color-danger: 242 157 145;
-  --color-danger-muted: 64 37 33;
-  --color-success: 61 207 154;
-  --color-success-muted: 6 48 39;
-  --color-warning: 251 191 36;
-  --color-warning-muted: 62 45 13;
-  --color-info: 96 165 250;
-  --color-info-muted: 23 37 84;
-
-  --color-focus-ring: var(--palette-brand);
-  --color-brand-surface: var(--palette-surface-base);
-  --color-brand-line: var(--palette-surface-highlight);
-  --color-brand-deep: var(--palette-text);
-
-  --color-overlay: 0 0 0;
+  --color-primary-disabled: 42 88 89;
+  --color-primary-ink: 96 222 204;
+  --color-primary-ink-hover: 153 246 228;
+  --color-accent-soft: 73 54 44;
+  --color-text-base: 248 250 252;
+  --color-text-muted: 212 217 226;
+  --color-text-subtle: 187 195 208;
+  --color-border-subtle: 105 114 132;
+  --color-border-control: 153 165 184;
+  --color-danger: 255 163 169;
+  --color-danger-muted: 61 29 34;
+  --color-success: 110 222 159;
+  --color-success-muted: 20 48 33;
+  --color-warning: 248 205 116;
+  --color-warning-muted: 56 43 20;
+  --color-info: 148 194 255;
+  --color-info-muted: 26 43 66;
+  /* Reference Strong preset: 18% white, 32px blur, 25% border, 200% saturation. */
+  --glass-opacity: 0.18;
+  --glass-hover-opacity: 0.2;
+  --glass-border-opacity: 0.25;
+  --glass-border-hover-opacity: 0.3;
+  --glass-highlight-opacity: 0.12;
+  --canvas-glow-opacity-1: 0.12;
+  --canvas-glow-opacity-2: 0.1;
+  --canvas-glow-opacity-3: 0.04;
+  --control-bg: rgb(var(--color-surface-raised) / 0.72);
+  --shadow-card: var(--shadow-glass-edge), 0 8px 24px rgb(var(--color-overlay) / 0.16);
+  --shadow-float: var(--shadow-glass-edge), 0 18px 48px rgb(var(--color-overlay) / 0.45);
+  --shadow-overlay: var(--shadow-glass-edge), 0 28px 72px rgb(var(--color-overlay) / 0.6);
 }

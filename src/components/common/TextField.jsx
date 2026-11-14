@@ -42,10 +42,10 @@ export const TextField = forwardRef(function TextField(
             <span
               aria-hidden="true"
               className={theme.cx(
-                'pointer-events-none absolute inset-y-none left-none z-10 flex items-center text-text-muted',
+                'form-control-leading pointer-events-none absolute inset-y-none left-none z-10 flex items-center text-text-muted',
                 hasBothLeading
                   ? 'gap-xs pl-md pr-xs'
-                  : 'w-control justify-center',
+                  : 'w-[calc(var(--size-control)-var(--space-xs))] justify-center',
                 '[&>svg]:size-icon [&>svg]:shrink-0',
               )}
             >
@@ -67,7 +67,7 @@ export const TextField = forwardRef(function TextField(
               theme.input,
               invalid && theme.inputInvalid,
               hasBothLeading
-                ? 'pl-3xl'
+                ? 'pl-[calc(var(--size-control)+var(--space-xl))]'
                 : hasLeading
                   ? 'pl-control'
                   : 'pl-md',

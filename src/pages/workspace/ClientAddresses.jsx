@@ -11,7 +11,7 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
+  ListSkeleton,
   SaveFooter,
   Status,
 } from '../../components/workspace/Elements'
@@ -139,7 +139,7 @@ export function ClientAddresses({ path, client, reloadClient }) {
         )}
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading label="Loading saved addresses…" />
+        <ListSkeleton label="Loading saved addresses…" variant="cards" rows={4} />
       ) : resource.data?.items?.length ? (
         <div className="address-grid">
           {resource.data.items.map((address) => (

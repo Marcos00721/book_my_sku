@@ -103,6 +103,7 @@ export function AddressEditor({ path, address, close, saved }) {
 
   return (
     <Dialog
+      size="lg"
       className="supplier-form-dialog"
       title={address.id ? 'Edit' : 'Create'}
       description="Store a billing or shipping place your team can reuse on the next project."

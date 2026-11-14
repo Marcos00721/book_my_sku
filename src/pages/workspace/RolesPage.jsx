@@ -10,7 +10,7 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
+  ListSkeleton,
   PageHeader,
   PermissionDenied,
   SaveFooter,
@@ -126,7 +126,7 @@ export function RolesPage() {
           retry={resource.reload}
         />
         {resource.loading || catalog.loading ? (
-          <Loading />
+          <ListSkeleton label="Loading roles…" columns={['Role name', 'Permissions', 'Status', 'Manage']} />
         ) : resource.data?.items.length ? (
           <div className="table-scroll">
             <table className="data-table">
@@ -277,6 +277,7 @@ function RoleEditor({ role, catalog, close, saved }) {
 
   return (
     <Dialog
+      size={role.archive ? 'sm' : 'lg'}
       className="supplier-form-dialog"
       title={
         role.archive ? 'Archive' : role.id ? 'Edit' : 'Create'

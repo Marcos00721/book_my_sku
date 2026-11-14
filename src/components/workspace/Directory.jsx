@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import { useResource } from '../../hooks/useResource'
 import { queryPath } from '../../services/workspace'
-import { Action, Empty, ErrorNotice, Loading } from './Elements'
+import { Action, Empty, ErrorNotice, ListSkeleton } from './Elements'
 
 export function Directory({ path, label, filters, children, emptyAction, caseSensitive = true }) {
   const [search, setSearch] = useState('')
@@ -58,12 +58,12 @@ export function Directory({ path, label, filters, children, emptyAction, caseSen
           Refresh
         </Action>
       </div>
-      <p className="muted" style={{ fontSize: '.7rem', marginBottom: '1rem' }}>
+      <p className="muted text-xs mb-md">
         Name search matches the start of the name{caseSensitive ? ' and is case-sensitive.' : ' regardless of capitalization.'}
       </p>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading label={`Loading ${label.toLowerCase()}…`} />
+        <ListSkeleton label={`Loading ${label.toLowerCase()}…`} columns={['Name', 'Email', 'Phone', 'Actions']} />
       ) : resource.data?.items?.length ? (
         children(resource.data.items, resource.reload)
       ) : (

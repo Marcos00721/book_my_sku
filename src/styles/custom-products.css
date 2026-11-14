@@ -1,0 +1,171 @@
+.product-list-thumbnail {
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+}
+.product-list-thumbnail img {
+  border-radius: inherit;
+}
+
+.color-size-grid,
+.color-size-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+.color-size-summary {
+  margin: var(--space-lg) 0;
+}
+.color-size-option {
+  min-width: 0;
+}
+.color-size-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: start;
+}
+.color-size-input > button {
+  margin-top: calc(var(--font-size-sm) * 1.5 + var(--space-xs));
+}
+.color-size-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.color-size-values li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-width) solid var(--glass-border);
+  border-radius: var(--radius-control);
+  background: var(--glass-bg-muted);
+  font-size: var(--font-size-sm);
+}
+.color-size-values li > button {
+  display: grid;
+  place-items: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: rgb(var(--color-text-muted));
+  cursor: pointer;
+}
+.color-size-values li > button:hover {
+  background: rgb(var(--color-primary-soft));
+  color: rgb(var(--color-primary-ink));
+}
+.color-size-values li > button:focus-visible {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: 2px;
+}
+.color-size-values li > button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.variant-table small {
+  display: block;
+  margin-top: var(--space-micro);
+  color: rgb(var(--color-text-muted));
+  font-weight: var(--font-weight-normal);
+}
+.product-advanced {
+  padding: var(--space-sm) 0;
+  border-top: var(--border-width) solid var(--glass-border);
+}
+.product-advanced > summary {
+  cursor: pointer;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-micro) 0;
+}
+.product-advanced[open] > summary {
+  margin-bottom: var(--space-md);
+}
+.variant-packaging {
+  margin-top: var(--space-ml);
+}
+.variant-packaging > .form-grid {
+  margin-top: var(--space-md);
+}
+.variant-conversion {
+  border-left: 3px solid rgb(var(--color-primary));
+  padding: var(--space-sm) var(--space-md);
+  background: rgb(var(--color-primary-soft));
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.variant-values {
+  display: grid;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+}
+.variant-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-sm);
+}
+.variant-filters {
+  max-width: 44rem;
+  margin: var(--space-lg) 0;
+}
+.pricing-adoption-target {
+  margin: var(--space-ml) 0;
+}
+.product-form-fields > .product-form-section {
+  margin: 0;
+}
+.product-form-section h3 {
+  margin: 0 0 var(--space-md);
+}
+.product-form-section h4 {
+  margin: 0;
+}
+.pricing-preview .product-advanced {
+  margin: var(--space-md) 0;
+}
+.pricing-preview .product-advanced .form-grid {
+  margin: 0;
+}
+.pricing-schedule-form .pricing-tier-card {
+  margin: var(--space-md) 0;
+}
+.pricing-schedule-form .pricing-variant-card {
+  display: grid;
+  gap: var(--space-md);
+}
+.pricing-schedule-form .product-form-section > .pricing-section-head {
+  flex-wrap: wrap;
+}
+.pricing-schedule-form .product-form-section > .pricing-section-head h3 {
+  margin-bottom: 0;
+}
+@media (max-width: 680px) {
+  .color-size-grid,
+  .color-size-summary {
+    grid-template-columns: 1fr;
+  }
+  .product-variants > .section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .variant-value-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .variant-value-row > button {
+    justify-self: start;
+  }
+}

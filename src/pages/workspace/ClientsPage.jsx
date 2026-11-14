@@ -11,7 +11,7 @@ import {
   Action,
   Empty,
   ErrorNotice,
-  Loading,
+  ListSkeleton,
   PageHeader,
   PermissionDenied,
 } from '../../components/workspace/Elements'
@@ -33,7 +33,7 @@ export function ClientsPage() {
   const workspace = useWorkspace()
   const navigate = useNavigate()
   const canView = workspace.can('clients.view')
-  const { clients, loading, error, refetch, saveClient } = useClients({
+  const { clients, loading, loaded, error, refetch, saveClient } = useClients({
     autoFetch: canView,
   })
   const [creating, setCreating] = useState(false)
@@ -103,8 +103,8 @@ export function ClientsPage() {
           }
           retry={() => refetch()}
         />
-        {loading && !clients.length ? (
-          <Loading label="Loading clients…" />
+        {loading || (!loaded && !error) ? (
+          <ListSkeleton label="Loading clients…" columns={['Client name', 'Status', 'Added', '']} />
         ) : pageItems.length ? (
           <>
             <ClientTable clients={pageItems} />

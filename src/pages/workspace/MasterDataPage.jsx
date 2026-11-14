@@ -13,12 +13,13 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
+  ListSkeleton,
   PermissionDenied,
   SaveFooter,
   Status,
   StickyPageChrome,
 } from '../../components/workspace/Elements'
+import { askConfirm } from '../../components/common/confirm'
 
 const labels = {
   industry: 'Industries',
@@ -147,7 +148,7 @@ export function MasterDataPage() {
                 }}
               />
               {categories.loading || entries.loading ? (
-                <Loading label="Loading reference lists…" />
+                <ListSkeleton label="Loading reference lists…" columns={['Name', 'Description', 'Source', 'Status', 'Actions']} />
               ) : entries.data?.items?.length ? (
                 <div className="table-scroll">
                   <table className="data-table">
@@ -289,13 +290,15 @@ function EntryStatusButton({ entry, path, label, saved }) {
         variant="secondary"
         disabled={mutation.pending}
         onClick={async () => {
-          if (
-            !mutation.uncertain &&
-            !window.confirm(
-              `${label} ${entry.label}? Existing references and history remain available.`,
-            )
-          )
-            return
+          if (!mutation.uncertain) {
+            const ok = await askConfirm({
+              title: `${label}?`,
+              message: `${label} ${entry.label}? Existing references and history remain available.`,
+              confirmLabel: label,
+              cancelLabel: 'Cancel',
+            })
+            if (!ok) return
+          }
           if (
             await mutation.run('post', path, {
               expectedRevision: entry.revision,

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useResource } from '../../hooks/useResource'
 import { queryPath } from '../../services/workspace'
-import { Action, Empty, ErrorNotice, Field, Loading } from './Elements'
+import { Action, Empty, ErrorNotice, Field, ListSkeleton, Loading } from './Elements'
 
 const valueText = (value) =>
   value == null || value === ''
@@ -322,7 +322,7 @@ export function ActivityHistory({
         }}
       />
       {resource.loading ? (
-        <Loading label="Loading activity…" />
+        <ListSkeleton label="Loading activity…" variant="list" rows={4} />
       ) : (
         resource.data && (
           <>

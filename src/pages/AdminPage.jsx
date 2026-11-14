@@ -13,6 +13,7 @@ import {
   ErrorNotice,
   Field,
   Loading,
+  ListSkeleton,
   PageHeader,
   SaveFooter,
   Status,
@@ -165,7 +166,7 @@ function Applications() {
       </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading applications…" columns={['Company', 'Email', 'Status', 'Review']} />
       ) : resource.data?.items.length ? (
         <div className="table-scroll">
           <table className="data-table">
@@ -594,7 +595,7 @@ function HistoryList({ path, title }) {
       <h2>{title}</h2>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label={`Loading ${title.toLowerCase()}…`} variant="list" rows={4} />
       ) : (
         resource.data?.items?.map((item) => (
           <div key={item.id} className="grant-row">
@@ -812,7 +813,7 @@ function PermissionCatalog() {
       </p>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label="Loading permissions…" variant="list" />
       ) : (
         resource.data?.items.map((entry) => (
           <div className="grant-row" key={entry.key}>

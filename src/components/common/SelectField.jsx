@@ -187,6 +187,11 @@ export const SelectField = forwardRef(function SelectField(
 
   useLayoutEffect(() => {
     if (!open) return
+    // Popovers join the browser's top layer, escaping modal overflow and the
+    // containing block created by its backdrop filter. Keep the DOM inside
+    // the dialog so its controls remain interactive while the modal is open.
+    const panel = panelRef.current
+    panel?.showPopover()
     updateCoords()
     const onScroll = (event) => {
       if (panelRef.current?.contains(event.target)) return
@@ -195,6 +200,7 @@ export const SelectField = forwardRef(function SelectField(
     window.addEventListener('resize', updateCoords)
     window.addEventListener('scroll', onScroll, true)
     return () => {
+      panel?.hidePopover()
       window.removeEventListener('resize', updateCoords)
       window.removeEventListener('scroll', onScroll, true)
     }
@@ -287,8 +293,7 @@ export const SelectField = forwardRef(function SelectField(
     }
   }
 
-  // Native <dialog> is top-layer; body portals render behind it. Prefer the
-  // nearest open dialog so the menu stays visible inside modals.
+  // Modal descendants stay interactive; the popover handles visual stacking.
   const portalRoot =
     buttonRef.current?.closest('dialog') || document.body
 
@@ -298,10 +303,13 @@ export const SelectField = forwardRef(function SelectField(
           <div
             ref={panelRef}
             id={listId}
+            popover="manual"
             className={theme.dropdown.panel}
             style={{
               position: 'fixed',
-              zIndex: 1000,
+              margin: 0,
+              inset: 'auto',
+              zIndex: 'var(--layer-dropdown)',
               left: coords.left,
               width: coords.width,
               top: coords.top,

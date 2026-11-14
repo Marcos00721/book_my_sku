@@ -9,10 +9,11 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
+  ListSkeleton,
   Status,
 } from '../workspace/Elements'
 import { formatNumber } from '../../utils/phone'
+import { askConfirm } from '../common/confirm'
 import { purposeLabel } from './supplierPurposes'
 import { SupplierChildEditor } from './SupplierChildEditor'
 
@@ -33,12 +34,14 @@ export function SupplierChildrenPanel({
 
   async function lifecycle(child) {
     const action = child.status === 'active' ? 'archive' : 'restore'
-    if (
-      !window.confirm(
-        `${action === 'archive' ? 'Archive' : 'Restore'} this record? Archiving clears affected defaults. Restore does not reinstate them.`,
-      )
-    )
-      return
+    const ok = await askConfirm({
+      title: action === 'archive' ? 'Archive record?' : 'Restore record?',
+      message: `${action === 'archive' ? 'Archive' : 'Restore'} this record? Archiving clears affected defaults. Restore does not reinstate them.`,
+      confirmLabel: action === 'archive' ? 'Archive' : 'Restore',
+      cancelLabel: 'Cancel',
+      tone: action === 'archive' ? 'danger' : 'primary',
+    })
+    if (!ok) return
     if (kind === 'contacts' && action === 'restore' && !child.email) {
       setOpen(child)
       return
@@ -101,7 +104,7 @@ export function SupplierChildrenPanel({
         }}
       />
       {resource.loading ? (
-        <Loading />
+        <ListSkeleton label={`Loading ${kind}…`} variant="list" rows={4} />
       ) : resource.data?.items?.length ? (
         resource.data.items.map((child) => (
           <article className="address-card" key={child._id}>
