@@ -122,6 +122,154 @@ async function mockFlow(page, initial, handle = async () => false, session) {
   return state
 }
 
+test('finishing company details with an unavailable platform keeps payment incomplete', async ({ page }) => {
+  const state = await mockFlow(page, journey({
+    nextAction: 'complete_company',
+    setup: { ...completeSetup, complete: false },
+    platform: { ready: false, reason: 'PLATFORM_NOT_READY' },
+    billing: { flowVersion: 4, status: 'not_started', billingEligible: false },
+  }), async ({ path, reply, state }) => {
+    if (path !== '/onboarding/setup/complete') return false
+    state.current.setup = { ...state.current.setup, complete: true, revision: 5 }
+    state.current.nextAction = 'contact_support'
+    await reply(state.current.setup)
+    return true
+  })
+  await page.goto('/setup')
+  await expect(page.getByLabel('Industry', { exact: true })).toHaveValue('Distributor')
+  await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
+  await expect(page.getByText(/Workspace setup is temporarily unavailable/)).toBeVisible()
+  const steps = page.getByRole('navigation', { name: 'Setup progress' })
+  await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
+  await expect(steps.locator('li').filter({ hasText: 'Payment' })).not.toHaveClass(/is-done/)
+  await expect(steps.locator('li').filter({ hasText: 'Workspace' })).not.toHaveClass(/is-active|is-done/)
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+  await expect(page.getByText(/Your confirmed payment remains in place/)).toHaveCount(0)
+  await expect(page).toHaveURL('/setup')
+  expect(state.calls.filter(call => call.method !== 'GET').map(call => call.path))
+    .toEqual(['/onboarding/setup/complete'])
+})
+
+for (const [nextAction, status] of [
+  ['await_offer', 'not_started'],
+  ['prepare_workspace', 'card_ready'],
+  ['wait_provisioning', 'preparing'],
+  ['contact_support', 'past_due'],
+]) {
+  test(`${nextAction} with ${status} never confirms payment from a return URL`, async ({ page }) => {
+    const state = await mockFlow(page, journey({
+      nextAction,
+      setup: { ...completeSetup, locked: true },
+      billing: { flowVersion: 4, status, billingEligible: false },
+      offer: { state: 'awaiting_offer', checkoutAllowed: false },
+    }))
+    await page.goto('/setup?payment=success')
+    const steps = page.getByRole('navigation', { name: 'Setup progress' })
+    await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
+    await expect(steps.locator('li').filter({ hasText: 'Payment' })).not.toHaveClass(/is-done/)
+    await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+    expect(state.calls.every(call => call.method === 'GET')).toBe(true)
+  })
+}
+
+test('verified payment shows confetti once then automatically advances to workspace preparation', async ({ page }) => {
+  await page.clock.install()
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  const state = await mockFlow(page, journey({
+    nextAction: 'wait_billing',
+    setup: { ...completeSetup, locked: true },
+    billing: { flowVersion: 4, status: 'checkout_pending', synchronization: 'pending', billingEligible: false },
+    offer: { state: 'billing_started' },
+  }))
+  await page.goto('/setup')
+  const steps = page.getByRole('navigation', { name: 'Setup progress' })
+  await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+  await page.clock.pauseAt(new Date(Date.now() + 1000))
+  state.current.nextAction = 'wait_provisioning'
+  state.current.billing = { flowVersion: 4, status: 'active', billingEligible: true }
+  state.current.provisioning = { status: 'pending', provisioning: { state: 'in_progress' } }
+  await page.getByRole('button', { name: 'Check current status', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toBeVisible()
+  await expect(page.locator('.setup-celebration-burst')).toHaveCount(7)
+  await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
+  await page.clock.fastForward(2300)
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+  await expect(steps.locator('[aria-current="step"]')).toHaveText(/Workspace/)
+  await expect(steps.locator('li').filter({ hasText: 'Payment' })).toHaveClass(/is-done/)
+  await expect(page.getByRole('heading', { name: 'Workspace', exact: true })).toBeVisible()
+  await expect(page.getByText(/Your workspace is being prepared/)).toBeVisible()
+  await page.getByRole('button', { name: 'Check current status', exact: true }).click()
+  await expect.poll(() => state.calls.length).toBe(3)
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+  expect(state.calls.every(call => call.method === 'GET')).toBe(true)
+})
+
+test('an already active workspace verifies billing and celebrates before opening the app', async ({ page }) => {
+  await page.clock.install()
+  const state = await mockFlow(page, journey({
+    nextAction: 'open_workspace', setup: null, billing: null, offer: null,
+    workspaces: { items: [{ id: '507f1f77bcf86cd799439011', status: 'active', owner: true }], next: null },
+  }), async ({ path, reply }) => {
+    if (path === root) {
+      await reply({ status: 'active', billingEligible: true })
+      return true
+    }
+    if (path === '/organizations') {
+      await reply({ items: [], next: null })
+      return true
+    }
+    return false
+  })
+  await page.goto('/setup?payment=success')
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toBeVisible()
+  await page.clock.pauseAt(new Date(Date.now() + 100))
+  await expect(page).toHaveURL('/setup?payment=success')
+  expect(state.calls.filter(call => call.path === root)).toHaveLength(1)
+  await page.clock.fastForward(2300)
+  await expect(page).toHaveURL('/app')
+  expect(state.calls.every(call => call.method === 'GET')).toBe(true)
+})
+
+for (const unavailable of [false, true]) {
+  test(`an active workspace never celebrates ${unavailable ? 'unavailable' : 'unverified'} billing from a return flag`, async ({ page }) => {
+    const state = await mockFlow(page, journey({
+      nextAction: 'open_workspace', setup: null, billing: null, offer: null,
+    }), async ({ path, reply, route }) => {
+      if (path === root) {
+        if (unavailable) await route.fulfill({ status: 503, json: { error: { code: 'SERVICE_UNAVAILABLE' } } })
+        else await reply({ status: 'active', billingEligible: false })
+        return true
+      }
+      if (path === '/organizations') {
+        await reply({ items: [], next: null })
+        return true
+      }
+      return false
+    })
+    await page.goto('/setup?payment=success')
+    await expect(page).toHaveURL('/app')
+    await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+    expect(state.calls.filter(call => call.path === root)).toHaveLength(1)
+    expect(state.calls.every(call => call.method === 'GET')).toBe(true)
+  })
+}
+
+test('reduced motion advances verified payment without confetti animation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await mockFlow(page, journey({
+    nextAction: 'wait_provisioning',
+    setup: { ...completeSetup, locked: true },
+    billing: { flowVersion: 4, status: 'active', billingEligible: true },
+    provisioning: { status: 'pending', provisioning: { state: 'in_progress' } },
+    offer: { state: 'billing_started' },
+  }))
+  await page.goto('/setup?payment=success')
+  await expect(page.getByRole('navigation', { name: 'Setup progress' }).locator('[aria-current="step"]'))
+    .toHaveText(/Workspace/)
+  await expect(page.locator('.setup-celebration-burst')).toHaveCount(0)
+})
+
 test('setup loads its current revision once and preserves entered company details when status refresh fails', async ({
   page,
 }) => {
@@ -237,9 +385,7 @@ test('waiting states poll reads with backoff and do not reconcile or activate an
   await page.clock.install()
   const state = await mockFlow(page, journey({ nextAction: 'wait_billing' }))
   await page.goto('/setup?payment=success')
-  await page
-    .getByRole('button', { name: 'Continue to workspace', exact: true })
-    .click()
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: 'Refresh billing status', exact: true }),
   ).toBeDisabled()

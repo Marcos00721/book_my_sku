@@ -359,9 +359,7 @@ test('reloading completed details never invents consent or redirects from a succ
   model.setup = { ...model.setup, complete: true, locked: true }
   model.snapshot.nextAction = 'review_offer'
   await page.goto('/setup?payment=success')
-  await page
-    .getByRole('button', { name: 'Continue to workspace', exact: true })
-    .click()
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
   await expect(
     page.getByRole('button', {
       name: 'Continue to secure Checkout',

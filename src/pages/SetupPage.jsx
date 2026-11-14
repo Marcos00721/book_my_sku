@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraftGuard } from "../hooks/useDraftGuard";
 import { useJourneyStatus } from "../hooks/useJourneyStatus";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useResource } from "../hooks/useResource";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
 import { getAuthClient } from "../services/auth";
 import { createOnboardingCoordinator } from "../services/onboardingCoordinator";
@@ -16,10 +17,8 @@ import { GeographyFields } from "../components/workspace/GeographyFields";
 import { CheckoutTerms } from "../components/workspace/CheckoutTerms";
 import { PaymentHandoff } from "../components/workspace/PaymentHandoff";
 import { SetupCelebration } from "../components/workspace/SetupCelebration";
-import {
-  SetupStepper,
-  setupStepFromJourney,
-} from "../components/workspace/SetupStepper";
+import { SetupStepper } from "../components/workspace/SetupStepper";
+import { setupStepFromJourney } from "../utils/setupProgress";
 import {
   Action,
   ErrorNotice,
@@ -41,17 +40,23 @@ import {
 
 export function SetupPage() {
   const journey = useJourneyStatus();
+  if (journey.loading) return <Loading label="Loading your setup progress…" />;
+  if (!journey.data)
+    return <ErrorNotice error={journey.error} retry={journey.reload} />;
+  return <SetupJourney key={journey.data.actorId} journey={journey} />;
+}
+
+function SetupJourney({ journey }) {
   const [searchParams] = useSearchParams();
   const [handoff, setHandoff] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
   const [wizardPhase, setWizardPhase] = useState("company");
-  const [celebration, setCelebration] = useState(() =>
-    searchParams.get("payment") === "success" ? "payment" : null,
-  );
-  if (journey.loading) return <Loading label="Loading your setup progress…" />;
-  if (!journey.data)
-    return <ErrorNotice error={journey.error} retry={journey.reload} />;
   const current = journey.data;
+  const [celebrationAllowed] = useState(() =>
+    searchParams.get("payment") === "success" ||
+    !["open_workspace", "choose_workspace", "contact_owner"].includes(current.nextAction),
+  );
+  const [celebrationDismissed, setCelebrationDismissed] = useState(false);
   const assistedGrant =
     import.meta.env.VITE_ASSISTED_ONBOARDING_ENABLED === "true" &&
     current.assisted?.current?.scope === "organization" &&
@@ -59,9 +64,35 @@ export function SetupPage() {
       ? current.assisted.current
       : null;
   const action = current.nextAction;
+  const opensWorkspace = ["open_workspace", "choose_workspace"].includes(action);
+  // Once a workspace is active, journey omits billing. Read its authoritative
+  // status before celebrating a Checkout return or a live setup transition.
+  const returnedBilling = useResource(
+    celebrationAllowed &&
+    !celebrationDismissed &&
+    !assistedGrant &&
+    opensWorkspace &&
+    !current.billing &&
+    current.application?.status === "approved"
+      ? `/applications/${current.application.id}/billing`
+      : null,
+  );
+  const paymentConfirmed =
+    (current.billing || returnedBilling.data)?.billingEligible === true;
+  const celebratingPayment =
+    celebrationAllowed && !celebrationDismissed && !assistedGrant &&
+    paymentConfirmed && !journey.error;
+  const finishPaymentCelebration = useCallback(() => {
+    setCelebrationDismissed(true);
+    setHandoff(null);
+    setWizardPhase("workspace");
+  }, []);
+  if (returnedBilling.loading)
+    return <Loading label="Checking your payment confirmation…" />;
   if (
     ["open_workspace", "choose_workspace", "contact_owner"].includes(action) &&
-    !(assistedGrant && current.setup)
+    !(assistedGrant && current.setup) &&
+    !celebratingPayment
   )
     return <Navigate to="/app" replace />;
   if (
@@ -95,20 +126,19 @@ export function SetupPage() {
       current.billing?.status,
     );
   const activeStep =
-    celebration === "payment"
+    celebratingPayment
       ? "payment"
-      : wizardPhase === "payment"
-        ? "payment"
-        : wizardPhase === "celebrate"
-          ? "company"
-          : current.setup &&
-              (!current.setup.complete || collectAtFinish || resumeCheckout)
+      : (paymentConfirmed || assistedGrant) && current.setup?.complete
+        ? "workspace"
+        : wizardPhase === "payment" || (resumeCheckout && current.setup?.complete)
+          ? "payment"
+          : wizardPhase === "celebrate"
             ? "company"
             : setupStepFromJourney(current);
   const completedThrough =
-    activeStep === "workspace"
+    activeStep === "workspace" && paymentConfirmed
       ? "payment"
-      : activeStep === "payment" || wizardPhase === "celebrate"
+      : current.setup?.complete || activeStep === "payment" || wizardPhase === "celebrate"
         ? "company"
         : null;
   function changed(nextJourney, paymentRequest) {
@@ -147,24 +177,25 @@ export function SetupPage() {
           status manually, or contact support if billing remains pending.
         </p>
       )}
-      {action === "contact_support" && (
+      {["contact_support", "support_required"].includes(action) && (
         <p className="notice">
-          Your workspace needs support review. Your company details and existing
-          payment remain in place. {current.platform?.reason}
+          {current.platform?.reason === "PLATFORM_NOT_READY"
+            ? "Workspace setup is temporarily unavailable. Your saved company details are preserved. Contact support or check the current status again."
+            : "Your workspace needs support review. Your saved company details are preserved."}
+          {paymentConfirmed ? " Your confirmed payment remains in place." : ""}
         </p>
       )}
-      {celebration === "payment" ? (
+      {celebratingPayment ? (
         <section className="panel setup-step-panel">
           <SetupCelebration
             title="Payment confirmed"
-            description="Your card details are saved. Next, finish preparing your workspace."
+            description="Your payment is verified. Taking you to your workspace next."
             continueLabel="Continue to workspace"
-            autoAdvanceMs={0}
-            onContinue={() => setCelebration(null)}
+            onContinue={finishPaymentCelebration}
           />
         </section>
       ) : null}
-      {celebration === "payment"
+      {celebratingPayment
         ? null
         : current.setup && (
             <div className="setup-step-panel">
@@ -187,7 +218,7 @@ export function SetupPage() {
               />
             </div>
           )}
-      {celebration === "payment" ? null : handoff ? (
+      {celebratingPayment ? null : handoff ? (
         <div className="setup-step-panel">
           <PaymentHandoff
             request={handoff}
@@ -274,14 +305,16 @@ function CompanySetup({
   const sectionTitle =
     wizardPhase === "payment"
       ? "Payment"
-      : wizardPhase === "celebrate"
-        ? "Company details"
+      : wizardPhase === "workspace" && !editing
+        ? "Workspace"
         : "Company details";
   return (
     <section className="panel">
       <div className="section-heading">
         <h2>{sectionTitle}</h2>
-        <Status value={setup.complete ? "complete" : "in progress"} />
+        <Status value={sectionTitle === "Workspace"
+          ? organization?.status || "pending"
+          : setup.complete ? "complete" : "in progress"} />
       </div>
       {(setup.locked || setup.complete) && !editing ? (
         <>
@@ -417,7 +450,6 @@ function CompanyForm({
     error: null,
     uncertain: false,
   })
-  const navigate = useNavigate()
   const mutation = state
   const completion = state
   const geographyValues = form.watch()
@@ -565,9 +597,7 @@ function CompanyForm({
           : null
       if (paymentRequest) setRedirectingToPayment(true)
       else setState({ pending: false, error: null, uncertain: false })
-      if (['open_workspace', 'choose_workspace'].includes(journey.nextAction))
-        navigate('/app')
-      else saved(journey, paymentRequest)
+      saved(journey, paymentRequest)
     } catch (error) {
       setRedirectingToPayment(false)
       const uncertain = !error.status || error.status >= 500

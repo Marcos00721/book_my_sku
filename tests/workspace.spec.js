@@ -587,9 +587,7 @@ test('restarting Checkout recovers a server-verified existing session without cr
     if (request.url().endsWith('/checkout')) checkouts++
   })
   await page.goto('/setup?payment=success')
-  await page
-    .getByRole('button', { name: 'Continue to workspace', exact: true })
-    .click()
+  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Resume payment / recover' }).click()
   await expect(
     page.getByRole('link', { name: 'Continue secure payment' }),

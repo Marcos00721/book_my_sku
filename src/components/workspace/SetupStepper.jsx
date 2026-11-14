@@ -4,28 +4,6 @@ const STEPS = [
   { id: 'workspace', label: 'Workspace' },
 ]
 
-export function setupStepFromJourney(journey, { editing = false } = {}) {
-  const setup = journey?.setup
-  const action = journey?.nextAction
-  if (!setup || !setup.complete || editing) return 'company'
-
-  if (
-    [
-      'review_offer',
-      'recover_payment',
-      'wait_billing',
-      'review_and_start',
-      'refresh_billing',
-    ].includes(action) ||
-    ['checkout_creating', 'checkout_pending', 'requires_action'].includes(
-      journey?.billing?.status,
-    )
-  )
-    return 'payment'
-
-  return 'workspace'
-}
-
 export function SetupStepper({ current, completedThrough }) {
   const activeIndex = Math.max(
     0,
@@ -67,5 +45,3 @@ export function SetupStepper({ current, completedThrough }) {
     </nav>
   )
 }
-
-export { STEPS as SETUP_STEPS }
