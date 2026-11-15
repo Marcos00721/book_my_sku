@@ -96,18 +96,20 @@ test('entry forms save the chosen category without publishing or replacing other
   await dialog
     .getByRole('textbox', { name: 'Name', exact: true })
     .fill('Cancelled entry')
-  page.once('dialog', (confirmation) => confirmation.dismiss())
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  const confirmation = page.getByRole('dialog', { name: 'Discard changes?', exact: true })
+  await confirmation.getByRole('button', { name: 'Keep editing', exact: true }).click()
   await expect(
     dialog.getByRole('textbox', { name: 'Name', exact: true }),
   ).toHaveValue('Cancelled entry')
-  page.once('dialog', (confirmation) => confirmation.accept())
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await confirmation.getByRole('button', { name: 'Discard', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(writes).toHaveLength(0)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
   dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Category').selectOption('decoration_method')
+  await dialog.getByLabel('Category').click()
+  await page.getByRole('option', { name: 'Decoration methods', exact: true }).click()
   await dialog
     .getByRole('textbox', { name: 'Name', exact: true })
     .fill('  Laser engraving  ')

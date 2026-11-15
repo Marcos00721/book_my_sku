@@ -930,6 +930,102 @@
 .setup-step-panel {
   animation: setup-step-in 0.28s ease-out;
 }
+.setup-step-panel + .setup-step-panel {
+  margin-top: var(--space-lg);
+}
+.setup-company-summary .section-heading {
+  gap: var(--space-md);
+  margin-bottom: 0;
+}
+.setup-company-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.setup-company-heading p {
+  margin: var(--space-micro) 0 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+.setup-company-icon,
+.setup-preparation-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--size-control);
+  height: var(--size-control);
+  border-radius: var(--radius-control);
+}
+.setup-company-icon {
+  background: rgb(var(--color-success-muted));
+  color: rgb(var(--color-success));
+}
+.setup-company-actions {
+  flex-shrink: 0;
+  gap: var(--space-sm);
+}
+.setup-preparation-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-md);
+}
+.setup-preparation-icon {
+  background: rgb(var(--color-primary) / 0.1);
+  color: rgb(var(--color-primary));
+}
+.setup-preparation-copy {
+  display: grid;
+  gap: var(--space-xs);
+}
+.setup-preparation-copy h2,
+.setup-preparation-copy p,
+.setup-preparation-next p {
+  margin: 0;
+}
+.setup-preparation-next {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-ml);
+  padding-top: var(--space-md);
+  border-top: var(--border-width) solid var(--glass-border);
+}
+.setup-preparation-next > svg {
+  flex-shrink: 0;
+  margin-top: var(--space-micro);
+  color: rgb(var(--color-text-muted));
+}
+.setup-preparation-next h3 {
+  font-size: var(--font-size-sm);
+}
+.setup-preparation-next p {
+  margin-top: var(--space-micro);
+  font-size: var(--font-size-xs);
+}
+.setup-preparation-panel .error-notice {
+  margin: var(--space-md) 0 0;
+}
+@media (max-width: 640px) {
+  .setup-company-summary .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .setup-company-summary .setup-company-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .setup-preparation-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+  .setup-preparation-heading > .status {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
 @keyframes setup-step-in {
   from {
     opacity: 0;

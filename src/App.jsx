@@ -168,7 +168,7 @@ export default function App() {
         <Route path="/onboarding" element={<Navigate to="/setup" replace />} />
         <Route
           path="/billing/return"
-          element={<Navigate to="/setup" replace />}
+          element={<SignedIn><SetupPage /></SignedIn>}
         />
         <Route path="/team/accept" element={<InvitationPage />} />
         <Route

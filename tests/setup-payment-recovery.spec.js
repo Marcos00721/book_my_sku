@@ -109,7 +109,7 @@ test('an uncertain company completion remains retryable after an offer change wi
     })
     .click()
   await expect(page.getByRole('alert').first()).toContainText(
-    'SETUP_CHANGED',
+    'Your company details changed or completion could not be confirmed.',
   )
   offerRevision = 4
   await page

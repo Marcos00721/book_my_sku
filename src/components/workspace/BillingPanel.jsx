@@ -1,6 +1,6 @@
 import { dateLabel, money } from '../../utils/format'
-import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { CreditCard, ExternalLink, LoaderCircle, RefreshCw } from 'lucide-react'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { mutate, paymentDestination } from '../../services/workspace'
@@ -33,14 +33,16 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
   const reconcileLocked = useRef(false)
   const autoRefreshDone = useRef(false)
   const busy = Boolean(busyAction)
-  function reload() {
+  const reloadOffer = offerResource.reload
+  const reloadBilling = billingResource.reload
+  const reload = useCallback(() => {
     if (!snapshot) {
-      offerResource.reload()
-      billingResource.reload()
+      reloadOffer()
+      reloadBilling()
     }
     changed?.()
-  }
-  async function reconcile(action) {
+  }, [snapshot, reloadOffer, reloadBilling, changed])
+  const reconcile = useCallback(async (action) => {
     if (reconcileLocked.current) return
     reconcileLocked.current = true
     setBusyAction(action)
@@ -68,15 +70,20 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
       reconcileLocked.current = false
       setBusyAction(null)
     }
-  }
+  }, [path, reload])
   // Workspace billing page: sync once on open so writes unlock without a
   // manual click. Setup waiting states keep refresh disabled/manual.
   useEffect(() => {
     if (autoRefreshDone.current || snapshot || waiting) return
     if (offer.loading || billing.loading || offer.error || billing.error) return
     if (!billing.data) return
-    autoRefreshDone.current = true
-    void reconcile('refresh')
+    let canceled = false
+    queueMicrotask(() => {
+      if (canceled || autoRefreshDone.current) return
+      autoRefreshDone.current = true
+      void reconcile('refresh')
+    })
+    return () => { canceled = true }
   }, [
     snapshot,
     waiting,
@@ -85,11 +92,33 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
     billing.loading,
     billing.error,
     billing.data,
+    reconcile,
   ])
   if (offer.loading || billing.loading)
     return <Loading label="Loading your billing details…" />
   if (offer.error || billing.error)
     return <ErrorNotice error={offer.error || billing.error} retry={reload} />
+  if (offer.data.state === 'preparing')
+    return (
+      <section className="panel setup-preparation-panel" aria-labelledby={`preparation-${applicationId}`}>
+        <div className="setup-preparation-heading">
+          <span className="setup-preparation-icon" aria-hidden="true"><LoaderCircle size={24} className="spin" /></span>
+          <div className="setup-preparation-copy">
+            <h2 id={`preparation-${applicationId}`}>Getting your workspace ready</h2>
+            <p className="muted">Your workspace is being prepared automatically. Your plan and payment options will appear here when it’s ready.</p>
+          </div>
+          <Status value="preparing" />
+        </div>
+        <div className="setup-preparation-next">
+          <CreditCard size={20} aria-hidden="true" />
+          <div>
+            <h3>Next: review your plan</h3>
+            <p className="muted">You’ll confirm your offer before continuing to secure payment.</p>
+          </div>
+        </div>
+        <ErrorNotice error={error} />
+      </section>
+    )
   const status = billing.data
   const pendingRecovery =
     snapshot?.nextAction === 'wait_billing' &&
@@ -117,6 +146,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
       {offer.data.state === 'available' ? (
         <CheckoutOffer
           key={`${offer.data.offer.revision}:${offer.data.consent.termsVersion}`}
+          flowVersion={status.flowVersion}
           path={path}
           preview={
             snapshot
@@ -125,6 +155,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
                   checkoutAllowed:
                     offer.data.checkoutAllowed &&
                     snapshot.platform?.ready === true &&
+                    (status.flowVersion !== 4 || snapshot.nextAction === 'review_offer') &&
                     !waiting,
                 }
               : offer.data
@@ -295,6 +326,11 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
             </Action>
           )}
       </div>
+      {pendingRecovery && (
+        <h3>{['checkout_creating', 'checkout_pending'].includes(status.status)
+          ? status.flowVersion === 4 ? 'Your subscription Checkout is being prepared' : 'Your secure card setup is being prepared'
+          : 'Your billing confirmation is processing'}</h3>
+      )}
       {pendingRecovery && (
         <PendingBillingRecovery
           key={`${path}:${status.status}:${status.revision ?? 0}`}
@@ -505,10 +541,12 @@ function StartSubscription({ path, preview, reload }) {
   )
 }
 
-function CheckoutOffer({ path, preview, reload }) {
+function CheckoutOffer({ path, preview, flowVersion, reload }) {
   const [consent, setConsent] = useState(false)
   const [linkError, setLinkError] = useState(null)
   const mutation = useMutation()
+  const subscriptionCheckout = flowVersion != null ? flowVersion === 4 : preview.checkoutMode === 'subscription'
+  const startTrial = subscriptionCheckout && preview.firstCharge?.trialMonths > 0
   async function checkout(event) {
     event.preventDefault()
     const result = await mutation.run('post', `${path}/checkout`, {
@@ -529,6 +567,7 @@ function CheckoutOffer({ path, preview, reload }) {
       <form onSubmit={checkout}>
         <CheckoutTerms
           preview={preview}
+          subscriptionCheckout={subscriptionCheckout}
           checked={consent}
           change={setConsent}
           disabled={mutation.pending || mutation.uncertain}
@@ -538,6 +577,9 @@ function CheckoutOffer({ path, preview, reload }) {
           <Action variant="secondary" onClick={reload}>
             Reload offer and review again
           </Action>
+        )}
+        {['BILLING_BUSY', 'CHECKOUT_ALREADY_STARTED'].includes(mutation.error?.code) && (
+          <Action variant="secondary" onClick={reload}>Check existing payment status</Action>
         )}
         {mutation.uncertain && (
           <p className="notice">
@@ -552,7 +594,9 @@ function CheckoutOffer({ path, preview, reload }) {
             ? 'Preparing secure Checkout…'
             : mutation.uncertain
               ? 'Retry same Checkout'
-              : 'Continue to secure Checkout'}
+              : subscriptionCheckout
+                ? startTrial ? 'Start trial' : 'Pay and subscribe'
+                : 'Continue to secure Checkout'}
           <ExternalLink size={15} />
         </Action>
       </form>

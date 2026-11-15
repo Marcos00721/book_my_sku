@@ -8,7 +8,7 @@ import {
   RefreshCw,
   UserRound,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthPageContent } from '../components/auth/AuthPageContent'
 import { RegistrationIdentity } from '../components/auth/RegistrationIdentity'
@@ -24,6 +24,7 @@ import { useAppForm } from '../components/forms/useAppForm'
 import { formatNumber } from '../utils/phone'
 import { api, ApiError } from '../services/api'
 import { useAuthSession } from '../hooks/useAuthSession'
+import { hasPendingInvitation } from '../services/invitation'
 import {
   registerFormSchema,
   registrationApplicationSchema,
@@ -42,9 +43,13 @@ const defaultValues = {
 
 export function RegisterPage() {
   const { session, loading, error } = useAuthSession()
-  const unifiedEnabled = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED === 'true'
+  const unifiedEnabled = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED !== 'false'
+  const invitationSignup = hasPendingInvitation()
 
-  if (unifiedEnabled && (!session || !session.user.email_confirmed_at))
+  if (!loading && invitationSignup && session?.user.email_confirmed_at)
+    return <Navigate to="/team/accept" replace />
+
+  if (!loading && unifiedEnabled && !invitationSignup && (!session || !session.user.email_confirmed_at))
     return <UnifiedRegistration session={session} />
 
   return (
@@ -52,8 +57,8 @@ export function RegisterPage() {
       <AuthPageContent
         id="register-title"
         eyebrow="Make room for what's next"
-        title="Start something great."
-        description="Apply for a BookMySku workspace with your verified email and company details."
+        title={invitationSignup ? 'Join your team.' : 'Start something great.'}
+        description={invitationSignup ? 'Create your sign-in to accept your team invitation.' : 'Check your application status and continue setting up your workspace.'}
       >
         {error && (
           <p role="alert" className="text-sm text-danger">
@@ -68,7 +73,7 @@ export function RegisterPage() {
             session={session}
           />
         ) : (
-          <RegistrationIdentity session={session} />
+          <RegistrationIdentity session={session} invitation={invitationSignup} />
         )}
         <p className="mt-lg text-center text-sm leading-relaxed text-text-muted">
           Already have an account?{' '}
@@ -99,9 +104,14 @@ function RegistrationApplication({ session }) {
   const [editing, setEditing] = useState(false)
   const submission = useRef(null)
   const retryAfter = useRef(0)
+  const resumeAfter = useRef(0)
 
   const loadStatus = useCallback(async (signal) => {
-    const response = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED === 'true'
+    if (Date.now() < resumeAfter.current)
+      throw new ApiError('Your application is still processing. Please wait a minute before checking again.', {
+        status: 429, code: 'RATE_LIMITED', retryAfterMs: resumeAfter.current - Date.now(),
+      })
+    const response = import.meta.env.VITE_REGISTRATION_HOOK_ENABLED !== 'false'
       ? await api.post('/registration/resume', {}, { signal })
       : await api.get('/onboarding/me', { signal })
     const result = onboardingStatusSchema.safeParse(response?.data)
@@ -110,6 +120,8 @@ function RegistrationApplication({ session }) {
         'The server returned an unexpected registration status. Please try again.',
         { status: 502, code: 'INVALID_RESPONSE' },
       )
+    if (result.data.phase === 'awaiting_email_verification')
+      resumeAfter.current = Date.now() + 60000
     return result.data
   }, [])
 
@@ -289,10 +301,10 @@ function RegistrationApplication({ session }) {
             </Button>
           </div>
         </>
-      ) : phase === 'awaiting_email_verification' ? (
+      ) : phase === 'awaiting_email_verification' && !recovery ? (
         <section role="status" className="space-y-md rounded-card border border-border-subtle bg-surface-muted p-lg">
-          <h2 className="text-xl font-semibold">Confirm your email</h2>
-          <p className="text-sm">Your request is waiting for email confirmation and backend processing. Refresh this page after confirming your address.</p>
+          <h2 className="text-xl font-semibold">We’re checking your application</h2>
+          <p className="text-sm">Your email is verified. Your saved registration details are still being processed. Check the status again in a minute.</p>
           <Button
             variant="secondary"
             disabled={refreshing}

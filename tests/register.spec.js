@@ -65,26 +65,33 @@ test('signup waits for email confirmation before making any backend application 
     })
   })
   await page.goto('/register')
+  await fillRegistration(page)
   await page.getByLabel('Email address').fill('Alex@Example.com')
   await page.getByLabel('Password', { exact: true }).fill('StrongPassword1')
   await page
     .getByLabel('Confirm password', { exact: true })
     .fill('DifferentPassword1')
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create account and apply', exact: true })
     .click()
   await expect(page.getByText('Your passwords do not match.')).toBeVisible()
   await page
     .getByLabel('Confirm password', { exact: true })
     .fill('StrongPassword1')
   await page
-    .getByRole('button', { name: 'Create account', exact: true })
+    .getByRole('button', { name: 'Create account and apply', exact: true })
     .click()
   await expect(
     page.getByRole('heading', { name: 'Check your email' }),
   ).toBeVisible()
   expect(signup.body.email).toBe('alex@example.com')
   expect(signup.body.password).toBe('StrongPassword1')
+  expect(signup.body.data.bookmysku_application).toEqual({
+    firstName: 'Alex', lastName: 'Morgan', email: 'alex@example.com',
+    contactNumber: '+14155550123', companyName: 'Studio Goods',
+    companyWebsite: 'https://example.com', termsAccepted: true, termsVersion: 'v2',
+  })
+  expect(JSON.stringify(signup.body.data)).not.toContain('StrongPassword1')
   expect(signup.body.code_challenge).toBeTruthy()
   expect(new URL(signup.url).searchParams.get('redirect_to')).toBe(
     `${new URL(page.url()).origin}/auth/callback`,

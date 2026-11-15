@@ -15,6 +15,8 @@ export default defineConfig({
       VITE_API_BASE_URL: '/api/v1',
       VITE_SUPABASE_URL: 'https://registration-test.supabase.co',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_browser_test_key',
+      VITE_REGISTRATION_HOOK_ENABLED: 'true',
+      VITE_REGISTRATION_TERMS_VERSION: 'v2',
     },
     url: 'http://127.0.0.1:5174',
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_TEST_SERVER === 'true',

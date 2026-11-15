@@ -1,6 +1,7 @@
 import { dateLabel, money } from '../utils/format'
 import { formatNumber } from '../utils/phone'
 import { useEffect, useState } from 'react'
+import { ArrowLeft, ChevronDown, RefreshCw, Search } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
@@ -127,8 +128,11 @@ function Applications() {
       />
     )
   return (
-    <section className="panel">
-      <div className="toolbar">
+    <section className="panel admin-list-panel">
+      <div className="section-heading">
+        <div><h2>Company applications</h2><p className="muted">Find a request and open it to review the company and its offer.</p></div>
+      </div>
+      <div className="toolbar admin-list-toolbar">
         <Field
           label="Review status"
           value={status}
@@ -153,15 +157,16 @@ function Applications() {
           <Field
             label="Exact email"
             type="email"
+            placeholder="name@company.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
           <Action type="submit" variant="secondary">
-            Find
+            <Search size={16} aria-hidden="true" /> Find
           </Action>
         </form>
         <Action variant="secondary" onClick={resource.reload}>
-          Refresh
+          <RefreshCw size={16} aria-hidden="true" /> Refresh
         </Action>
       </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
@@ -237,19 +242,19 @@ function ApplicationOverview({ id, back }) {
   const [command, setCommand] = useState(null)
   if (resource.loading) return <Loading />
   if (resource.error)
-    return <ErrorNotice error={resource.error} retry={resource.reload} />
+    return <><Action variant="text-button" onClick={back}><ArrowLeft size={16} aria-hidden="true" /> Back to applications</Action><ErrorNotice error={resource.error} retry={resource.reload} /></>
   const { application, offer, organization } = resource.data
   return (
-    <>
-      <Action variant="text-button" onClick={back}>
-        ← Back to applications
+    <div className={`admin-record${application.status === 'approved' ? ' admin-application-record' : ''}`}>
+      <Action className="admin-back" variant="text-button" onClick={back}>
+        <ArrowLeft size={16} aria-hidden="true" /> Back to applications
       </Action>
       <section className="panel">
         <div className="section-heading">
           <h2>{application.companyName}</h2>
           <Status value={application.status} />
         </div>
-        <dl className="detail-list">
+        <dl className="detail-list admin-profile-details">
           {[
             ['Contact', `${application.firstName} ${application.lastName}`],
             ['Email', application.email],
@@ -264,7 +269,7 @@ function ApplicationOverview({ id, back }) {
           ].map(([label, value]) => (
             <div key={label}>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              <dd>{value || 'Not provided'}</dd>
             </div>
           ))}
         </dl>
@@ -322,7 +327,7 @@ function ApplicationOverview({ id, back }) {
           }}
         />
       )}
-    </>
+    </div>
   )
 }
 
@@ -489,32 +494,33 @@ function StandardPlan() {
   const [editing, setEditing] = useState(false)
   return (
     <>
-      <section className="panel">
-        <h2>Standard plan</h2>
+      <section className="panel admin-plan-panel">
+        <h2>Current standard plan</h2>
         <ErrorNotice error={resource.error} retry={resource.reload} />
         {resource.loading ? (
           <Loading />
         ) : (
           resource.data && (
-            <>
-              <p className="muted">Version {resource.data.plan.version}</p>
-              <div className="price-phase">
+            <div className="admin-plan-summary">
+              <div className="admin-plan-price">
                 <strong>
                   {money(
                     resource.data.plan.unitAmountMinor,
                     resource.data.plan.currency,
                   )}
                 </strong>
-                <small>per seat / month</small>
+                <span className="muted">per seat / month</span>
+                <span className="admin-tool-count">Version {resource.data.plan.version}</span>
               </div>
-              <p className="muted">
+              <div className="admin-plan-description"><p className="muted">
                 A new version affects future offers. Accepted agreements keep
                 their original prices.
               </p>
               <Action onClick={() => setEditing(true)}>
                 Create a new plan version
               </Action>
-            </>
+              </div>
+            </div>
           )
         )}
       </section>
@@ -591,8 +597,9 @@ function HistoryList({ path, title }) {
     queryPath(path, { after: history.at(-1), limit: 20 }),
   )
   return (
-    <section className="panel">
-      <h2>{title}</h2>
+    <details className="panel admin-history">
+      <summary><h2>{title}</h2><span className="muted">{resource.error ? 'Unavailable' : resource.loading ? 'Loading…' : `${resource.data?.items?.length || 0} ${resource.data?.items?.length === 1 ? 'entry' : 'entries'}`}</span><ChevronDown size={18} aria-hidden="true" /></summary>
+      <div className="admin-history-body">
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
         <ListSkeleton label={`Loading ${title.toLowerCase()}…`} variant="list" rows={4} />
@@ -633,7 +640,9 @@ function HistoryList({ path, title }) {
           </div>
         </div>
       )}
-    </section>
+      {!resource.loading && !resource.error && resource.data?.items?.length === 0 && <p className="muted">No history recorded yet.</p>}
+      </div>
+    </details>
   )
 }
 
@@ -804,23 +813,30 @@ function ExtensionEditor({ id, revision, close, saved }) {
 function PermissionCatalog() {
   const resource = useResource('/admin/permissions')
   const [selected, setSelected] = useState(null)
+  const [query, setQuery] = useState('')
+  const entries = resource.data?.items || []
+  const visible = entries.filter(entry => `${entry.label} ${entry.key}`.toLowerCase().includes(query.trim().toLowerCase()))
   return (
-    <section className="panel">
-      <h2>Platform permission catalog</h2>
+    <section className="panel admin-permissions-panel">
+      <div className="section-heading"><div><h2>Available permissions</h2>
       <p className="muted">
         Catalog changes affect effective access immediately. Only supported
         capabilities can be configured.
       </p>
+      </div><span className="admin-tool-count">{query.trim() ? `${visible.length} of ` : ''}{entries.length} permissions</span></div>
+      <div className="admin-catalog-search">
+        <Field label="Find a permission" type="search" placeholder="Search by name or permission key" value={query} onChange={event => setQuery(event.target.value)} icon={<Search size={16} />} />
+      </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
         <ListSkeleton label="Loading permissions…" variant="list" />
       ) : (
-        resource.data?.items.map((entry) => (
-          <div className="grant-row" key={entry.key}>
-            <span>
-              {entry.label}
-              <small className="muted"> · {entry.key}</small>
-            </span>
+        <div className="admin-permission-list">{visible.map((entry) => (
+          <div className="grant-row admin-permission-row" key={entry.key}>
+            <div className="admin-permission-name">
+              <strong>{entry.label}</strong>
+              <small className="muted">{entry.key}</small>
+            </div>
             <div className="actions">
               <Status value={entry.enabled ? 'active' : 'disabled'} />
               <Action variant="secondary" onClick={() => setSelected(entry)}>
@@ -828,8 +844,9 @@ function PermissionCatalog() {
               </Action>
             </div>
           </div>
-        ))
+        ))}</div>
       )}
+      {!resource.loading && !resource.error && !visible.length && <Empty title="No matching permissions">Try another name or permission key.</Empty>}
       {selected && (
         <CatalogEditor
           entry={selected}

@@ -27,7 +27,7 @@ export const select = 'crm-input crm-select box-border inline-flex h-control w-f
 export const inputInvalid = 'crm-input-invalid'
 export const dropdown = {
   panel: 'glass-dropdown flex flex-col overflow-hidden p-xs',
-  searchWrap: 'mb-xs flex shrink-0 items-center gap-xs rounded-md border border-border-subtle bg-transparent px-sm py-xs',
+  searchWrap: 'crm-dropdown-search mb-xs flex shrink-0 items-center gap-xs rounded-md border border-border-subtle bg-transparent px-sm py-xs',
   searchInput: 'h-touch w-full min-w-0 border-0 bg-transparent text-sm text-text-base outline-none placeholder:text-text-subtle',
   list: 'min-h-0 flex-1 overflow-y-auto overscroll-contain',
   option: 'crm-dropdown-option flex w-full cursor-pointer items-center justify-between gap-sm px-md py-sm text-left text-sm',

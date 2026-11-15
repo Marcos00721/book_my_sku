@@ -116,7 +116,7 @@ export function AuthCallbackPage() {
         id="callback-title"
         eyebrow="Your account"
         title="Confirming your email"
-        description="Your company application is the next step."
+        description="We’ll check your application status and take you to your next step."
       >
         {error ? (
           <div className="space-y-md">

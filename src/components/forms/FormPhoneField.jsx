@@ -6,7 +6,7 @@ export function FormPhoneField({
   icon = <Phone />,
   autoComplete = 'tel-national',
   placeholder = '123-456-7890',
-  hint = 'Enter 10 digits. Country code +1 is added automatically.',
+  // hint = 'Enter 10 digits. Country code +1 is added automatically.',
   ...props
 }) {
   return (
@@ -18,7 +18,7 @@ export function FormPhoneField({
       placeholder={placeholder}
       icon={icon}
       prefix="+1"
-      hint={hint}
+      // hint={hint}
       maxLength={12}
       formatValue={formatNumber}
     />

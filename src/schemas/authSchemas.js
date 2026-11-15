@@ -86,4 +86,6 @@ export const registrationApplicationSchema = z.object({
 export const onboardingStatusSchema = z.object({
   termsVersion: z.string().min(1),
   application: registrationApplicationSchema.nullable(),
+  phase: z.string().optional(),
+  recovery: z.enum(['accept_current_terms', 'retry_or_contact_support']).nullable().optional(),
 })

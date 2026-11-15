@@ -9,7 +9,7 @@ import { useAppForm } from "../forms/useAppForm";
 import { signupFormSchema } from "../../schemas/authSchemas";
 import { authConfigured, getAuthClient } from "../../services/auth";
 
-export function RegistrationIdentity({ session }) {
+export function RegistrationIdentity({ session, invitation = false }) {
   const form = useAppForm(signupFormSchema, {
     defaultValues: { email: "", password: "", confirmPassword: "" },
   });
@@ -41,7 +41,7 @@ export function RegistrationIdentity({ session }) {
         <h2 className="text-xl font-semibold">Check your email</h2>
         <p className="wrap-break-words text-sm">
           Open the confirmation link sent to {emailSent || session.user.email}{" "}
-          in this browser, then continue with your company details.
+          {invitation ? 'in this browser, then return to your invitation.' : 'in this browser, then continue with your company details.'}
         </p>
         <p className="text-sm text-text-muted">
           If you already confirmed your email,{" "}
@@ -63,8 +63,9 @@ export function RegistrationIdentity({ session }) {
       className="space-y-lg"
     >
       <p className="text-sm text-text-muted">
-        First create your sign-in and confirm your email. Then submit your
-        company application for review.
+        {invitation
+          ? 'Create your sign-in with the invited email and confirm it. Then accept your team invitation.'
+          : 'First create your sign-in and confirm your email. Then submit your company application for review.'}
       </p>
       {!authConfigured && (
         <p role="alert" className="text-sm text-danger">

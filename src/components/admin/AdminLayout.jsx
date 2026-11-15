@@ -88,7 +88,7 @@ export function AdminLayout({ section, children }) {
             }
           />
           <ErrorNotice error={error} />
-          <div key={section}>{children}</div>
+          <div className="admin-content" key={section}>{children}</div>
         </main>
         <footer className="workspace-footer">
           <span>BookMySku · Administration</span>

@@ -221,6 +221,18 @@
   box-shadow: var(--shadow-float);
   color: rgb(var(--color-text-base));
 }
+.crm-dropdown-search:focus-within {
+  border-color: rgb(var(--color-primary));
+  box-shadow: var(--shadow-focus);
+}
+.crm-dropdown-search input,
+.crm-dropdown-search input:focus {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
 .crm-dropdown-option {
   border-radius: var(--radius-md);
   color: rgb(var(--color-text-base));

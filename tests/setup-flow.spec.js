@@ -107,6 +107,7 @@ async function mockFlow(page, initial, handle = async () => false, session) {
       return reply(state.current)
     }
     if (await handle({ path, request, route, reply, state })) return
+    if (path === `${root}/refresh`) return reply(state.current.billing)
     if (path === '/onboarding/setup' && request.method() === 'GET')
       return reply(state.current.setup)
     return route.fulfill({
@@ -168,7 +169,7 @@ for (const [nextAction, status] of [
     await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
     await expect(steps.locator('li').filter({ hasText: 'Payment' })).not.toHaveClass(/is-done/)
     await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
-    expect(state.calls.every(call => call.method === 'GET')).toBe(true)
+    expect(state.calls.filter(call => call.method !== 'GET').map(call => call.path)).toEqual([`${root}/refresh`])
   })
 }
 
@@ -190,11 +191,11 @@ test('verified payment shows confetti once then automatically advances to worksp
   state.current.billing = { flowVersion: 4, status: 'active', billingEligible: true }
   state.current.provisioning = { status: 'pending', provisioning: { state: 'in_progress' } }
   await page.getByRole('button', { name: 'Check current status', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Subscription confirmed', exact: true })).toBeVisible()
   await expect(page.locator('.setup-celebration-burst')).toHaveCount(7)
   await expect(steps.locator('[aria-current="step"]')).toHaveText(/Payment/)
   await page.clock.fastForward(2300)
-  await expect(page.getByRole('heading', { name: 'Payment confirmed', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Subscription confirmed', exact: true })).toHaveCount(0)
   await expect(steps.locator('[aria-current="step"]')).toHaveText(/Workspace/)
   await expect(steps.locator('li').filter({ hasText: 'Payment' })).toHaveClass(/is-done/)
   await expect(page.getByRole('heading', { name: 'Workspace', exact: true })).toBeVisible()

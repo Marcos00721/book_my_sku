@@ -81,7 +81,7 @@ for (const width of [320, 375, 768, 1024, 1440]) {
       }
       await page
         .getByRole('button', {
-          name: path === '/login' ? 'Sign in' : 'Create account',
+          name: path === '/login' ? 'Sign in' : 'Create account and apply',
           exact: true,
         })
         .click()

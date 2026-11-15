@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, Inbox, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Inbox } from 'lucide-react'
 import { ButtonLink } from '../../components/common/ButtonLink'
 import {
   adminSections,
@@ -10,27 +10,16 @@ export function AdminOverview() {
   return (
     <>
       <section className="admin-welcome panel">
-        <div>
-          <span className="eyebrow">MAKE THE NEXT STEP COUNT</span>
-          <h2>
-            Every great workspace
-            <br />
-            starts with a good welcome.
-          </h2>
+        <span className="admin-tool-icon" aria-hidden="true"><Inbox size={24} /></span>
+        <div className="admin-welcome-copy">
+          <h2>Keep new workspaces moving.</h2>
           <p className="muted">
-            Review incoming applications, shape the right offer, and help each
-            business get started.
+            Review incoming applications and prepare the right offer for each business.
           </p>
-          <ButtonLink to={adminSectionPath('applications')}>
-            Review applications <ArrowRight size={16} aria-hidden="true" />
-          </ButtonLink>
         </div>
-        <div className="admin-welcome-art" aria-hidden="true">
-          <Inbox size={62} strokeWidth={1.2} />
-          <span>
-            <ShieldCheck size={23} />
-          </span>
-        </div>
+        <ButtonLink to={adminSectionPath('applications')}>
+          Review applications <ArrowRight size={16} aria-hidden="true" />
+        </ButtonLink>
       </section>
       <div className="admin-section-heading">
         <div>
@@ -57,10 +46,6 @@ export function AdminOverview() {
               <span className="eyebrow">{group}</span>
               <h3>{label}</h3>
               <p className="muted">{description}</p>
-              <span className="admin-tool-open">
-                Open {label.toLowerCase()}{' '}
-                <ArrowRight size={14} aria-hidden="true" />
-              </span>
             </Link>
           ))}
       </div>

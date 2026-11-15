@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraftGuard } from "../hooks/useDraftGuard";
 import { useJourneyStatus } from "../hooks/useJourneyStatus";
 import { useResource } from "../hooks/useResource";
-import { useSearchParams } from "react-router-dom";
+import { useCheckoutRefresh } from "../hooks/useCheckoutRefresh";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
 import { getAuthClient } from "../services/auth";
 import { createOnboardingCoordinator } from "../services/onboardingCoordinator";
 import { ConflictReview } from "../components/workspace/RecordTools";
 import { Navigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, Pencil } from "lucide-react";
 import { BrandMark } from "../components/auth/BrandMark";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { ButtonLink } from "../components/common/ButtonLink";
@@ -48,12 +49,13 @@ export function SetupPage() {
 
 function SetupJourney({ journey }) {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [handoff, setHandoff] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
   const [wizardPhase, setWizardPhase] = useState("company");
   const current = journey.data;
   const [celebrationAllowed] = useState(() =>
-    searchParams.get("payment") === "success" ||
+    location.pathname === '/billing/return' || searchParams.get("payment") === "success" ||
     !["open_workspace", "choose_workspace", "contact_owner"].includes(current.nextAction),
   );
   const [celebrationDismissed, setCelebrationDismissed] = useState(false);
@@ -64,6 +66,9 @@ function SetupJourney({ journey }) {
       ? current.assisted.current
       : null;
   const action = current.nextAction;
+  const subscriptionCheckout = current.billing?.flowVersion != null
+    ? current.billing.flowVersion === 4
+    : current.offer?.checkoutMode === 'subscription';
   const opensWorkspace = ["open_workspace", "choose_workspace"].includes(action);
   // Once a workspace is active, journey omits billing. Read its authoritative
   // status before celebrating a Checkout return or a live setup transition.
@@ -77,11 +82,18 @@ function SetupJourney({ journey }) {
       ? `/applications/${current.application.id}/billing`
       : null,
   );
+  const paymentReturn = location.pathname === '/billing/return' || searchParams.has('payment');
+  const checkoutRefresh = useCheckoutRefresh({
+    snapshot: current,
+    returned: paymentReturn,
+    enabled: !assistedGrant && (subscriptionCheckout || returnedBilling.data?.flowVersion === 4),
+    accept: journey.accept,
+  });
   const paymentConfirmed =
-    (current.billing || returnedBilling.data)?.billingEligible === true;
+    (checkoutRefresh.billing || current.billing || returnedBilling.data)?.billingEligible === true;
   const celebratingPayment =
     celebrationAllowed && !celebrationDismissed && !assistedGrant &&
-    paymentConfirmed && !journey.error;
+    paymentConfirmed && !journey.error && !checkoutRefresh.pending && !checkoutRefresh.error;
   const finishPaymentCelebration = useCallback(() => {
     setCelebrationDismissed(true);
     setHandoff(null);
@@ -89,6 +101,10 @@ function SetupJourney({ journey }) {
   }, []);
   if (returnedBilling.loading)
     return <Loading label="Checking your payment confirmation…" />;
+  if (checkoutRefresh.pending)
+    return <Loading label="Verifying your Checkout with the billing service…" />;
+  if (checkoutRefresh.error)
+    return <ErrorNotice error={checkoutRefresh.error} retry={checkoutRefresh.retry} />;
   if (
     ["open_workspace", "choose_workspace", "contact_owner"].includes(action) &&
     !(assistedGrant && current.setup) &&
@@ -114,6 +130,7 @@ function SetupJourney({ journey }) {
     return <Navigate to="/assisted" replace />;
   const collectAtFinish =
     !assistedGrant &&
+    !subscriptionCheckout &&
     current.setup &&
     !current.setup.complete &&
     !current.setup.locked &&
@@ -188,8 +205,10 @@ function SetupJourney({ journey }) {
       {celebratingPayment ? (
         <section className="panel setup-step-panel">
           <SetupCelebration
-            title="Payment confirmed"
-            description="Your payment is verified. Taking you to your workspace next."
+            title={subscriptionCheckout || returnedBilling.data?.flowVersion === 4 ? 'Subscription confirmed' : 'Payment confirmed'}
+            description={subscriptionCheckout || returnedBilling.data?.flowVersion === 4
+              ? 'Your subscription is verified. Taking you to your workspace next.'
+              : 'Your payment is verified. Taking you to your workspace next.'}
             continueLabel="Continue to workspace"
             onContinue={finishPaymentCelebration}
           />
@@ -205,6 +224,7 @@ function SetupJourney({ journey }) {
                 setup={current.setup}
                 organization={current.provisioning}
                 nextAction={action}
+                subscriptionCheckout={subscriptionCheckout}
                 assistedGrantId={assistedGrant?.id}
                 assistedEligible={assistedGrant?.access?.eligible}
                 applicationId={current.application?.id}
@@ -242,6 +262,7 @@ function SetupJourney({ journey }) {
           </ButtonLink>
         </section>
       ) : current.application?.status === "approved" &&
+        (!subscriptionCheckout || current.setup?.complete) &&
         current.billing &&
         current.offer &&
         action !== "contact_support" &&
@@ -265,6 +286,7 @@ function CompanySetup({
   setup,
   organization,
   nextAction,
+  subscriptionCheckout,
   assistedGrantId,
   assistedEligible,
   applicationId,
@@ -295,7 +317,7 @@ function CompanySetup({
     if (await preparation.run("post", path, {})) changed();
   }
   const mayPrepare =
-    nextAction === "prepare_workspace" ||
+    (!subscriptionCheckout && nextAction === "prepare_workspace") ||
     (nextAction === "prepare_assisted_workspace" &&
       assistedGrantId &&
       assistedEligible &&
@@ -308,20 +330,48 @@ function CompanySetup({
       : wizardPhase === "workspace" && !editing
         ? "Workspace"
         : "Company details";
+  const completed = (setup.locked || setup.complete) && !editing;
+  const compactSummary = completed && subscriptionCheckout && !organization?.failureCode;
+  const canEdit = !setup.locked && nextAction !== "contact_support";
+  const editDisabled = mutation.pending || mutation.uncertain || preparation.pending || preparation.uncertain;
+  function editCompany() {
+    onWizardPhaseChange?.("company");
+    setEditing(true);
+  }
   return (
-    <section className="panel">
+    <section className={`panel${compactSummary ? ' setup-company-summary' : ''}`}>
       <div className="section-heading">
-        <h2>{sectionTitle}</h2>
-        <Status value={sectionTitle === "Workspace"
-          ? organization?.status || "pending"
-          : setup.complete ? "complete" : "in progress"} />
+        {compactSummary ? (
+          <div className="setup-company-heading">
+            <span className="setup-company-icon" aria-hidden="true"><CheckCircle2 size={22} /></span>
+            <div>
+              <h2>{sectionTitle}</h2>
+              <p className="muted">{[setup.industry, setup.address?.city, setup.address?.country].filter(Boolean).join(' · ') || 'Your company details are saved.'}</p>
+            </div>
+          </div>
+        ) : <h2>{sectionTitle}</h2>}
+        <div className="actions setup-company-actions">
+          <Status value={sectionTitle === "Workspace"
+            ? organization?.status || "pending"
+            : setup.complete ? "complete" : "in progress"} />
+          {compactSummary && canEdit && (
+            <Action variant="text-button" disabled={editDisabled} onClick={editCompany}>
+              <Pencil size={15} aria-hidden="true" />
+              Edit company details
+            </Action>
+          )}
+        </div>
       </div>
-      {(setup.locked || setup.complete) && !editing ? (
+      {compactSummary ? (
+        <ErrorNotice error={mutation.error || preparation.error} retry={changed} />
+      ) : completed ? (
         <>
           <p className="muted">
             {setup.locked
               ? organization?.status === "prepared"
-                ? "Your company details are saved and locked. Your workspace is prepared; complete the card and billing steps below."
+                ? subscriptionCheckout
+                  ? "Your company details are saved and your workspace is prepared. Review the offer below to continue with your subscription."
+                  : "Your company details are saved and locked. Your workspace is prepared; complete the card and billing steps below."
                 : "Your company details are locked while your workspace is provisioned."
               : "Company details are complete. Follow the current workspace step before continuing."}
           </p>
@@ -356,7 +406,7 @@ function CompanySetup({
                     : "Prepare workspace"}
                 <ArrowRight size={16} />
               </Action>
-            ) : nextAction === "activate_workspace" ? (
+            ) : !subscriptionCheckout && nextAction === "activate_workspace" ? (
               <Action disabled={mutation.pending} onClick={activate}>
                 {mutation.pending
                   ? "Activating workspace…"
@@ -364,19 +414,11 @@ function CompanySetup({
                 <ArrowRight size={16} />
               </Action>
             ) : null}
-            {!setup.locked && nextAction !== "contact_support" && (
+            {canEdit && (
               <Action
                 variant="secondary"
-                disabled={
-                  mutation.pending ||
-                  mutation.uncertain ||
-                  preparation.pending ||
-                  preparation.uncertain
-                }
-                onClick={() => {
-                  onWizardPhaseChange?.("company");
-                  setEditing(true);
-                }}
+                disabled={editDisabled}
+                onClick={editCompany}
               >
                 Edit company details
               </Action>
@@ -680,11 +722,12 @@ function CompanyForm({
           values={companySetupPayload(form.getValues())}
           onReview={async (current) => {
             try {
+              const draft = form.getValues()
               const instance = factory.current(current)
               await instance.load()
               setCoordinator(instance)
               setRevision(current.revision)
-              form.reset(companySetupDefaults(current))
+              form.reset(draft)
               setState({ pending: false, error: null, uncertain: false })
             } catch (error) {
               setState({
@@ -710,6 +753,7 @@ function CompanyForm({
             </div>
             <CheckoutTerms
               preview={paymentPreview}
+              subscriptionCheckout={false}
               checked={paymentAccepted}
               change={(checked) => {
                 clearApiError()
@@ -848,11 +892,12 @@ function CompanyForm({
         values={companySetupPayload(form.getValues())}
         onReview={async (current) => {
           try {
+            const draft = form.getValues()
             const instance = factory.current(current)
             await instance.load()
             setCoordinator(instance)
             setRevision(current.revision)
-            form.reset(companySetupDefaults(current))
+            form.reset(draft)
             setState({ pending: false, error: null, uncertain: false })
           } catch (error) {
             setState({

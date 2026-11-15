@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { Pencil, Plus, RefreshCw } from 'lucide-react'
+import { ChevronDown, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
 import { readData } from '../../services/workspace'
@@ -237,11 +237,11 @@ export function MasterDataTemplates() {
             {notice}
           </p>
         )}
-        <p className="muted">
+        <p className="admin-list-meta">
           {remaining} entries remaining in this category ·{' '}
-          {draft.entries.length}/400 total · {draftBytes}/60,000 bytes. Archived
-          rows count toward capacity.
+          {draft.entries.length}/400 total
         </p>
+        <details className="admin-capacity"><summary>Storage limits</summary><p>{draftBytes}/60,000 bytes. Archived rows count toward capacity.</p></details>
         <ErrorNotice error={error} retry={refreshDraft} />
         <div
           id="template-entries"
@@ -316,7 +316,7 @@ export function MasterDataTemplates() {
           </Action>
         </div>
       </section>
-      <section className="panel">
+      <section className="panel admin-publication-panel">
         <h2>Publish a reviewed version</h2>
         {missingCategories.length > 0 && (
           <p className="notice">
@@ -381,13 +381,9 @@ export function MasterDataTemplates() {
         <p className="muted">
           Include at least one active entry in each category. Published lists
           are copied into new workspaces; existing workspaces keep their own
-          entries.
+          entries. Workspaces already being set up keep their selected version.
         </p>
-        <p>
-          Applies to future onboarding only. Existing organization copies and
-          already pinned onboarding keep their selected version.
-        </p>
-        <form onSubmit={publishDraft}>
+        <form className="admin-publish-form" onSubmit={publishDraft}>
           <Field
             label="Reason for publishing"
             required
@@ -418,14 +414,17 @@ export function MasterDataTemplates() {
         </form>
       </section>
       <TemplateHistory key={historyVersion} />
-      <section className="panel">
+      <details className="panel admin-history">
+        <summary><h2>Platform template activity</h2><ChevronDown size={18} aria-hidden="true" /></summary>
+        <div className="admin-history-body">
         <ActivityHistory
           key={`activity:${historyVersion}`}
           path="/admin/master-data/history"
           title="Platform template activity"
           actions={['master.draft', 'master.publish']}
         />
-      </section>
+        </div>
+      </details>
       {editor && (
         <TemplateEntryForm
           draft={draft}
@@ -607,8 +606,9 @@ function TemplateHistory() {
     selected ? `/admin/master-data/versions/${selected}` : null,
   )
   return (
-    <section className="panel">
-      <h2>Published versions</h2>
+    <details className="panel admin-history">
+      <summary><h2>Published versions</h2><span className="muted">{resource.error ? 'Unavailable' : `${resource.data?.items?.length || 0} versions`}</span><ChevronDown size={18} aria-hidden="true" /></summary>
+      <div className="admin-history-body">
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading ? (
         <ListSkeleton label="Loading published versions…" variant="list" rows={4} />
@@ -656,16 +656,20 @@ function TemplateHistory() {
                     : 'Publication evidence unavailable'}
                 </p>
                 <p>{detail.data.publication?.reason || 'Reason unavailable'}</p>
-                {detail.data.entries?.map((entry) => (
-                  <p key={`${entry.category}:${entry.key}`}>
-                    {entry.category} · {entry.label} · {entry.status}
-                  </p>
-                ))}
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead><tr><th>Category</th><th>Name</th><th>Status</th></tr></thead>
+                    <tbody>{detail.data.entries?.map(entry => (
+                      <tr key={`${entry.category}:${entry.key}`}><td>{categories[entry.category] || entry.category}</td><td>{entry.label}</td><td><Status value={entry.status} /></td></tr>
+                    ))}</tbody>
+                  </table>
+                </div>
               </>
             )
           )}
         </Dialog>
       )}
-    </section>
+      </div>
+    </details>
   )
 }

@@ -35,6 +35,19 @@
   width: min(9.5rem, 56vw);
 }
 
+.auth-register.auth-shell {
+  height: auto;
+  overflow: visible;
+}
+
+.auth-register .auth-form-wrap {
+  position: relative;
+  inset: auto;
+  transform: none;
+  padding-inline: 0;
+  margin-block: auto;
+}
+
 .auth-form-wrap {
   position: absolute;
   inset: 50% 0 auto;
@@ -89,6 +102,23 @@
   text-align: center;
 }
 
+.auth-signup-terms label {
+  gap: var(--space-xs);
+  line-height: 1.5;
+}
+
+.auth-signup-terms input[type='checkbox'] {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  padding: 0;
+  margin: calc((1.5em - var(--size-icon-sm)) / 2) 0 0;
+}
+
+.auth-signup-terms label > span {
+  min-width: 0;
+  flex: 1;
+}
+
 @media (min-width: 821px) and (min-height: 768px) {
   .auth-shell {
     height: 100svh;
@@ -116,7 +146,7 @@
     grid-column: 1 / -1;
   }
 
-  .auth-signup-grid input {
+  .auth-signup-grid input:not([type='checkbox']) {
     height: 2.45rem;
     padding-block: var(--space-tiny);
   }

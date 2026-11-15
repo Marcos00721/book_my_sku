@@ -19,7 +19,9 @@ export function createOnboardingCoordinator({
     queue = Promise.resolve(),
     sealed = false
   const failure = (code, details = {}) =>
-    Object.assign(new Error(code), { code, ...details })
+    Object.assign(new Error(code === 'SETUP_CHANGED'
+      ? 'Your company details changed or completion could not be confirmed. Review the latest version and retry.'
+      : code), { code, ...details })
   const check = () => {
     if (currentActorId() !== actorId) throw failure('ACCOUNT_CHANGED')
   }
@@ -151,13 +153,16 @@ export function createOnboardingCoordinator({
           state = await call('GET', '/onboarding/journey')
           // One bounded pass. Leases/payment/SCA/consent stop the pass; the UI uses
           // retryAfter with backoff, never a refresh loop or return-URL flag.
-          if (state.nextAction === 'prepare_workspace')
+          const subscriptionCheckout = state.billing?.flowVersion != null
+            ? state.billing.flowVersion === 4
+            : state.offer?.checkoutMode === 'subscription'
+          if (!subscriptionCheckout && state.nextAction === 'prepare_workspace')
             state = await transition('/onboarding/setup/prepare')
           if (state.nextAction === 'refresh_billing')
             state = await transition(
               `/applications/${state.application.id}/billing/refresh`,
             )
-          if (state.nextAction === 'activate_workspace')
+          if (!subscriptionCheckout && state.nextAction === 'activate_workspace')
             state = await transition('/onboarding/activate')
           if (
             ['open_workspace', 'choose_workspace'].includes(state.nextAction)

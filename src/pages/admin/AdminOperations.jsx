@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowLeft, ChevronDown, Plus, RefreshCw } from 'lucide-react'
 import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
 import { queryPath } from '../../services/workspace'
@@ -20,7 +21,34 @@ export function AssistedAdmin() {
   const [creating, setCreating] = useState(false)
   const resource = useResource(queryPath('/admin/assisted', { limit: 25, after: history.at(-1) }))
   if (selected) return <AssistedRecord id={selected} back={() => { setSelected(null); resource.reload() }} />
-  return <section className="panel"><div className="section-heading"><div><h2>Assisted onboarding</h2><p className="muted">Create and track reviewed customer offers and seat requests. Recurring billing still needs the owner’s separate consent.</p></div><div className="actions"><Action variant="secondary" onClick={resource.reload}>Refresh</Action><Action onClick={() => setCreating(true)}>New assisted offer</Action></div></div><div className="notice">This feature requires the backend rollout flag and a qualified staging environment. A disabled endpoint should remain a clear rollout response.</div><ErrorNotice error={resource.error} retry={resource.reload} />{resource.loading ? <ListSkeleton label="Loading assisted offers…" columns={['Recipient', 'Scope', 'Status', 'Expires', 'Revision', '']} /> : resource.data?.items?.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Recipient</th><th>Scope</th><th>Status</th><th>Expires</th><th>Revision</th><th /></tr></thead><tbody>{resource.data.items.map((grant) => <tr key={grant.id}><td>{grant.profile?.companyName || grant.email || grant.profile?.email || grant.organizationId}</td><td>{grant.scope}</td><td><Status value={grant.status || grant.state} /></td><td>{dateLabel(grant.expiresAt)}</td><td>{grant.revision}</td><td><Action variant="secondary" onClick={() => setSelected(grant.id)}>Open</Action></td></tr>)}</tbody></table></div> : !resource.error && <Empty title="No assisted offers yet">Create an offer after verifying the customer request through an approved channel.</Empty>}{resource.data && <div className="table-bottom"><span>{resource.data.items.length} offers</span><div className="actions"><Action variant="secondary" disabled={!history.length} onClick={() => setHistory((items) => items.slice(0,-1))}>Previous</Action><Action variant="secondary" disabled={!resource.data.next} onClick={() => setHistory((items) => [...items,resource.data.next])}>Next</Action></div></div>}{creating && <AssistedCreate close={() => setCreating(false)} saved={() => { setCreating(false); setHistory([]); resource.reload() }} />}</section>
+  return (
+    <section className="panel admin-list-panel">
+      <div className="section-heading">
+        <div><h2>Assisted onboarding</h2><p className="muted">Reviewed offers and seat requests. Recurring billing requires the owner’s consent.</p></div>
+        <div className="actions">
+          <Action variant="secondary" onClick={resource.reload}><RefreshCw size={16} aria-hidden="true" /> Refresh</Action>
+          <Action onClick={() => setCreating(true)}><Plus size={16} aria-hidden="true" /> New assisted offer</Action>
+        </div>
+      </div>
+      <ErrorNotice error={resource.error} retry={resource.reload} />
+      {resource.loading ? <ListSkeleton label="Loading assisted offers…" columns={['Recipient', 'Scope', 'Status', 'Expires', 'Revision', '']} /> : resource.data?.items?.length ? (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Recipient</th><th>Scope</th><th>Status</th><th>Expires</th><th>Revision</th><th><span className="sr-only">Actions</span></th></tr></thead>
+            <tbody>{resource.data.items.map(grant => (
+              <tr key={grant.id}>
+                <td>{grant.profile?.companyName || grant.email || grant.profile?.email || grant.organizationId}<small>{grant.profile?.companyName ? grant.profile.email : ''}</small></td>
+                <td>{grant.scope}</td><td><Status value={grant.status || grant.state} /></td><td>{dateLabel(grant.expiresAt)}</td><td>{grant.revision}</td>
+                <td><Action variant="secondary" onClick={() => setSelected(grant.id)}>Open</Action></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ) : !resource.error && <Empty title="No assisted offers yet">Create an offer after verifying the customer request through an approved channel.</Empty>}
+      {resource.data && <div className="table-bottom"><span>{resource.data.items.length} offers</span><div className="actions"><Action variant="secondary" disabled={!history.length} onClick={() => setHistory(items => items.slice(0, -1))}>Previous</Action><Action variant="secondary" disabled={!resource.data.next} onClick={() => setHistory(items => [...items, resource.data.next])}>Next</Action></div></div>}
+      {creating && <AssistedCreate close={() => setCreating(false)} saved={() => { setCreating(false); setHistory([]); resource.reload() }} />}
+    </section>
+  )
 }
 
 function AssistedCreate({ close, saved }) {
@@ -40,12 +68,57 @@ function AssistedCreate({ close, saved }) {
     } : { scope, organizationId: form.organizationId.trim(), email: form.email.trim().toLowerCase(), role: form.role, expiresAt, ...evidence }
     if (await mutation.run('post','/admin/assisted',body)) saved()
   }
-  return <Dialog title="Create an assisted offer" close={close} locked={mutation.pending || mutation.uncertain}><form onSubmit={submit}><fieldset disabled={mutation.pending || mutation.uncertain}><Field label="Offer type" value={scope} onChange={(event) => setScope(event.target.value)}><option value="organization">New workspace</option><option value="seat">Team seat request</option></Field>
-    {scope === 'organization' ? <div className="form-grid">{[['firstName','First name'],['lastName','Last name'],['email','Verified recipient email'],['companyName','Company name'],['contactNumber','Phone'],['companyWebsite','Website (optional)']].map(([key,label]) => <Field key={key} label={label} type={key === 'email' ? 'email' : key === 'contactNumber' ? 'tel' : 'text'} inputMode={key === 'contactNumber' ? 'tel' : undefined} maxLength={key === 'contactNumber' ? 12 : undefined} placeholder={key === 'contactNumber' ? '123-456-7890' : undefined} required={!['companyWebsite','lastName'].includes(key)} value={form[key]} onChange={(event) => set(key, key === 'contactNumber' ? formatNumber(event.target.value) : event.target.value)} />)}<Field label="Billing agreement" value={form.termsKind} onChange={(event) => set('termsKind',event.target.value)}><option value="deferred">Future monthly billing</option><option value="complimentary">Complimentary</option></Field>{form.termsKind === 'deferred' && <><Field label="Billing starts at" type="datetime-local" required value={form.startsAt} onChange={(event) => set('startsAt',event.target.value)} /><Field label="Monthly price per seat (USD cents)" type="number" min="1" required value={form.unitAmountMinor} onChange={(event) => set('unitAmountMinor',event.target.value)} /></>}</div> : <div className="form-grid"><Field label="Workspace ID" required value={form.organizationId} onChange={(event) => set('organizationId',event.target.value)} /><Field label="Recipient email" type="email" required value={form.email} onChange={(event) => set('email',event.target.value)} /><Field label="Requested role" value={form.role} onChange={(event) => set('role',event.target.value)}><option value="member">Member</option><option value="admin">Admin</option><option value="viewer">Viewer</option></Field></div>}
-    <Field label="Offer expires at" type="datetime-local" required value={form.expiresAt} onChange={(event) => set('expiresAt',event.target.value)} />
-    <Field label="Verification channel" value={form.verifiedChannel} onChange={(event) => set('verifiedChannel',event.target.value)}><option value="verified_email">Verified email</option><option value="verified_call">Verified call</option><option value="signed_request">Signed request</option></Field>
-    <Field label="Support case / request reference" required maxLength={120} value={form.requestReference} onChange={(event) => set('requestReference',event.target.value)} /><Field label="Reason for offer" required maxLength={500} value={form.reason} onChange={(event) => set('reason',event.target.value)} />
-    </fieldset><SaveFooter mutation={mutation} close={close} label="Create reviewed offer" /></form></Dialog>
+  return (
+    <Dialog title="Create an assisted offer" close={close} locked={mutation.pending || mutation.uncertain}>
+      <form onSubmit={submit}>
+        <fieldset disabled={mutation.pending || mutation.uncertain}>
+          <Field label="Offer type" value={scope} onChange={event => setScope(event.target.value)}><option value="organization">New workspace</option><option value="seat">Team seat request</option></Field>
+          <section className="admin-form-section" aria-labelledby="assisted-recipient-title">
+            <h3 id="assisted-recipient-title">Recipient details</h3>
+            {scope === 'organization' ? (
+              <div className="form-grid">
+                {[
+                  ['firstName', 'First name'], ['lastName', 'Last name'], ['email', 'Verified recipient email'],
+                  ['companyName', 'Company name'], ['contactNumber', 'Phone'], ['companyWebsite', 'Website (optional)'],
+                ].map(([key, label]) => (
+                  <Field key={key} label={label} type={key === 'email' ? 'email' : key === 'contactNumber' ? 'tel' : 'text'}
+                    inputMode={key === 'contactNumber' ? 'tel' : undefined} maxLength={key === 'contactNumber' ? 12 : undefined}
+                    placeholder={key === 'contactNumber' ? '123-456-7890' : undefined} required={!['companyWebsite', 'lastName'].includes(key)}
+                    value={form[key]} onChange={event => set(key, key === 'contactNumber' ? formatNumber(event.target.value) : event.target.value)} />
+                ))}
+              </div>
+            ) : (
+              <div className="form-grid">
+                <Field label="Workspace ID" required value={form.organizationId} onChange={event => set('organizationId', event.target.value)} />
+                <Field label="Recipient email" type="email" required value={form.email} onChange={event => set('email', event.target.value)} />
+                <Field label="Requested role" value={form.role} onChange={event => set('role', event.target.value)}><option value="member">Member</option><option value="admin">Admin</option><option value="viewer">Viewer</option></Field>
+              </div>
+            )}
+          </section>
+          <section className="admin-form-section" aria-labelledby="assisted-agreement-title">
+            <h3 id="assisted-agreement-title">Agreement and timing</h3>
+            <div className="form-grid">
+              {scope === 'organization' && <>
+                <Field label="Billing agreement" value={form.termsKind} onChange={event => set('termsKind', event.target.value)}><option value="deferred">Future monthly billing</option><option value="complimentary">Complimentary</option></Field>
+                {form.termsKind === 'deferred' && <>
+                  <Field label="Billing starts at" type="datetime-local" required value={form.startsAt} onChange={event => set('startsAt', event.target.value)} />
+                  <Field label="Monthly price per seat (USD cents)" type="number" min="1" required value={form.unitAmountMinor} onChange={event => set('unitAmountMinor', event.target.value)} />
+                </>}
+              </>}
+              <Field label="Offer expires at" type="datetime-local" required value={form.expiresAt} onChange={event => set('expiresAt', event.target.value)} />
+            </div>
+          </section>
+          <section className="admin-form-section" aria-labelledby="assisted-evidence-title">
+            <h3 id="assisted-evidence-title">Verification evidence</h3>
+            <Field label="Verification channel" value={form.verifiedChannel} onChange={event => set('verifiedChannel', event.target.value)}><option value="verified_email">Verified email</option><option value="verified_call">Verified call</option><option value="signed_request">Signed request</option></Field>
+            <Field label="Support case / request reference" required maxLength={120} value={form.requestReference} onChange={event => set('requestReference', event.target.value)} />
+            <Field label="Reason for offer" required maxLength={500} value={form.reason} onChange={event => set('reason', event.target.value)} />
+          </section>
+        </fieldset>
+        <SaveFooter mutation={mutation} close={close} label="Create reviewed offer" />
+      </form>
+    </Dialog>
+  )
 }
 
 function AssistedRecord({ id, back }) {
@@ -54,7 +127,33 @@ function AssistedRecord({ id, back }) {
   if (resource.loading) return <Loading />
   if (resource.error) return <><Action variant="text-button" onClick={back}>← Back</Action><ErrorNotice error={resource.error} retry={resource.reload} /></>
   const grant = resource.data.grant || resource.data
-  return <><Action variant="text-button" onClick={back}>← Back to offers</Action><section className="panel"><div className="section-heading"><div><h2>{grant.profile?.companyName || grant.email || grant.profile?.email}</h2><p className="muted">{grant.scope} · revision {grant.revision}</p></div><Status value={grant.status || grant.state} /></div><dl className="detail-list">{[['Recipient',grant.profile?.email || grant.email],['Expires',dateLabel(grant.expiresAt)],['Billing start',dateLabel(grant.terms?.billingStartsAt)],['Price per seat',grant.terms?.unitAmountMinor ? money(grant.terms.unitAmountMinor,grant.terms.currency) : 'Complimentary'],['Request reference',grant.requestReference]].map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl><p className="muted">Record verified request evidence for every change. These controls never start billing.</p><div className="actions"><Action variant="secondary" onClick={() => setCommand('resend')}>Resend invite</Action>{grant.scope === 'organization' && <Action variant="secondary" onClick={() => setCommand('edit')}>Revise future offer</Action>}<Action variant="danger-button" onClick={() => setCommand('revoke')}>Revoke offer</Action></div></section><section className="panel"><h2>Recent delivery history</h2>{resource.data.deliveries?.length ? resource.data.deliveries.map((item) => <div className="grant-row" key={item.id}><span>{item.action}<small className="muted"> · {item.failureCode || 'No failure reported'}</small></span><Status value={item.status} /></div>) : <p className="muted">No delivery events are available.</p>}</section>{command && <AssistedChange id={id} grant={grant} command={command} close={() => setCommand(null)} saved={() => { setCommand(null); resource.reload() }} />}</>
+  return (
+    <div className="admin-record">
+      <Action className="admin-back" variant="text-button" onClick={back}><ArrowLeft size={16} aria-hidden="true" /> Back to offers</Action>
+      <section className="panel">
+        <div className="section-heading"><div><h2>{grant.profile?.companyName || grant.email || grant.profile?.email}</h2><p className="muted">{grant.scope} · revision {grant.revision}</p></div><Status value={grant.status || grant.state} /></div>
+        <dl className="detail-list admin-profile-details">
+          {[
+            ['Recipient', grant.profile?.email || grant.email], ['Expires', dateLabel(grant.expiresAt)],
+            ['Billing start', dateLabel(grant.terms?.billingStartsAt)],
+            ['Price per seat', grant.terms?.unitAmountMinor ? money(grant.terms.unitAmountMinor, grant.terms.currency) : 'Complimentary'],
+            ['Request reference', grant.requestReference],
+          ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}
+        </dl>
+        <p className="muted">Record verified request evidence for every change. These controls never start billing.</p>
+        <div className="actions">
+          <Action variant="secondary" onClick={() => setCommand('resend')}>Resend invite</Action>
+          {grant.scope === 'organization' && <Action variant="secondary" onClick={() => setCommand('edit')}>Revise future offer</Action>}
+          <Action variant="danger-button" onClick={() => setCommand('revoke')}>Revoke offer</Action>
+        </div>
+      </section>
+      <details className="panel admin-history">
+        <summary><h2>Recent delivery history</h2><ChevronDown size={18} aria-hidden="true" /></summary>
+        <div className="admin-history-body">{resource.data.deliveries?.length ? resource.data.deliveries.map(item => <div className="grant-row" key={item.id}><span>{item.action}<small className="muted"> · {item.failureCode || 'No failure reported'}</small></span><Status value={item.status} /></div>) : <p className="muted">No delivery events are available.</p>}</div>
+      </details>
+      {command && <AssistedChange id={id} grant={grant} command={command} close={() => setCommand(null)} saved={() => { setCommand(null); resource.reload() }} />}
+    </div>
+  )
 }
 
 function AssistedChange({ id, grant, command, close, saved }) {

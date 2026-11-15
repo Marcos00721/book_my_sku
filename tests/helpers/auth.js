@@ -29,4 +29,5 @@ export async function mockOnboardingStatus(page, application = null, termsVersio
     invitations: { items: [] },
   } } }))
   await page.route('**/api/v1/onboarding/me', route => route.fulfill({ json: { data: { application, termsVersion, phase: application?.status ?? 'not_submitted', organization: null } } }))
+  await page.route('**/api/v1/registration/resume', route => route.fulfill({ json: { data: { application, termsVersion, phase: application?.status ?? 'not_submitted', organization: null } } }))
 }

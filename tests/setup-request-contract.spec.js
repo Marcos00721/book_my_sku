@@ -30,7 +30,7 @@ test('company PATCH uses the revision from setup GET, bearer JSON and no cookie 
     revision: 8,
     industry: 'Current server classification',
     asiNumber: '',
-    address: {},
+    address: { line1: '1 Main Street', line2: '', city: 'Jaipur', postalCode: '302001', country: 'IN', stateCode: 'IN-RJ' },
     complete: false,
     locked: false,
   }
