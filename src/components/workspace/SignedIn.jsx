@@ -2,7 +2,8 @@ import { Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { clearMutationIntents } from '../../services/workspace'
-import { ErrorNotice, Loading } from './Elements'
+import { ErrorNotice } from './Elements'
+import { PageLoader } from '../common/Loader'
 
 export function SignedIn({ children }) {
   const auth = useAuthSession()
@@ -10,7 +11,7 @@ export function SignedIn({ children }) {
     clearMutationIntents()
     return clearMutationIntents
   }, [auth.session?.user?.id])
-  if (auth.loading) return <Loading />
+  if (auth.loading) return <PageLoader label="Checking your session…" />
   if (auth.error) return <ErrorNotice error={auth.error} />
   if (!auth.session) return <Navigate to="/login" replace />
   if (!auth.session.user.email_confirmed_at)

@@ -3,10 +3,10 @@ import { useResource } from '../hooks/useResource'
 import {
   Action,
   ErrorNotice,
-  Loading,
   PageHeader,
 } from '../components/workspace/Elements'
 import { ButtonLink } from '../components/common/ButtonLink'
+import { PageLoader } from '../components/common/Loader'
 import { hasPendingInvitation } from '../services/invitation'
 import { ApiError } from '../services/api'
 import { useJourneyStatus } from '../hooks/useJourneyStatus'
@@ -39,7 +39,7 @@ export function ContinuePage() {
 
 function AccountDestination() {
   const platform = useResource('/admin/me')
-  if (platform.loading) return <Loading label="Checking your account access…" />
+  if (platform.loading) return <PageLoader label="Checking your account…" />
 
   // The backend checks its platform allowlist before requiring MFA. Both
   // outcomes identify an admin destination; AdminPage still verifies access.
@@ -73,7 +73,7 @@ function AccountDestination() {
 function WorkspaceJourney() {
   const journey = useJourneyStatus()
   if (journey.loading)
-    return <Loading label="Checking your BookMySku journey…" />
+    return <PageLoader label="Finding your next step…" />
   if (journey.error)
     return (
       <div className="setup-layout">

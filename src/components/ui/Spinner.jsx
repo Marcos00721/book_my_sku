@@ -1,4 +1,5 @@
 import { LoaderCircle } from 'lucide-react'
+import { PageLoader } from '../common/Loader'
 
 /**
  * Accessible loading spinner — pairs with any container.
@@ -33,14 +34,5 @@ export function Spinner({
  * Full-page centered spinner for route-level loading states.
  */
 export function PageSpinner({ label = 'Opening your workspace…' }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-surface">
-      <div className="flex flex-col items-center gap-md text-center">
-        <Spinner size="lg" label={label} />
-        <p className="text-sm text-text-muted motion-safe:animate-pulse-soft">
-          {label}
-        </p>
-      </div>
-    </div>
-  )
+  return <PageLoader label={label} />
 }

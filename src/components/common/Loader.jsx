@@ -10,15 +10,19 @@ export function Loader({ label = 'Loading…', className = '' }) {
   )
 }
 
-export function PageLoader({ label = 'Opening your workspace…' }) {
+export function PageLoader({
+  label = 'Opening your workspace…',
+  description = 'Please wait while we get everything ready for you.',
+}) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface">
-      <div className="flex flex-col items-center gap-md text-center">
+    <div className="page-loading-state">
+      <div className="page-loading-content" role="status" aria-live="polite" aria-atomic="true">
         <LoaderCircle
           className="size-control motion-safe:animate-spin text-primary"
           aria-hidden="true"
         />
-        <p className={theme.text.muted}>{label}</p>
+        <p className="page-loading-title">{label}</p>
+        {description && <p className="page-loading-description">{description}</p>}
       </div>
     </div>
   )

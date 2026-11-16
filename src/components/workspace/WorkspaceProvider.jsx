@@ -9,7 +9,8 @@ import {
   queryPath,
   readData,
 } from '../../services/workspace'
-import { Action, Empty, ErrorNotice, Loading } from './Elements'
+import { Action, Empty, ErrorNotice } from './Elements'
+import { PageLoader } from '../common/Loader'
 import { ButtonLink } from '../common/ButtonLink'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { BrandMark } from '../auth/BrandMark'
@@ -21,7 +22,7 @@ export function WorkspaceProvider({ children }) {
     clearMutationIntents()
     return clearMutationIntents
   }, [auth.session?.user?.id])
-  if (auth.loading) return <Loading />
+  if (auth.loading) return <PageLoader label="Checking your session…" />
   if (auth.error) return <ErrorNotice error={auth.error} />
   if (!auth.session) return <Navigate to="/login" replace />
   if (!auth.session.user.email_confirmed_at)
@@ -130,7 +131,7 @@ function WorkspaceSession({ session, children }) {
       setLoadingMore(false)
     }
   }
-  if (organizations.loading) return <Loading />
+  if (organizations.loading) return <PageLoader />
   if (organizations.error)
     return (
       <ErrorNotice error={organizations.error} retry={organizations.reload} />
@@ -189,7 +190,7 @@ function WorkspaceSession({ session, children }) {
       </div>
     )
   if (permissions.loading || access.loading)
-    return <Loading label="Checking workspace access…" />
+    return <PageLoader label="Checking your workspace access…" />
   const error = permissions.error || access.error
   if (error)
     return (
