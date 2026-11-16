@@ -484,9 +484,10 @@
   box-shadow: var(--shadow-overlay);
   color: rgb(var(--color-text-base));
 }
-.app-dialog::backdrop, .admin-drawer::backdrop {
+.app-dialog::backdrop, .glass-modal::backdrop, .admin-drawer::backdrop {
   background: rgb(var(--color-overlay) / var(--opacity-overlay));
-  backdrop-filter: none;
+  backdrop-filter: blur(var(--modal-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur));
 }
 .app-dialog h2 {
   font-size: var(--font-size-xl);

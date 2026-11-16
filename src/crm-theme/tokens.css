@@ -160,6 +160,7 @@
   --glass-border-accent: rgb(var(--color-primary) / 0.35);
   --glass-blur: 32px;
   --glass-header-blur: 44px;
+  --modal-backdrop-blur: 8px;
   --glass-saturation: 200%;
   --canvas-glow-opacity-1: 0.06;
   --canvas-glow-opacity-2: 0.05;
