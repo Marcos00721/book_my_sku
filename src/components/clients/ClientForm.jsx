@@ -44,6 +44,11 @@ export function ClientForm({ path, client, close, saved }) {
   })
 
   useEffect(() => {
+    const frame = requestAnimationFrame(() => form.setFocus('name'))
+    return () => cancelAnimationFrame(frame)
+  }, [form])
+
+  useEffect(() => {
     const fields = mutation.error?.fields
     if (!Array.isArray(fields)) return
     for (const field of fields) {
@@ -85,9 +90,9 @@ export function ClientForm({ path, client, close, saved }) {
 
   return (
     <Dialog
-      size="lg"
+      size="md"
       className="client-form-dialog"
-      title={client ? 'Edit' : 'Create'}
+      title={client ? 'Edit client' : 'Add client'}
       close={close}
       locked={locked}
     >
@@ -97,7 +102,7 @@ export function ClientForm({ path, client, close, saved }) {
         animated={false}
         className="client-form"
       >
-        <ClientFormFields disabled={locked} autoFocusName />
+        <ClientFormFields disabled={locked} />
 
         <ClientConflictReview
           error={mutation.error}
@@ -107,7 +112,7 @@ export function ClientForm({ path, client, close, saved }) {
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={client ? 'Save' : 'Create'}
+          label={client ? 'Save' : 'Add client'}
         />
       </AppFormProvider>
     </Dialog>

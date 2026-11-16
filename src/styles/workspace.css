@@ -279,8 +279,10 @@
   position: sticky;
   top: var(--workspace-sticky-top, 52px);
   z-index: var(--layer-sticky);
-  background: rgb(var(--color-canvas));
-  padding-top: var(--space-micro);
+  /* Match the viewport-anchored canvas while covering scrolling content. */
+  background: var(--background-canvas);
+  background-attachment: fixed;
+  padding: var(--space-md);
   margin-bottom: 0;
 }
 .sticky-page-before {
@@ -294,7 +296,8 @@
   margin-bottom: var(--space-sm);
 }
 .sticky-page-chrome .page-heading {
-  margin-bottom: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-lg);
 }
 .sticky-page-meta {
   display: grid;
@@ -340,10 +343,10 @@
   padding: var(--space-sm) var(--space-md) var(--space-md);
   min-width: 0;
 }
-.metric span {
+.metric > span {
   display: block;
 }
-.metric strong {
+.metric > strong {
   display: block;
   margin-top: var(--space-tiny);
   overflow-wrap: anywhere;
@@ -805,6 +808,23 @@
   max-width: 100%;
 }
 @media (max-width: 640px) {
+  .client-detail-page .page-heading {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  .client-detail-page .page-heading > div:first-child {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .client-detail-page .client-profile-edit {
+    width: var(--size-control);
+    padding-inline: 0;
+  }
+  .client-profile-edit-label {
+    display: none;
+  }
   .company-setup-actions {
     justify-content: stretch;
   }
@@ -1047,6 +1067,7 @@
   }
 }
 .app-dialog {
+  --dialog-content-footer-gap: var(--space-lg);
   border: var(--border-width) solid rgb(var(--color-border-subtle));
   padding: var(--space-ml) var(--space-ml) var(--space-ml);
   width: min(var(--dialog-width, 480px), calc(100% - 2rem));
@@ -1071,8 +1092,10 @@
   --dialog-width: 1050px;
 }
 .app-dialog.client-form-dialog {
-  width: min(var(--dialog-width, 560px), calc(100% - 2rem));
-  padding: var(--space-ml) var(--space-ml) var(--space-ml);
+  padding: var(--space-ml);
+}
+.client-form-dialog .client-form-fields {
+  padding: var(--space-tiny);
 }
 .app-dialog.supplier-form-dialog {
   width: min(var(--dialog-width, 720px), calc(100% - 2rem));
@@ -1116,7 +1139,7 @@
   display: grid;
   gap: var(--space-ml);
   min-width: 0;
-  padding: var(--space-ml) var(--space-ml) var(--space-xs);
+  padding: var(--space-ml) var(--space-ml) var(--dialog-content-footer-gap);
 }
 .product-form-fields {
   display: grid;
@@ -1293,6 +1316,31 @@
   cursor: text;
 }
 .text-editor-surface .tiptap,
+.rich-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: var(--line-height-relaxed);
+}
+.rich-text > :first-child {
+  margin-top: 0;
+}
+.rich-text > :last-child {
+  margin-bottom: 0;
+}
+.rich-text p {
+  margin: 0 0 var(--space-sm);
+}
+.rich-text ul,
+.rich-text ol {
+  padding-left: var(--space-lg);
+  margin: var(--space-sm) 0;
+}
+.rich-text ul {
+  list-style: disc;
+}
+.rich-text ol {
+  list-style: decimal;
+}
 .text-editor-prose {
   min-height: inherit;
   outline: none;
@@ -1346,7 +1394,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-ml) var(--space-ml) var(--space-md);
+  padding: var(--space-ml) var(--space-ml) var(--dialog-content-footer-gap);
 }
 .custom-product-form > .custom-product-form-footer {
   position: static;
@@ -1719,6 +1767,223 @@
 .client-form-fields .field {
   margin-bottom: 0;
 }
+.client-form-name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.client-contacts {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.client-contacts-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.client-contacts-heading h2 {
+  margin: 0;
+}
+.client-contact-defaults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+.client-contact-default {
+  min-width: 0;
+  border: var(--border-width) solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-control);
+  background: rgb(var(--color-surface-muted));
+}
+.client-contact-default-button,
+.client-contact-default-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: var(--size-control);
+  padding: var(--space-sm);
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.client-contact-default-button {
+  cursor: pointer;
+}
+.client-contact-default-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.client-contact-default-button:focus-visible,
+.client-contact-choices button:focus-visible {
+  outline: 2px solid rgb(var(--color-focus-ring));
+  outline-offset: 2px;
+}
+.client-contact-default-button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.client-contact-default-button > span,
+.client-contact-default-value,
+.client-contact-channels {
+  display: grid;
+  gap: var(--space-micro);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.client-contact-default-button > svg {
+  flex-shrink: 0;
+  color: rgb(var(--color-text-muted));
+}
+.client-contact-default-label {
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+}
+.client-contacts-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 10rem) auto;
+  align-items: end;
+  gap: var(--space-sm);
+}
+.client-contacts-search {
+  display: flex;
+  align-items: end;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.client-contacts-search > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.client-contacts-search > button,
+.client-contacts-toolbar > button {
+  flex-shrink: 0;
+  width: var(--size-control);
+  padding-inline: 0;
+}
+.client-contacts-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.client-contacts-table th:first-child {
+  width: 28%;
+}
+.client-contacts-table th:nth-child(3) {
+  width: 7rem;
+}
+.client-contacts-table th:last-child {
+  width: 7rem;
+}
+.client-contacts-table td {
+  overflow-wrap: anywhere;
+}
+.client-contact-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-tiny);
+}
+.client-contacts > .table-bottom {
+  padding-top: 0;
+}
+.client-contact-picker {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-tiny);
+}
+.client-contact-choices {
+  display: grid;
+  gap: var(--space-tiny);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.client-contact-choices button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--size-control);
+  padding: var(--space-sm);
+  border: var(--border-width) solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-control);
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.client-contact-choices button:hover:not(:disabled),
+.client-contact-choices button[aria-pressed="true"] {
+  background: rgb(var(--color-primary-soft));
+  border-color: rgb(var(--color-primary));
+}
+.client-contact-choices button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.client-contact-choices button > span:first-child {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.client-contact-choices small {
+  color: rgb(var(--color-text-muted));
+}
+@media (max-width: 640px) {
+  .client-contacts-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .client-contacts-search {
+    grid-column: 1 / -1;
+  }
+  .client-contacts-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .client-contacts-table,
+  .client-contacts-table tbody {
+    display: block;
+  }
+  .client-contacts-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+  }
+  .client-contacts-table tbody tr + tr {
+    border-top: var(--border-width) solid rgb(var(--color-border-subtle));
+  }
+  .client-contacts .client-contacts-table td {
+    padding: 0;
+    border: 0;
+  }
+  .client-contacts .client-contacts-table tbody tr:hover td {
+    background: transparent;
+  }
+  .client-contacts-table td:nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+  .client-contacts-table td:last-child {
+    justify-self: end;
+  }
+  .client-contact-form .dialog-footer > button svg {
+    display: none;
+  }
+  .client-contact-default-button,
+  .client-contact-default-value {
+    padding: var(--space-xs);
+  }
+}
 .client-form-hint {
   margin: 0;
   font-size: var(--font-size-xs);
@@ -1742,7 +2007,8 @@
   gap: var(--space-micro);
 }
 .client-form .dialog-footer {
-  margin-top: var(--space-ml);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
 }
 .supplier-form {
   display: flex;
@@ -1751,14 +2017,178 @@
   min-height: 0;
   flex: 1;
 }
+.supplier-children-toolbar .section-heading {
+  flex-wrap: wrap;
+}
+.supplier-children-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.supplier-children-status-filter {
+  width: 8rem;
+}
+.supplier-address-grid,
+.supplier-contact-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: var(--space-md);
+}
+.supplier-address-card,
+.supplier-contact-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-md);
+  border: var(--border-width) solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-control);
+  background: rgb(var(--color-surface) / 0.65);
+}
+.supplier-address-heading,
+.supplier-contact-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.supplier-address-icon,
+.supplier-contact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: rgb(var(--color-primary-ink));
+  background: rgb(var(--color-primary-soft));
+}
+.supplier-address-heading h3,
+.supplier-contact-identity {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+.supplier-contact-identity h3 {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+.supplier-contact-identity p {
+  margin: var(--space-micro) 0 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+.supplier-address-heading .status,
+.supplier-contact-heading .status {
+  flex-shrink: 0;
+}
+.supplier-address-details,
+.supplier-contact-details {
+  padding: var(--space-sm) 0 var(--space-md);
+  overflow-wrap: anywhere;
+}
+.supplier-address-location {
+  display: grid;
+  gap: var(--space-micro);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+.supplier-contact-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+}
+.supplier-contact-details p {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+.supplier-contact-details svg {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 3px;
+  color: rgb(var(--color-text-muted));
+}
+.supplier-contact-details span {
+  min-width: 0;
+}
+.supplier-address-readiness {
+  margin: var(--space-xs) 0 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+}
+.supplier-address-footer,
+.supplier-contact-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: var(--border-width) solid rgb(var(--color-border-subtle));
+}
+.supplier-address-purposes,
+.supplier-contact-purposes {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--space-tiny);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.supplier-address-purposes li,
+.supplier-contact-purposes li {
+  padding: var(--space-micro) var(--space-xs);
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-surface-muted));
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+.supplier-address-footer .actions,
+.supplier-contact-footer .actions {
+  margin-left: auto;
+  gap: var(--space-xs);
+}
+.supplier-address-footer .crm-button,
+.supplier-contact-footer .crm-button {
+  min-height: 36px;
+  padding: var(--space-tiny) var(--space-sm);
+  font-size: var(--font-size-xs);
+}
+.supplier-contact-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+@media (max-width: 480px) {
+  .supplier-contact-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .supplier-form-fields {
   display: grid;
   gap: var(--space-ml);
   min-width: 0;
-  padding: var(--space-ml) var(--space-lg) var(--space-tiny);
+  padding: var(--space-ml) var(--space-lg) var(--dialog-content-footer-gap);
 }
 .supplier-form-fields .field {
   margin-bottom: 0;
+}
+.supplier-contact-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .supplier-form-section {
   display: grid;
@@ -1824,6 +2254,37 @@
 }
 .supplier-form-default-card {
   width: 100%;
+}
+.supplier-primary-control {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.supplier-primary-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(var(--color-text-muted));
+  cursor: pointer;
+}
+.supplier-primary-star:hover:not(:disabled),
+.supplier-primary-star[aria-pressed='true'] {
+  background: rgb(var(--color-primary-soft));
+  color: rgb(var(--color-primary-ink));
+}
+.supplier-primary-star:focus-visible {
+  outline: var(--focus-width) solid rgb(var(--color-primary));
+  outline-offset: var(--focus-offset);
+}
+.supplier-primary-star:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .supplier-capability-card {
   position: relative;
@@ -1909,7 +2370,7 @@
   }
 }
 @media (max-width: 560px) {
-  .client-form .form-grid {
+  .client-form-fields .form-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1951,6 +2412,12 @@
   gap: var(--space-tiny);
   min-width: 0;
 }
+.app-dialog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
 .app-dialog h2 {
   margin: 0;
 }
@@ -1976,8 +2443,12 @@
   flex-wrap: wrap;
   gap: var(--space-xs);
   border-top: var(--border-width) solid var(--glass-border);
-  margin-top: var(--space-lg);
+  margin-top: var(--dialog-content-footer-gap, var(--space-lg));
   padding-top: var(--space-ml);
+}
+.dialog-footer > .form-clear-button,
+.client-edit-footer > .form-clear-button {
+  margin-right: auto;
 }
 .back-link {
   display: inline-flex;
@@ -1986,6 +2457,202 @@
   color: rgb(var(--color-text-muted));
   font-size: var(--font-size-xs);
   margin-bottom: var(--space-ml);
+}
+.client-addresses {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.client-addresses-heading,
+.client-addresses-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.client-addresses-heading {
+  justify-content: space-between;
+}
+.client-addresses-heading h2 {
+  margin: 0;
+}
+.client-addresses-toolbar {
+  align-items: end;
+  flex-wrap: wrap;
+}
+.client-addresses-toolbar > :first-child {
+  width: 10rem;
+}
+.client-address-defaults {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  min-width: 0;
+  font-size: var(--font-size-xs);
+}
+.client-address-defaults > button {
+  padding-inline: var(--space-xs);
+}
+.client-address-refresh {
+  margin-left: auto;
+  width: var(--size-control);
+  padding-inline: 0;
+}
+.client-address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-md);
+}
+.client-address-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: var(--border-width) solid rgb(var(--color-border-subtle));
+  border-radius: var(--radius-control);
+  background: rgb(var(--color-surface-muted));
+  overflow-wrap: anywhere;
+}
+.client-address-card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.client-address-card-heading > svg {
+  flex-shrink: 0;
+  color: rgb(var(--color-primary-ink));
+}
+.client-address-card-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+.client-address-card-heading h3 {
+  font-size: var(--font-size-sm);
+}
+.client-address-card-heading > .status {
+  flex-shrink: 0;
+}
+.client-address-postal {
+  display: grid;
+  gap: var(--space-micro);
+  font-style: normal;
+  line-height: var(--line-height-normal);
+}
+.client-address-postal > span {
+  color: rgb(var(--color-text-muted));
+}
+.client-address-readiness {
+  margin: 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-xs);
+}
+.client-address-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.client-address-card-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-tiny);
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: var(--border-width) solid rgb(var(--color-border-subtle));
+}
+.client-address-card-actions > button:last-child:not(.crm-button-icon) {
+  margin-left: auto;
+}
+.client-addresses > .table-bottom {
+  padding-top: 0;
+}
+.app-dialog.client-address-editor {
+  padding: 0;
+  overflow: hidden;
+}
+.app-dialog.client-address-editor > .app-dialog-header {
+  margin: 0;
+  padding: var(--space-md) var(--space-ml);
+  border-bottom: var(--border-width) solid rgb(var(--color-border-subtle));
+}
+.client-address-editor > .app-dialog-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.client-address-form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.client-address-fields {
+  margin: 0;
+  padding: var(--space-md) var(--space-ml);
+  min-width: 0;
+  border: 0;
+}
+.client-address-wide {
+  grid-column: 1 / -1;
+}
+.client-address-fields .form-grid {
+  gap: var(--space-sm);
+}
+.client-address-status {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+.client-address-status p {
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+.client-address-form .dialog-footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: var(--space-md) var(--space-ml);
+  background: rgb(var(--color-surface));
+}
+@media (max-width: 560px) {
+  .client-address-fields .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .client-address-card {
+    padding: var(--space-sm);
+  }
+  .client-address-card-actions > button:not(.crm-button-icon) {
+    padding-inline: var(--space-xs);
+  }
+  .client-addresses-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .client-addresses-toolbar > :first-child {
+    width: 100%;
+  }
+  .client-address-defaults {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .client-addresses-toolbar > .client-address-refresh {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .app-dialog.client-address-editor {
+    padding: 0;
+  }
+  .app-dialog.client-address-editor > .app-dialog-header,
+  .client-address-fields,
+  .client-address-form .dialog-footer {
+    padding-inline: var(--space-md);
+  }
+  .client-address-form .dialog-footer > button {
+    padding-inline: var(--space-xs);
+  }
 }
 .address-grid {
   display: grid;
@@ -2327,6 +2994,9 @@
     align-items: flex-start;
     flex-direction: column;
   }
+  .sticky-page-chrome .page-heading {
+    align-items: flex-start;
+  }
   .welcome-panel {
     padding: var(--space-lg);
   }
@@ -2355,6 +3025,12 @@
   }
   .app-dialog {
     padding: var(--space-md);
+  }
+  .app-dialog.client-form-dialog {
+    padding: var(--space-md);
+  }
+  .client-form .dialog-footer > button {
+    padding-inline: var(--space-xs);
   }
   .app-dialog.product-form-dialog,
   .app-dialog.supplier-form-dialog {

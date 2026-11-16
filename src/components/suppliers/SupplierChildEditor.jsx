@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Star } from 'lucide-react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
@@ -9,6 +10,8 @@ import {
   supplierContactRestoreSchema,
   supplierContactToFormValues,
 } from '../../schemas/supplierChildFormSchemas'
+import { SelectField } from '../common/SelectField'
+import { Tooltip } from '../common/Tooltip'
 import { AppFormProvider } from '../forms/AppFormProvider'
 import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextField } from '../forms/FormTextField'
@@ -39,8 +42,10 @@ function PurposeFields({
   name = 'purposes',
   options,
   legend,
-  hint,
   disabled = false,
+  required = false,
+  placeholder = 'Select responsibilities',
+  searchPlaceholder = 'Search responsibilities',
 }) {
   const {
     setValue,
@@ -50,11 +55,8 @@ function PurposeFields({
   const locked = disabled || isSubmitting
   const error = errors[name]
 
-  function toggle(value) {
+  function change(next) {
     if (locked) return
-    const next = selected.includes(value)
-      ? selected.filter((item) => item !== value)
-      : [...selected, value]
     setValue(name, next, {
       shouldDirty: true,
       shouldTouch: true,
@@ -63,54 +65,43 @@ function PurposeFields({
   }
 
   return (
-    <fieldset className="supplier-form-capabilities">
-      <legend>{legend}</legend>
-      {hint ? <p className="supplier-form-hint muted">{hint}</p> : null}
-      <div
-        className={`supplier-form-capability-grid${options.length > 3 ? ' is-wide' : ''}`}
-      >
-        {options.map((value) => {
-          const checked = selected.includes(value)
-          return (
-            <label
-              key={value}
-              className={`supplier-capability-card${checked ? ' is-selected' : ''}${locked ? ' is-disabled' : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={locked}
-                onChange={() => toggle(value)}
-              />
-              <span className="supplier-capability-card-label">
-                {purposeLabel(value)}
-              </span>
-            </label>
-          )
-        })}
-      </div>
-      {error?.message ? (
-        <p className="field-error" role="alert">
-          {error.message}
-        </p>
-      ) : null}
-    </fieldset>
+    <SelectField
+      name={name}
+      label={legend}
+      required={required}
+      error={error?.message}
+      multiple
+      value={selected}
+      options={options.map((value) => ({ value, label: purposeLabel(value) }))}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      disabled={locked}
+      onChange={(event) => change(event.target.value)}
+    />
   )
 }
 
-function DefaultToggle({ label, disabled }) {
-  const { register, formState } = useFormContext()
+function DefaultStarToggle({ form, disabled, label = 'Set as primary', tooltip = label }) {
+  const selected = useWatch({ control: form.control, name: 'setAsDefault' })
   return (
-    <label
-      className={`supplier-capability-card supplier-form-default-card${disabled || formState.isSubmitting ? ' is-disabled' : ''}`}
-    >
-      <input
-        type="checkbox"
-        disabled={disabled || formState.isSubmitting}
-        {...register('setAsDefault')}
-      />
-      <span className="supplier-capability-card-label">{label}</span>
-    </label>
+    <span className="supplier-primary-control">
+      <Tooltip content={tooltip}>
+        <button
+          type="button"
+          className="supplier-primary-star"
+          aria-label={label}
+          aria-pressed={Boolean(selected)}
+          disabled={disabled || form.formState.isSubmitting}
+          onClick={() => form.setValue('setAsDefault', !selected, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })}
+        >
+          <Star size={20} fill={selected ? 'currentColor' : 'none'} aria-hidden="true" />
+        </button>
+      </Tooltip>
+    </span>
   )
 }
 
@@ -147,60 +138,47 @@ function AddressGeography({ onChanged }) {
 function ContactFormFields({ locked, showDefault, defaults }) {
   return (
     <div className="supplier-form-fields">
-      <FormSection title="Person details">
-        <div className="form-grid">
-          <FormTextField
-            name="name"
-            label="Name"
-            required
-            maxLength={160}
-            autoFocus
-            disabled={locked}
-          />
-          <FormTextField
-            name="jobTitle"
-            label="Job title"
-            maxLength={120}
-            disabled={locked}
-            placeholder="Account manager"
-          />
-        </div>
-        <div className="form-grid">
-          <FormTextField
-            name="email"
-            label="Email"
-            type="email"
-            required
-            maxLength={254}
-            disabled={locked}
-            placeholder="name@example.com"
-          />
-          <FormPhoneField
-            name="phone"
-            label="Phone"
-            disabled={locked}
-          />
-        </div>
-      </FormSection>
-
-      <FormSection title="Responsibilities">
-        <PurposeFields
-          options={contactPurposes}
-          legend="Contact responsibilities"
-          hint="Choose the jobs this person handles for your team."
+      {showDefault ? (
+        <ErrorNotice error={defaults.error} retry={defaults.reload} />
+      ) : null}
+      <div className="form-grid">
+        <FormTextField
+          name="name"
+          label="Name"
+          required
+          maxLength={160}
+          autoFocus
           disabled={locked}
         />
-      </FormSection>
-
-      {showDefault ? (
-        <FormSection title="Defaults">
-          <ErrorNotice error={defaults.error} retry={defaults.reload} />
-          <DefaultToggle
-            label="Save as primary contact"
-            disabled={!defaults.data || locked}
-          />
-        </FormSection>
-      ) : null}
+        <FormTextField
+          name="jobTitle"
+          label="Job title"
+          maxLength={120}
+          disabled={locked}
+          placeholder="Account manager"
+        />
+      </div>
+      <div className="form-grid">
+        <FormTextField
+          name="email"
+          label="Email"
+          type="email"
+          required
+          maxLength={254}
+          disabled={locked}
+          placeholder="name@example.com"
+        />
+        <FormPhoneField
+          name="phone"
+          label="Phone"
+          disabled={locked}
+        />
+      </div>
+      <PurposeFields
+        options={contactPurposes}
+        legend="Contact responsibilities"
+        disabled={locked}
+      />
     </div>
   )
 }
@@ -208,76 +186,54 @@ function ContactFormFields({ locked, showDefault, defaults }) {
 function AddressFormFields({ locked, showDefault, defaults, onGeographyChanged }) {
   return (
     <div className="supplier-form-fields">
-      <FormSection title="Address details">
-        <div className="form-grid">
-          <FormTextField
-            name="label"
-            label="Label"
-            maxLength={80}
-            autoFocus
-            disabled={locked}
-            placeholder="Receiving dock"
-          />
-          <FormTextField
-            name="postalCode"
-            label="Postal code"
-            maxLength={32}
-            disabled={locked}
-          />
-        </div>
-        <div className="form-grid">
-          <FormTextField
-            name="line1"
-            label="Address line 1"
-            maxLength={160}
-            disabled={locked}
-          />
-          <FormTextField
-            name="line2"
-            label="Address line 2"
-            maxLength={160}
-            disabled={locked}
-          />
-        </div>
-        <div className="form-grid">
-          <FormTextField
-            name="city"
-            label="City"
-            maxLength={100}
-            disabled={locked}
-          />
-          <div className="supplier-form-field-note" aria-hidden="true">
-            <p className="supplier-form-field-note-title">Tip</p>
-            <p className="muted">
-              Use a clear label so ordering and receiving teams can spot this
-              place quickly.
-            </p>
-          </div>
-        </div>
-      </FormSection>
-
-      <FormSection title="Location">
-        <AddressGeography onChanged={onGeographyChanged} />
-      </FormSection>
-
-      <FormSection title="Purposes">
-        <PurposeFields
-          options={Object.keys(addressPurposes)}
-          legend="Address purposes"
-          hint="Select every use for this location. At least one is required."
+      {showDefault ? (
+        <ErrorNotice error={defaults.error} retry={defaults.reload} />
+      ) : null}
+      <FormTextField
+        name="label"
+        label="Label"
+        maxLength={80}
+        autoFocus
+        disabled={locked}
+        placeholder="Receiving dock"
+      />
+      <div className="form-grid">
+        <FormTextField
+          name="line1"
+          label="Address line 1"
+          maxLength={160}
           disabled={locked}
         />
-      </FormSection>
-
-      {showDefault ? (
-        <FormSection title="Defaults">
-          <ErrorNotice error={defaults.error} retry={defaults.reload} />
-          <DefaultToggle
-            label="Save as default for the selected purposes"
-            disabled={!defaults.data || locked}
-          />
-        </FormSection>
-      ) : null}
+        <FormTextField
+          name="line2"
+          label="Address line 2"
+          maxLength={160}
+          disabled={locked}
+        />
+      </div>
+      <div className="form-grid">
+        <FormTextField
+          name="city"
+          label="City"
+          maxLength={100}
+          disabled={locked}
+        />
+        <FormTextField
+          name="postalCode"
+          label="Postal code"
+          maxLength={32}
+          disabled={locked}
+        />
+      </div>
+      <AddressGeography onChanged={onGeographyChanged} />
+      <PurposeFields
+        options={Object.keys(addressPurposes)}
+        legend="Address purposes"
+        required
+        placeholder="Select address purposes"
+        searchPlaceholder="Search address purposes"
+        disabled={locked}
+      />
     </div>
   )
 }
@@ -436,21 +392,25 @@ export function SupplierChildEditor({ kind, base, record, close, saved }) {
       saved()
   }
 
-  const title = record._id ? (restoring ? 'Restore' : 'Edit') : 'Create'
-  const description = restoring
-    ? 'Provide a current email to restore this contact.'
-    : isContact
-      ? 'Add the person your team reaches for sales, production, or support.'
-      : 'Save a place your team uses for ordering, shipping, returns, or receiving.'
+  const action = record._id ? (restoring ? 'Restore' : 'Edit') : 'Add'
+  const title = `${action} ${isContact ? 'contact' : 'address'}`
 
   return (
     <Dialog
       size={restoring ? 'sm' : 'lg'}
       className="supplier-form-dialog"
       title={title}
-      description={description}
+      headerAction={!record._id ? (
+        <DefaultStarToggle
+          form={form}
+          disabled={!defaults.data || locked}
+          label={isContact ? 'Set as primary' : 'Set as default'}
+          tooltip={isContact ? 'Set as primary' : 'Set as default for selected purposes'}
+        />
+      ) : null}
       close={close}
       locked={locked}
+      hasUnsavedChanges={form.formState.isDirty}
     >
       <AppFormProvider
         form={form}
@@ -488,6 +448,7 @@ export function SupplierChildEditor({ kind, base, record, close, saved }) {
           mutation={mutation}
           close={close}
           label="Save"
+          onClear={() => setGeographyChanged(false)}
         />
       </AppFormProvider>
     </Dialog>

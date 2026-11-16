@@ -1,37 +1,11 @@
-import { useController, useFormContext } from 'react-hook-form'
 import { useMutation } from '../../hooks/useMutation'
 import { noteFormSchema } from '../../schemas/clientTabFormSchemas'
+import { toEditorHtml } from '../../utils/richText'
 import { AppFormProvider } from '../forms/AppFormProvider'
+import { FormTextEditor } from '../forms/FormTextEditor'
 import { FormTextField } from '../forms/FormTextField'
 import { useAppForm } from '../forms/useAppForm'
 import { Dialog, SaveFooter } from '../workspace/Elements'
-
-function NoteTextArea({ disabled }) {
-  const { control, formState } = useFormContext()
-  const { field, fieldState } = useController({ name: 'text', control })
-  const isDisabled = Boolean(
-    disabled || formState.disabled || formState.isSubmitting,
-  )
-  return (
-    <label className="field">
-      <span>
-        Note <span className="required-mark">*</span>
-      </span>
-      <textarea
-        {...field}
-        required
-        maxLength={2000}
-        rows={5}
-        disabled={isDisabled}
-        aria-invalid={Boolean(fieldState.error)}
-        value={field.value ?? ''}
-      />
-      {fieldState.error?.message ? (
-        <small className="field-error">{fieldState.error.message}</small>
-      ) : null}
-    </label>
-  )
-}
 
 export function NoteEditor({ path, note, close, saved }) {
   const mutation = useMutation()
@@ -39,7 +13,7 @@ export function NoteEditor({ path, note, close, saved }) {
   const isEdit = Boolean(note.id)
   const form = useAppForm(noteFormSchema, {
     defaultValues: {
-      text: note.text || '',
+      text: toEditorHtml(note.text),
       reason: '',
       isEdit,
     },
@@ -66,8 +40,9 @@ export function NoteEditor({ path, note, close, saved }) {
 
   return (
     <Dialog
+      size="md"
       className="client-form-dialog"
-      title={isEdit ? 'Edit' : 'Create'}
+      title={isEdit ? 'Edit note' : 'Add note'}
       close={close}
       locked={locked}
     >
@@ -78,7 +53,15 @@ export function NoteEditor({ path, note, close, saved }) {
         className="client-form"
       >
         <div className="client-form-fields">
-          <NoteTextArea disabled={locked} />
+          <FormTextEditor
+            name="text"
+            label="Note"
+            required
+            maxLength={2000}
+            rows={5}
+            placeholder="Write a note…"
+            disabled={locked}
+          />
           {isEdit ? (
             <FormTextField
               name="reason"

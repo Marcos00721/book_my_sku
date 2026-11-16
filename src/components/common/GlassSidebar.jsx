@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, LogOut, Search, X } from 'lucide-react'
 import { BrandMark } from '../auth/BrandMark'
 import { Button } from './Button'
+import { Tooltip } from './Tooltip'
 import '../../styles/sidebar.css'
 
 function SidebarNavigation({ groups, label, query, onNavigate }) {
@@ -21,27 +22,28 @@ function SidebarNavigation({ groups, label, query, onNavigate }) {
         <div className="glass-sidebar-group" key={group.label}>
           <p className="glass-sidebar-group-label">{group.label}</p>
           {group.items.map(({ to, label: itemLabel, Icon, active }) => (
-            <Link
-              className="glass-sidebar-link"
-              key={to}
-              to={to}
-              aria-label={itemLabel}
-              aria-current={active ? 'page' : undefined}
-              title={itemLabel}
-              onClick={onNavigate}
-            >
-              {active && (
-                <motion.span
-                  className="glass-sidebar-indicator"
-                  layoutId={indicatorId}
-                  initial={false}
-                  transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-                  aria-hidden="true"
-                />
-              )}
-              <Icon size={20} aria-hidden="true" />
-              <span className="glass-sidebar-label">{itemLabel}</span>
-            </Link>
+            <Tooltip key={to} content={itemLabel}>
+              <Link
+                className="glass-sidebar-link"
+                key={to}
+                to={to}
+                aria-label={itemLabel}
+                aria-current={active ? 'page' : undefined}
+                onClick={onNavigate}
+              >
+                {active && (
+                  <motion.span
+                    className="glass-sidebar-indicator"
+                    layoutId={indicatorId}
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon size={20} aria-hidden="true" />
+                <span className="glass-sidebar-label">{itemLabel}</span>
+              </Link>
+            </Tooltip>
           ))}
         </div>
       ))}
@@ -158,10 +160,12 @@ export function GlassSidebar({
             {mobile ? <X size={18} /> : collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </Button>
         </div>
-        <div className="glass-sidebar-scope" title={scope.label}>
-          <span className="glass-sidebar-scope-icon"><ScopeIcon size={18} aria-hidden="true" /></span>
-          <div className="glass-sidebar-label"><strong>{scope.label}</strong><small>{scope.subtitle}</small></div>
-        </div>
+        <Tooltip content={scope.label}>
+          <div className="glass-sidebar-scope">
+            <span className="glass-sidebar-scope-icon"><ScopeIcon size={18} aria-hidden="true" /></span>
+            <div className="glass-sidebar-label"><strong>{scope.label}</strong><small>{scope.subtitle}</small></div>
+          </div>
+        </Tooltip>
         <div className="glass-sidebar-search">
           <Search size={18} aria-hidden="true" />
           <input
@@ -186,7 +190,7 @@ export function GlassSidebar({
         <SidebarNavigation groups={groups} label={navigationLabel} query={query} onNavigate={navigatePage} />
         <div className="glass-sidebar-account">
           <span className="avatar-letter" aria-hidden="true">{email.slice(0, 1).toUpperCase() || 'A'}</span>
-          <div className="glass-sidebar-label"><strong>{role}</strong><small title={email}>{email || 'Signed-in account'}</small></div>
+          <div className="glass-sidebar-label"><strong>{role}</strong><Tooltip content={email}><small>{email || 'Signed-in account'}</small></Tooltip></div>
           <Button variant="icon" aria-label="Sign out" title="Sign out" disabled={signingOut} onClick={signOut}>
             <LogOut size={17} />
           </Button>

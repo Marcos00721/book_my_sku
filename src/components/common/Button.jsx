@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { theme } from '@/crm-theme'
+import { Tooltip } from './Tooltip'
 
 const variants = {
   primary: theme.button.primary,
@@ -18,22 +19,25 @@ export const Button = forwardRef(function Button(
     type = 'button',
     className = '',
     children,
+    title,
     ...props
   },
   ref,
 ) {
   return (
-    <button
-      ref={ref}
-      type={type}
-      className={theme.cx(
-        variants[variant] || variants.primary,
-        size && theme.button.sizes[size],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </button>
+    <Tooltip content={title}>
+      <button
+        ref={ref}
+        type={type}
+        className={theme.cx(
+          variants[variant] || variants.primary,
+          size && theme.button.sizes[size],
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 })

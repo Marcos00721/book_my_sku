@@ -237,6 +237,11 @@ export function VariantEditor({ path, product, close, saved }) {
           close={close}
           disabled={!count || count > 50}
           label="Save variants"
+          onClear={() => {
+            setRows(product.selectableVariantCount ? [] : [newVariant()])
+            setArchive([])
+            setError('')
+          }}
         />
       </form>
     </Dialog>

@@ -113,7 +113,7 @@ test('activity renders protected actor and changes as text, follows opaque curso
     page.getByText('Detailed history unavailable before', { exact: false }),
   ).toBeVisible()
   await expect(
-    page.getByText('QA Tester · actor-id', { exact: false }),
+    page.getByText(/QA Tester.*actor-id/),
   ).toBeVisible()
   await expect(
     page.getByText('<img src=x onerror=alert(1)>', { exact: true }),
@@ -121,18 +121,18 @@ test('activity renders protected actor and changes as text, follows opaque curso
   await expect(page.locator('article img')).toHaveCount(0)
   await page.getByRole('button', { name: 'Next activity' }).click()
   await expect(
-    page.getByText('Former member · actor-id', { exact: false }),
+    page.getByText(/Former member.*actor-id/),
   ).toBeVisible()
   expect(seen.at(-1)).toEqual({ limit: '25', after: 'opaque_cursor_123' })
   await page.getByRole('button', { name: 'Previous activity' }).click()
   await expect(
-    page.getByText('QA Tester · actor-id', { exact: false }),
+    page.getByText(/QA Tester.*actor-id/),
   ).toBeVisible()
   denied = true
   await page.getByRole('button', { name: 'Refresh history' }).click()
   await expect(page.getByRole('alert')).toContainText('PERMISSION_DENIED')
   await expect(
-    page.getByText('QA Tester · actor-id', { exact: false }),
+    page.getByText(/QA Tester.*actor-id/),
   ).toHaveCount(0)
 })
 

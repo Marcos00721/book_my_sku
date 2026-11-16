@@ -315,6 +315,10 @@ function TeamEditor({ command, close, saved }) {
           mutation={mutation}
           close={close}
           label={type === 'invite' ? 'Send invitation' : 'Confirm change'}
+          onClear={roleEdit ? () => {
+            setEmail('')
+            setRoleId(item?.roleId || '')
+          } : undefined}
         />
       </form>
     </Dialog>

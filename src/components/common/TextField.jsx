@@ -1,6 +1,7 @@
 import { forwardRef } from 'react'
 import { theme } from '@/crm-theme'
 import { FieldFrame } from './FieldFrame'
+import { Tooltip } from './Tooltip'
 
 /**
  * App-wide text input. Same size/chrome as SelectField.
@@ -20,6 +21,7 @@ export const TextField = forwardRef(function TextField(
     className = '',
     controlClassName = '',
     disabled,
+    title,
     ...props
   },
   ref,
@@ -55,26 +57,28 @@ export const TextField = forwardRef(function TextField(
               ) : null}
             </span>
           ) : null}
-          <input
-            {...props}
-            ref={ref}
-            id={fieldId}
-            required={required}
-            disabled={disabled}
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            className={theme.cx(
-              theme.input,
-              invalid && theme.inputInvalid,
-              hasBothLeading
-                ? 'pl-[calc(var(--size-control)+var(--space-xl))]'
-                : hasLeading
-                  ? 'pl-control'
-                  : 'pl-md',
-              trailing ? 'pr-control' : 'pr-md',
-              controlClassName,
-            )}
-          />
+          <Tooltip content={title}>
+            <input
+              {...props}
+              ref={ref}
+              id={fieldId}
+              required={required}
+              disabled={disabled}
+              aria-invalid={invalid}
+              aria-describedby={describedBy}
+              className={theme.cx(
+                theme.input,
+                invalid && theme.inputInvalid,
+                hasBothLeading
+                  ? 'pl-[calc(var(--size-control)+var(--space-xl))]'
+                  : hasLeading
+                    ? 'pl-control'
+                    : 'pl-md',
+                trailing ? 'pr-control' : 'pr-md',
+                controlClassName,
+              )}
+            />
+          </Tooltip>
           {trailing}
         </div>
       )}

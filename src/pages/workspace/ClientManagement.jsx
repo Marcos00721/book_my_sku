@@ -7,6 +7,7 @@ import { queryPath } from '../../services/workspace'
 import { ManagementEditor } from '../../components/clients/ManagementEditor'
 import { NoteEditor } from '../../components/clients/NoteEditor'
 import { ButtonLink } from '../../components/common/ButtonLink'
+import { RichText } from '../../components/common/RichText'
 import {
   Action,
   Dialog,
@@ -155,7 +156,7 @@ function ClientNotes({ path, editable }) {
       ) : resource.data?.items?.length ? (
         resource.data.items.map((note) => (
           <article className="note-card" key={note.id}>
-            <p className="plain-text">{note.text}</p>
+            <RichText value={note.text} />
             <small>
               {note.actor?.label || 'Author unavailable'} ·{' '}
               {new Date(note.updatedAt || note.createdAt).toLocaleString()}
@@ -221,7 +222,7 @@ function NoteVersions({ path }) {
         resource.data?.items?.map((version) => (
           <article key={version.id || version.revision}>
             <h3>Version {version.revision}</h3>
-            <p className="plain-text">{version.text}</p>
+            <RichText value={version.text} />
             <small>
               {version.actor?.label || 'Author unavailable'} ·{' '}
               {version.reason || 'Original note'}

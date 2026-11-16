@@ -242,6 +242,14 @@ export function PublicationDialog({
               close={close}
               disabled={!consent || (replace && !version)}
               label="Publish reviewed schedule"
+              onClear={() => {
+                setStart('')
+                setEnd('')
+                setReplace(false)
+                setVersion('')
+                setIntervalRevision('0')
+                setConsent(false)
+              }}
             />
           </form>
         )

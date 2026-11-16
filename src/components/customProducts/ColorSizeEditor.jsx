@@ -242,6 +242,12 @@ export function ColorSizeEditor({ path, product, close, saved }) {
           mutation={mutation}
           close={close}
           label="Save colors & sizes"
+          onClear={() => {
+            setDimensions(structuredClone(initial.dimensions))
+            setInputs({ Color: '', Size: '' })
+            setErrors({})
+            setIdentification(initial.customIdentification || '')
+          }}
         />
       </form>
     </Dialog>

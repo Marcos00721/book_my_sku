@@ -304,7 +304,8 @@ test('contact edits use server revisions and clear optional fields explicitly', 
     })
   })
   await page.goto(`/app/clients/${clientId}`)
-  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByRole('tab', { name: 'Contacts', exact: true }).click()
+  await page.getByRole('button', { name: 'Edit Alex Smith', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Email address').fill('')
   await dialog.getByRole('button', { name: 'Save' }).click()
@@ -353,35 +354,32 @@ test('address creation selects supported geography and can become both defaults'
   })
   await page.goto(`/app/clients/${clientId}`)
   await page.getByRole('tab', { name: 'Saved addresses' }).click()
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('button', { name: 'Add address' }).click()
   const dialog = page.getByRole('dialog')
   await dialog
     .getByLabel('Label', { exact: true })
     .fill('QA Billing and Shipping')
-  await dialog.getByLabel('Use this address for').selectOption('both')
+  await dialog.getByLabel('Company name', { exact: true }).fill('Acme Promotions')
+  await dialog.getByRole('button', { name: 'Address type', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Billing & shipping', exact: true }).click()
   await dialog
     .getByLabel('Address line 1', { exact: true })
     .fill('123 Test Street')
   await dialog.getByLabel('City', { exact: true }).fill('Austin')
   await dialog.getByLabel('Postal code', { exact: true }).fill('78701')
-  await dialog
-    .getByRole('combobox', { name: 'Country', exact: true })
-    .selectOption('US')
-  await dialog
-    .getByRole('combobox', { name: 'State', exact: true })
-    .selectOption('US-TX')
-  await dialog
-    .getByRole('combobox', { name: 'Country', exact: true })
-    .selectOption('IN')
+  await dialog.getByRole('button', { name: 'Country', exact: true }).click()
+  await dialog.getByRole('option', { name: 'United States', exact: true }).click()
+  await dialog.getByRole('button', { name: 'State', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Texas', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Country', exact: true }).click()
+  await dialog.getByRole('option', { name: 'India', exact: true }).click()
   await expect(
-    dialog.getByRole('combobox', { name: 'State', exact: true }),
-  ).toHaveValue('')
-  await dialog
-    .getByRole('combobox', { name: 'Country', exact: true })
-    .selectOption('US')
-  await dialog
-    .getByRole('combobox', { name: 'State', exact: true })
-    .selectOption('US-TX')
+    dialog.getByRole('button', { name: 'State', exact: true }),
+  ).toHaveText('Choose a state')
+  await dialog.getByRole('button', { name: 'Country', exact: true }).click()
+  await dialog.getByRole('option', { name: 'United States', exact: true }).click()
+  await dialog.getByRole('button', { name: 'State', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Texas', exact: true }).click()
   await dialog
     .getByRole('button', { name: 'Save', exact: true })
     .click()
@@ -438,7 +436,7 @@ test('shared address defaults send the exact client and address revisions', asyn
   await page.goto(`/app/clients/${clientId}`)
   await page.getByRole('tab', { name: 'Saved addresses' }).click()
   await expect(
-    page.getByText('Billing & shipping · shared record'),
+    page.getByText('Billing & shipping', { exact: true }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Use for both' }).click()
   await page

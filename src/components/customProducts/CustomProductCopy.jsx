@@ -66,6 +66,10 @@ export function CustomProductCopy({ productsBase, product, close, saved }) {
           close={close}
           disabled={!supplierId}
           label="Create copy"
+          onClear={() => {
+            setSupplierId(product.supplier?.eligible ? product.supplierId : '')
+            setSku('')
+          }}
         />
       </form>
     </Dialog>

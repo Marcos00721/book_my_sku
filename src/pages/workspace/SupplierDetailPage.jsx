@@ -9,7 +9,6 @@ import { TextLink } from '../../components/common/TextLink'
 import { askConfirm } from '../../components/common/confirm'
 import { SupplierEditor } from '../../components/suppliers/SupplierEditor'
 import { SupplierChildrenPanel } from '../../components/suppliers/SupplierChildrenPanel'
-import { SupplierDefaultsPanel } from '../../components/suppliers/SupplierDefaultsPanel'
 import {
   Action,
   ErrorNotice,
@@ -37,7 +36,7 @@ function SupplierRecord({ base }) {
   const workspace = useWorkspace()
   const resource = useResource(base)
   const { saveSupplier } = useSuppliers({ autoFetch: false })
-  const [tab, setTab] = useState('contacts')
+  const [tab, setTab] = useState('overview')
   const [editing, setEditing] = useState(false)
   const mutation = useMutation()
 
@@ -74,7 +73,6 @@ function SupplierRecord({ base }) {
     { value: 'overview', label: 'Overview' },
     { value: 'contacts', label: 'Contacts' },
     { value: 'addresses', label: 'Addresses' },
-    { value: 'defaults', label: 'Defaults' },
     ...(workspace.can('suppliers.history.view')
       ? [{ value: 'activity', label: 'Activity' }]
       : []),
@@ -144,12 +142,6 @@ function SupplierRecord({ base }) {
               base={base}
               canEdit={canEdit}
               parentArchived={supplier.status !== 'active'}
-              changed={resource.reload}
-            />
-          ) : tab === 'defaults' ? (
-            <SupplierDefaultsPanel
-              base={base}
-              canEdit={canEdit}
               changed={resource.reload}
             />
           ) : (

@@ -101,12 +101,7 @@ export function SupplierEditor({
     <Dialog
       size="lg"
       className="supplier-form-dialog"
-      title={supplier ? 'Edit' : 'Create'}
-      description={
-        supplier
-          ? 'Update the business profile your team uses for ordering and production.'
-          : 'Capture the business profile your team needs for ordering and production.'
-      }
+      title={supplier ? 'Edit supplier' : 'Add supplier'}
       close={close}
       locked={locked}
     >

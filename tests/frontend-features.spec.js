@@ -93,18 +93,19 @@ test('client profiles save optional fields and use client-specific industry opti
     .getByRole('textbox', { name: 'Client name', exact: true })
     .fill('School Goods')
   await dialog
-    .getByLabel('Account label (optional)', { exact: true })
+    .getByRole('textbox', { name: 'Account label', exact: true })
     .fill('West campus')
   await dialog
-    .getByLabel('Website (optional)', { exact: true })
+    .getByRole('textbox', { name: 'Website', exact: true })
     .fill('https://school.example')
+  await dialog.getByRole('button', { name: 'Industry', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Education', exact: true }).click()
   await dialog
-    .getByRole('combobox', { name: 'Client industry', exact: true })
-    .selectOption(categoryId)
-  await dialog
-    .getByRole('button', { name: 'Create', exact: true })
+    .getByRole('button', { name: 'Add client', exact: true })
     .click()
   await expect(page).toHaveURL(`/app/clients/${clientId}`)
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('tabpanel', { name: 'Overview', exact: true })).toBeVisible()
   expect(saved).toEqual({
     name: 'School Goods',
     accountLabel: 'West campus',
@@ -310,6 +311,7 @@ test('supplier contacts require email and receiving defaults send canonical geog
   })
   await mockGeography(page)
   await page.goto(`/app/suppliers/${supplierId}`)
+  await page.getByRole('tab', { name: 'Contacts', exact: true }).click()
   await page.getByRole('button', { name: 'Create', exact: true }).click()
   await expect(
     page
@@ -324,28 +326,23 @@ test('supplier contacts require email and receiving defaults send canonical geog
   await page.getByRole('button', { name: 'Create', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Label', { exact: true }).fill('Receiving dock')
-  await dialog
-    .getByRole('checkbox', { name: 'Ordering', exact: true })
-    .uncheck()
-  await dialog.getByRole('checkbox', { name: 'Receiving', exact: true }).check()
-  await dialog
-    .getByRole('combobox', { name: 'Country', exact: true })
-    .selectOption('IN')
-  await dialog
-    .getByRole('combobox', { name: 'State', exact: true })
-    .selectOption('IN-RJ')
-  await dialog
-    .getByRole('checkbox', {
-      name: 'Save as default for the selected purposes',
-      exact: true,
-    })
-    .check()
+  await dialog.getByRole('button', { name: 'Remove Ordering', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Address purposes', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Receiving', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Returns', exact: true }).click()
+  await dialog.getByRole('searchbox').press('Escape')
+  await expect(dialog.getByRole('list', { name: 'Selected Address purposes' }).getByRole('listitem')).toHaveCount(2)
+  await dialog.getByRole('button', { name: 'Country', exact: true }).click()
+  await dialog.getByRole('option', { name: 'India', exact: true }).click()
+  await dialog.getByRole('button', { name: 'State', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Rajasthan', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Set as default', exact: true }).click()
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect.poll(() => body).toBeTruthy()
   expect(body).toMatchObject({
-    purposes: ['receiving'],
+    purposes: ['receiving', 'returns'],
     address: { country: 'IN', stateCode: 'IN-RJ' },
-    setDefaults: { expectedRevision: 3, purposes: ['receiving'] },
+    setDefaults: { expectedRevision: 3, purposes: ['receiving', 'returns'] },
   })
   expect(body.address).not.toHaveProperty('region')
 })

@@ -5,13 +5,23 @@
 .has-glass-sidebar > .workspace-body {
   --workspace-sticky-top: calc(var(--topbar-inset) + var(--size-navbar) + var(--space-sm));
 }
+.app-topbar-region {
+  position: sticky;
+  top: 0;
+  z-index: var(--layer-navbar);
+  flex-shrink: 0;
+  padding: var(--topbar-inset) var(--sidebar-gap) var(--space-sm) 0;
+  /* Cover the inset and rounded corners before page content reaches the bar. */
+  background: rgb(var(--color-canvas));
+}
 .has-glass-sidebar .app-topbar {
-  top: var(--topbar-inset);
+  position: relative;
+  top: auto;
   flex-shrink: 0;
   min-width: 0;
   height: var(--size-navbar);
   min-height: var(--size-navbar);
-  margin: var(--topbar-inset) var(--sidebar-gap) 0 0;
+  margin: 0;
   padding: 0 var(--space-lg);
   gap: var(--space-md);
   border: var(--border-width) solid var(--glass-border);
@@ -100,8 +110,10 @@
 }
 @media (max-width: 800px) {
   .workspace-shell.has-glass-sidebar { --topbar-inset: var(--space-sm); }
+  .app-topbar-region {
+    padding-inline: var(--space-sm);
+  }
   .has-glass-sidebar .app-topbar {
-    margin-inline: var(--space-sm);
     padding-inline: var(--space-sm);
     border-radius: var(--radius-card);
     gap: var(--space-xs);

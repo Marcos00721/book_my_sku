@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Image as ImageIcon, LayoutGrid, List, Star, X } from 'lucide-react'
-import { Button } from '../common'
+import { Button, Tooltip } from '../common'
 import { formatFileSize } from '../common/uploader/formatFileSize'
 import { ProgressBar } from '../common/uploader/ProgressBar'
 import '../../styles/product-media.css'
@@ -23,9 +23,11 @@ function ImageThumbnail({ item, onPreview, onDimensions }) {
 function ImageCoverAction({ item, disabled, showCoverAction, onSetCover }) {
   if (item.status !== 'uploaded') return null
   if (item.isCover) return (
-    <span className="product-image-cover" title={item.inherited ? 'Inherited product cover' : 'Current cover'}>
-      <Star size={14} fill="currentColor" aria-hidden="true" /> Cover
-    </span>
+    <Tooltip content={item.inherited ? 'Inherited product cover' : 'Current cover'}>
+      <span className="product-image-cover">
+        <Star size={14} fill="currentColor" aria-hidden="true" /> Cover
+      </span>
+    </Tooltip>
   )
   if (!showCoverAction) return null
   return (
@@ -67,7 +69,7 @@ function ImageDetails({ item, dimensions }) {
   return (
     <dl className="product-image-details">
       {details.map(([label, value]) => (
-        <div key={label}><dt>{label}</dt><dd title={value}>{value}</dd></div>
+        <div key={label}><dt>{label}</dt><Tooltip content={value}><dd>{value}</dd></Tooltip></div>
       ))}
     </dl>
   )

@@ -16,7 +16,7 @@ import { FormCheckbox } from '../forms/FormCheckbox'
 
 const NO_STATE = '__none__'
 
-function AddressGeography() {
+function AddressGeography({ changed }) {
   const { watch, setValue, formState } = useFormContext()
   const values = {
     country: watch('country') || '',
@@ -41,7 +41,7 @@ function AddressGeography() {
   }, [country, setValue, values.country, values.stateCode])
 
   return (
-    <div className="form-grid">
+    <div className="form-grid client-address-wide">
       <GeographyFields
         requireState
         values={{
@@ -53,6 +53,7 @@ function AddressGeography() {
           stateCode: formState.errors.stateCode?.message,
         }}
         change={(patch) => {
+          changed()
           for (const [key, value] of Object.entries(patch)) {
             setValue(key, value, { shouldDirty: true, shouldValidate: true })
           }
@@ -69,6 +70,11 @@ export function AddressEditor({ path, address, close, saved }) {
   const form = useAppForm(addressFormSchema, {
     defaultValues: addressToFormValues(address),
   })
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => form.setFocus('label'))
+    return () => cancelAnimationFrame(frame)
+  }, [form])
 
   async function onSubmit(values) {
     const stateCode =
@@ -103,10 +109,9 @@ export function AddressEditor({ path, address, close, saved }) {
 
   return (
     <Dialog
-      size="lg"
-      className="supplier-form-dialog"
-      title={address.id ? 'Edit' : 'Create'}
-      description="Store a billing or shipping place your team can reuse on the next project."
+      size="md"
+      className="client-address-editor"
+      title={address.id ? 'Edit address' : 'Add address'}
       close={close}
       locked={locked}
     >
@@ -114,105 +119,36 @@ export function AddressEditor({ path, address, close, saved }) {
         form={form}
         onSubmit={onSubmit}
         animated={false}
-        className="supplier-form"
+        className="client-address-form"
       >
-        <div className="supplier-form-fields">
-          <section className="supplier-form-section">
-            <h3 className="supplier-form-section-title">Address details</h3>
-            <div className="supplier-form-section-body">
-              <div className="form-grid">
-                <FormTextField
-                  name="label"
-                  label="Label"
-                  required
-                  maxLength={80}
-                  disabled={locked}
-                />
-                <FormTextField
-                  name="companyName"
-                  label="Company name"
-                  required
-                  maxLength={160}
-                  disabled={locked}
-                />
-              </div>
-              <div className="form-grid">
-                <FormSelectField
-                  name="usage"
-                  label="Use this address for"
-                  disabled={locked}
-                >
-                  <option value="billing">Billing</option>
-                  <option value="shipping">Shipping</option>
-                  <option value="both">
-                    Billing & shipping (shared record)
-                  </option>
-                </FormSelectField>
-                <FormTextField
-                  name="postalCode"
-                  label="Postal code"
-                  required
-                  maxLength={32}
-                  disabled={locked}
-                />
-              </div>
-              <div className="form-grid">
-                <FormTextField
-                  name="line1"
-                  label="Address line 1"
-                  required
-                  maxLength={160}
-                  disabled={locked}
-                />
-                <FormTextField
-                  name="line2"
-                  label="Address line 2"
-                  maxLength={160}
-                  disabled={locked}
-                />
-              </div>
-              <div className="form-grid">
-                <FormTextField
-                  name="city"
-                  label="City"
-                  required
-                  maxLength={100}
-                  disabled={locked}
-                />
-                <div className="supplier-form-field-note" aria-hidden="true">
-                  <p className="supplier-form-field-note-title">Tip</p>
-                  <p className="muted">
-                    Pick a label your team will recognize on invoices and
-                    deliveries.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="supplier-form-section">
-            <h3 className="supplier-form-section-title">Location</h3>
-            <div
-              className="supplier-form-section-body"
-              onChangeCapture={() => setGeographyChanged(true)}
-            >
-              <AddressGeography />
-            </div>
-          </section>
-
+        <fieldset className="client-address-fields" disabled={locked}>
+          <div className="form-grid">
+            <FormTextField name="label" label="Label" required maxLength={80} disabled={locked} placeholder="e.g. Head office" />
+            <FormSelectField name="usage" label="Address type" disabled={locked}>
+              <option value="billing">Billing</option>
+              <option value="shipping">Shipping</option>
+              <option value="both">Billing &amp; shipping</option>
+            </FormSelectField>
+            <FormTextField name="companyName" label="Company name" className="client-address-wide" required maxLength={160} autoComplete="organization" disabled={locked} />
+            <FormTextField name="line1" label="Address line 1" required maxLength={160} autoComplete="address-line1" disabled={locked} />
+            <FormTextField name="line2" label="Address line 2" maxLength={160} autoComplete="address-line2" disabled={locked} />
+            <FormTextField name="city" label="City" required maxLength={100} autoComplete="address-level2" disabled={locked} />
+            <FormTextField name="postalCode" label="Postal code" required maxLength={32} autoComplete="postal-code" disabled={locked} />
+            <AddressGeography changed={() => setGeographyChanged(true)} />
+          </div>
           {address.id ? (
-            <section className="supplier-form-section">
-              <h3 className="supplier-form-section-title">Status</h3>
-              <div className="supplier-form-section-body">
-                <FormCheckbox name="active">
-                  Active address. Deactivating or changing its use clears
-                  incompatible defaults.
-                </FormCheckbox>
-              </div>
-            </section>
+            <div className="client-address-status">
+              <FormCheckbox name="active">Active address</FormCheckbox>
+              <p className="muted">Deactivating or changing the address type clears incompatible defaults.</p>
+            </div>
           ) : null}
-        </div>
-        <SaveFooter mutation={mutation} close={close} label="Save" />
+        </fieldset>
+        <SaveFooter
+          mutation={mutation}
+          close={close}
+          label="Save"
+          onClear={() => setGeographyChanged(false)}
+        />
       </AppFormProvider>
     </Dialog>
   )

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { ClearFormButton } from '../forms/ClearFormButton'
 import {
   Action,
   Dialog,
@@ -250,6 +251,16 @@ export function PricingAdoptionDialog({ path, close, saved }) {
         )}
       </div>
       <div className="dialog-footer">
+        {!results ? (
+          <ClearFormButton disabled={locked} onClear={() => {
+            setSelected([])
+            setReview(null)
+            setReviewState({ pending: false, error: null })
+            setConsent(false)
+            intent.current = null
+            mutation.reset()
+          }} />
+        ) : null}
         <Action variant="secondary" disabled={locked} onClick={close}>
           {results ? 'Done' : 'Close'}
         </Action>

@@ -1,5 +1,7 @@
 import { useId, useRef, useEffect } from 'react'
 import { AlertCircle, ArrowRight, X } from 'lucide-react'
+import { useFormContext } from 'react-hook-form'
+import { ClearFormButton } from '../forms/ClearFormButton'
 import { Button } from '../common/Button'
 import { TextLink } from '../common/TextLink'
 import { PageHeader } from '../common/PageHeader'
@@ -156,6 +158,7 @@ export function Field({ label, children, hint, error, className = '', ...props }
 export function Dialog({
   title,
   description,
+  headerAction,
   children,
   close,
   locked = false,
@@ -251,6 +254,11 @@ export function Dialog({
         dirty.current = true
         ref.current.dataset.dirty = 'true'
       }}
+      onResetCapture={(event) => {
+        if (event.target.closest('dialog') !== event.currentTarget) return
+        dirty.current = false
+        ref.current.dataset.dirty = 'false'
+      }}
       onCancel={(event) => {
         event.preventDefault()
         if (locked) return
@@ -274,18 +282,21 @@ export function Dialog({
             </p>
           ) : null}
         </div>
-        <Action
-          variant="icon-button"
-          aria-label="Close dialog"
-          disabled={locked}
-          onClick={() => {
-            void allowDiscard().then((ok) => {
-              if (ok) close()
-            })
-          }}
-        >
-          <X size={20} />
-        </Action>
+        <div className="app-dialog-header-actions">
+          {headerAction}
+          <Action
+            variant="icon-button"
+            aria-label="Close dialog"
+            disabled={locked}
+            onClick={() => {
+              void allowDiscard().then((ok) => {
+                if (ok) close()
+              })
+            }}
+          >
+            <X size={20} />
+          </Action>
+        </div>
       </header>
       <div className="app-dialog-body">{children}</div>
     </dialog>
@@ -297,7 +308,9 @@ export function SaveFooter({
   label = 'Save changes',
   close,
   disabled = false,
+  onClear,
 }) {
+  const form = useFormContext()
   return (
     <>
       <ErrorNotice error={mutation.error} />
@@ -307,6 +320,15 @@ export function SaveFooter({
         </p>
       )}
       <div className="dialog-footer">
+        {form || onClear ? (
+          <ClearFormButton
+            disabled={mutation.pending || mutation.uncertain}
+            onClear={() => {
+              mutation.reset?.()
+              onClear?.()
+            }}
+          />
+        ) : null}
         {close && (
           <Action
             variant="secondary"

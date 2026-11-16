@@ -182,6 +182,15 @@ export function VariantCorrectionDialog({
             !(codeChanged || packagingChanged || labelsChanged)
           }
           label={adopt ? 'Save and review pricing' : 'Save correction'}
+          onClear={() => {
+            setPartCode(variant.partCode || '')
+            setPackaging(packagingValues(variant.units))
+            setPackagingChanged(false)
+            setSelections(structuredClone(variant.selections || []))
+            setReason('')
+            setConfirmed(false)
+            setAdopt(false)
+          }}
         />
       </form>
     </Dialog>

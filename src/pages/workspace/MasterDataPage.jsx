@@ -385,6 +385,11 @@ function EntryEditor({ base, entry, close, saved }) {
           mutation={mutation}
           close={close}
           label={entry.id ? 'Save' : 'Create'}
+          onClear={() => {
+            setLabel(entry.label || '')
+            setDescription(entry.description || '')
+            setSortOrder(entry.sortOrder ?? 0)
+          }}
         />
       </form>
     </Dialog>

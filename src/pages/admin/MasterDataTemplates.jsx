@@ -590,7 +590,19 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
           }
           onReview={setBaseline}
         />
-        <SaveFooter mutation={mutation} close={close} label="Save to draft" />
+        <SaveFooter
+          mutation={mutation}
+          close={close}
+          label="Save to draft"
+          onClear={() => {
+            setCategory(entry.category)
+            setLabel(entry.label || '')
+            setDescription(entry.description || '')
+            setSortOrder(entry.sortOrder ?? 0)
+            setStatus(entry.status || 'active')
+            setError(null)
+          }}
+        />
       </form>
     </Dialog>
   )

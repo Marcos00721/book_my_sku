@@ -1,29 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Plus } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
-import { useMutation } from '../../hooks/useMutation'
-import { Directory } from '../../components/workspace/Directory'
-import { ContactEditor } from '../../components/clients/ContactEditor'
 import { ButtonLink } from '../../components/common/ButtonLink'
 import { TextLink } from '../../components/common/TextLink'
-import { askConfirm } from '../../components/common/confirm'
 import {
-  Action,
   ErrorNotice,
-  Field,
   Loading,
   PermissionDenied,
-  SectionHeading,
   StickyPageChrome,
 } from '../../components/workspace/Elements'
 import { ClientAddresses } from './ClientAddresses'
 import { ClientActivity } from './ClientActivity'
 import { ClientManagement } from './ClientManagement'
-import { ClientContactDefaults } from './ClientContactDefaults'
-import { MutationRetry } from '../../components/workspace/RecordTools'
-import { formatNumber } from '../../utils/phone'
+import { ClientContacts } from './ClientContacts'
 
 export function ClientDetailPage() {
   const workspace = useWorkspace()
@@ -42,12 +33,11 @@ function ClientRecord({ path }) {
   const resource = useResource(path)
   const location = useLocation()
   const navigate = useNavigate()
-  const [flash, setFlash] = useState(location.state?.flash || '')
-  const [tab, setTab] = useState('contacts')
+  const [flash] = useState(location.state?.flash || '')
+  const [tab, setTab] = useState('overview')
 
   useEffect(() => {
     if (!location.state?.flash) return
-    setFlash(location.state.flash)
     navigate(location.pathname, { replace: true, state: {} })
   }, [location.pathname, location.state, navigate])
 
@@ -68,6 +58,7 @@ function ClientRecord({ path }) {
 
   return (
     <StickyPageChrome
+      className="client-detail-page"
       before={
         <>
           <TextLink to="/app/clients" className="back-link">
@@ -81,19 +72,20 @@ function ClientRecord({ path }) {
           ) : null}
         </>
       }
-      eyebrow="CLIENT RELATIONSHIPS"
       title={client.name}
-      description="The people and places behind your next great project."
+      description={[client.clientCode, client.accountLabel].filter(Boolean).join(' · ') || undefined}
       actions={
         workspace.can('clients.edit') &&
         workspace.writesAllowed &&
         client.status !== 'archived' && (
           <ButtonLink
             variant="secondary"
+            className="client-profile-edit"
+            aria-label="Edit client"
             to={`/app/clients/${client._id}/edit`}
           >
             <Pencil size={15} />
-            Edit
+            <span className="client-profile-edit-label">Edit</span>
           </ButtonLink>
         )
       }
@@ -133,148 +125,3 @@ function ClientRecord({ path }) {
     </StickyPageChrome>
   )
 }
-
-function ClientContacts({ path, archived, reloadClient }) {
-  const workspace = useWorkspace()
-  const [editing, setEditing] = useState(null)
-  const [version, setVersion] = useState(0)
-  const [state, setState] = useState('active')
-  const lifecycle = useMutation()
-  if (!workspace.can('contacts.view')) return <PermissionDenied />
-  const create = workspace.can('contacts.create') &&
-    workspace.writesAllowed &&
-    !archived && (
-      <Action onClick={() => setEditing({})}>
-        <Plus size={16} />
-        Create
-      </Action>
-    )
-  return (
-    <>
-      <SectionHeading
-        title="People you work with"
-        description="The right contact, right when you need them."
-        actions={create}
-      />
-      <Field
-        label="Contact status"
-        value={state}
-        onChange={(event) => setState(event.target.value)}
-      >
-        <option value="active">Active</option>
-        <option value="inactive">Archived</option>
-        <option value="all">All</option>
-      </Field>
-      <ErrorNotice error={lifecycle.error} />
-      <MutationRetry
-        mutation={lifecycle}
-        saved={() => {
-          setVersion((value) => value + 1)
-          reloadClient()
-        }}
-      />
-      <ClientContactDefaults
-        key={version}
-        path={path}
-        editable={
-          !archived && workspace.can('contacts.edit') && workspace.writesAllowed
-        }
-        saved={reloadClient}
-      />
-      <Directory
-        key={`${version}:${state}`}
-        filters={{ state }}
-        path={path}
-        label="Contacts"
-        emptyAction={create}
-      >
-        {(items) => (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((contact) => (
-                  <tr key={contact._id}>
-                    <td>
-                      <strong>{contact.name}</strong>
-                      <small>{contact.jobTitle || '—'}</small>
-                    </td>
-                    <td>{contact.email || '—'}</td>
-                    <td>{contact.phone ? formatNumber(contact.phone) : '—'}</td>
-                    <td>
-                      {workspace.can('contacts.edit') &&
-                        workspace.writesAllowed &&
-                        !archived &&
-                        contact.active !== false && (
-                          <Action
-                            variant="secondary"
-                            onClick={() => setEditing(contact)}
-                          >
-                            Edit
-                          </Action>
-                        )}
-                      {workspace.can('contacts.edit') &&
-                        workspace.writesAllowed &&
-                        !archived && (
-                          <Action
-                            variant="secondary"
-                            disabled={lifecycle.pending || lifecycle.uncertain}
-                            onClick={async () => {
-                              const restoring = contact.active === false
-                              const ok = await askConfirm({
-                                title: restoring
-                                  ? 'Restore contact?'
-                                  : 'Archive contact?',
-                                message: restoring
-                                  ? 'Restore this contact without restoring previous defaults?'
-                                  : 'Archive this contact and clear any defaults using it?',
-                                confirmLabel: restoring ? 'Restore' : 'Archive',
-                                cancelLabel: 'Cancel',
-                                tone: restoring ? 'primary' : 'danger',
-                              })
-                              if (!ok) return
-                              if (
-                                await lifecycle.run(
-                                  'post',
-                                  `${path}/${contact._id}/${contact.active === false ? 'restore' : 'archive'}`,
-                                  { expectedVersion: contact.__v },
-                                )
-                              ) {
-                                setVersion((value) => value + 1)
-                                reloadClient()
-                              }
-                            }}
-                          >
-                            {contact.active === false ? 'Restore' : 'Archive'}
-                          </Action>
-                        )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Directory>
-      {editing && (
-        <ContactEditor
-          path={path}
-          contact={editing}
-          close={() => setEditing(null)}
-          saved={() => {
-            setEditing(null)
-            setVersion((value) => value + 1)
-          }}
-        />
-      )}
-    </>
-  )
-}
-

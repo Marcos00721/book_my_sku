@@ -139,7 +139,12 @@ export function ManagementEditor({
           }}
           onReview={(current) => setVersion(current.clientVersion)}
         />
-        <SaveFooter mutation={mutation} close={close} label="Confirm change" />
+        <SaveFooter
+          mutation={mutation}
+          close={close}
+          label="Confirm change"
+          onClear={() => setManager(management.accountManagerId || '')}
+        />
       </AppFormProvider>
     </Dialog>
   )

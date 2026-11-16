@@ -10,9 +10,10 @@ import {
   useState,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, Search } from 'lucide-react'
+import { Check, ChevronDown, Search, X } from 'lucide-react'
 import { theme } from '@/crm-theme'
 import { FieldFrame } from './FieldFrame'
+import { Tooltip } from './Tooltip'
 
 const PANEL_HEIGHT = 260
 
@@ -63,7 +64,7 @@ function scrollOptionIntoList(listEl, index) {
 }
 
 /**
- * Custom select — fixed-height glass panel, in-panel search, no page scroll.
+ * Custom select with in-panel search and optional multiple selection with pills.
  */
 export const SelectField = forwardRef(function SelectField(
   {
@@ -85,6 +86,8 @@ export const SelectField = forwardRef(function SelectField(
     placeholder,
     searchable = true,
     searchPlaceholder = 'Search…',
+    multiple = false,
+    title,
     ...props
   },
   ref,
@@ -100,10 +103,13 @@ export const SelectField = forwardRef(function SelectField(
   const [activeIndex, setActiveIndex] = useState(-1)
   const [query, setQuery] = useState('')
   const [uncontrolled, setUncontrolled] = useState(
-    () => value ?? defaultValue ?? '',
+    () => value ?? defaultValue ?? (multiple ? [] : ''),
   )
   const isControlled = value !== undefined
-  const selectedValue = String(isControlled ? value ?? '' : uncontrolled)
+  const currentValue = isControlled ? value : uncontrolled
+  const selectedValues =
+    multiple && Array.isArray(currentValue) ? currentValue.map(String) : []
+  const selectedValue = multiple ? '' : String(currentValue ?? '')
 
   const options = useMemo(
     () =>
@@ -124,12 +130,20 @@ export const SelectField = forwardRef(function SelectField(
   }, [options, query])
 
   const selected = options.find((item) => item.value === selectedValue)
+  const selectedOptions = options.filter((item) =>
+    selectedValues.includes(item.value),
+  )
   const display =
+    (multiple && selectedOptions.length
+      ? `${selectedOptions.length} selected`
+      : '') ||
     selected?.label ||
     placeholder ||
     options.find((item) => item.value === '')?.label ||
     'Select…'
-  const showPlaceholder = !selected || selected.value === ''
+  const showPlaceholder = multiple
+    ? !selectedOptions.length
+    : !selected || selected.value === ''
 
   function setRefs(node) {
     buttonRef.current = node
@@ -164,7 +178,10 @@ export const SelectField = forwardRef(function SelectField(
     const index = Math.max(
       0,
       options.findIndex(
-        (item) => item.value === selectedValue && !item.disabled,
+        (item) =>
+          (multiple
+            ? selectedValues.includes(item.value)
+            : item.value === selectedValue) && !item.disabled,
       ),
     )
     setActiveIndex(index)
@@ -179,7 +196,16 @@ export const SelectField = forwardRef(function SelectField(
   }
 
   function pick(option) {
-    if (option.disabled) return
+    if (disabled || option.disabled) return
+    if (multiple) {
+      const next = selectedValues.includes(option.value)
+        ? selectedValues.filter((item) => item !== option.value)
+        : [...selectedValues, option.value]
+      if (!isControlled) setUncontrolled(next)
+      emitChange(onChange, name, next)
+      if (searchable) searchRef.current?.focus()
+      return
+    }
     if (!isControlled) setUncontrolled(option.value)
     emitChange(onChange, name, option.value)
     closeMenu()
@@ -274,6 +300,7 @@ export const SelectField = forwardRef(function SelectField(
       if (filtered[activeIndex]) pick(filtered[activeIndex])
     } else if (event.key === 'Escape') {
       event.preventDefault()
+      event.stopPropagation()
       closeMenu()
     }
   }
@@ -338,6 +365,8 @@ export const SelectField = forwardRef(function SelectField(
             <ul
               ref={optionsRef}
               role="listbox"
+              aria-label={label}
+              aria-multiselectable={multiple || undefined}
               className={theme.dropdown.list}
             >
               {filtered.length === 0 ? (
@@ -346,7 +375,9 @@ export const SelectField = forwardRef(function SelectField(
                 </li>
               ) : (
                 filtered.map((option, index) => {
-                  const isSelected = option.value === selectedValue
+                  const isSelected = multiple
+                    ? selectedValues.includes(option.value)
+                    : option.value === selectedValue
                   const isActive = index === activeIndex
                   return (
                     <li key={`${option.value}-${index}`} role="presentation">
@@ -394,49 +425,80 @@ export const SelectField = forwardRef(function SelectField(
     >
       {({ id: fieldId, describedBy, invalid }) => (
         <div ref={rootRef} className="relative isolate">
-          <input
-            type="hidden"
-            name={name}
-            value={selectedValue}
-            required={required}
-          />
-          <button
-            {...props}
-            ref={setRefs}
-            id={fieldId}
-            type="button"
-            disabled={disabled}
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            aria-controls={open ? listId : undefined}
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            aria-required={required || undefined}
-            className={theme.cx(
-              theme.select,
-              invalid && theme.inputInvalid,
-              controlClassName,
-            )}
-            onClick={() => (open ? closeMenu() : openMenu())}
-            onKeyDown={onTriggerKeyDown}
-            onBlur={onBlur}
-          >
-            <span
-              className={theme.cx(
-                'min-w-0 flex-1 truncate',
-                showPlaceholder && theme.dropdown.placeholder,
-              )}
-            >
-              {display}
-            </span>
-            <ChevronDown
-              aria-hidden="true"
-              className={theme.cx(
-                'size-icon shrink-0 text-text-muted motion-safe:transition-transform',
-                open && 'rotate-180',
-              )}
+          {multiple ? (
+            selectedValues.map((item) => (
+              <input key={item} type="hidden" name={name} value={item} />
+            ))
+          ) : (
+            <input
+              type="hidden"
+              name={name}
+              value={selectedValue}
+              required={required}
             />
-          </button>
+          )}
+          <Tooltip content={title}>
+            <button
+              {...props}
+              ref={setRefs}
+              id={fieldId}
+              type="button"
+              disabled={disabled}
+              aria-haspopup="listbox"
+              aria-expanded={open}
+              aria-controls={open ? listId : undefined}
+              aria-invalid={invalid}
+              aria-describedby={describedBy}
+              aria-required={required || undefined}
+              className={theme.cx(
+                theme.select,
+                invalid && theme.inputInvalid,
+                controlClassName,
+              )}
+              onClick={() => (open ? closeMenu() : openMenu())}
+              onKeyDown={onTriggerKeyDown}
+              onBlur={onBlur}
+            >
+              <span
+                className={theme.cx(
+                  'min-w-0 flex-1 truncate',
+                  showPlaceholder && theme.dropdown.placeholder,
+                )}
+              >
+                {display}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={theme.cx(
+                  'size-icon shrink-0 text-text-muted motion-safe:transition-transform',
+                  open && 'rotate-180',
+                )}
+              />
+            </button>
+          </Tooltip>
+          {multiple && selectedOptions.length > 0 ? (
+            <ul
+              className="select-field-pills"
+              aria-label={`Selected ${label || 'options'}`}
+            >
+              {selectedOptions.map((option) => (
+                <li key={option.value} className="select-field-pill">
+                  <span>{option.label}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${option.label}`}
+                    disabled={disabled || option.disabled}
+                    onClick={() => {
+                      pick(option)
+                      buttonRef.current?.focus()
+                    }}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {menu}
         </div>
       )}

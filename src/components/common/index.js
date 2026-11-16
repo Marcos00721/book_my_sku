@@ -1,4 +1,5 @@
 export { Button } from './Button'
+export { Tooltip } from './Tooltip'
 export { TextLink } from './TextLink'
 export { ButtonLink } from './ButtonLink'
 export { PageHeader } from './PageHeader'

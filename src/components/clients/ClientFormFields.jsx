@@ -22,10 +22,9 @@ function IndustryField({ path, disabled }) {
         <FormSelectField
           name="industryId"
           label="Industry"
-          hint="Optional"
           disabled={disabled || Boolean(resource.error)}
         >
-          <option value="">Not set</option>
+          <option value="">Select industry</option>
           {industryId &&
             !items.some(
               (item) => String(item.id || item._id) === String(industryId),
@@ -97,40 +96,39 @@ export function ClientFormFields({ disabled = false, autoFocusName = false }) {
 
   return (
     <div className="client-form-fields">
-      <FormTextField
-        name="name"
-        label="Client name"
-        required
-        maxLength={160}
-        autoFocus={autoFocusName}
-        disabled={disabled}
-      />
-
-      <ClientDuplicateHints />
-
       <div className="form-grid">
+        <div className="client-form-name">
+          <FormTextField
+            name="name"
+            label="Client name"
+            required
+            maxLength={160}
+            autoFocus={autoFocusName}
+            disabled={disabled}
+          />
+          <ClientDuplicateHints />
+        </div>
         <FormTextField
           name="accountLabel"
           label="Account label"
-          hint="Optional short label for this account."
           maxLength={120}
           disabled={disabled}
         />
         <FormTextField
           name="website"
           label="Website"
-          hint="Optional. Include https://"
           type="url"
           maxLength={300}
           disabled={disabled}
-          placeholder="https://"
+          placeholder="https://example.com"
         />
+        <div>
+          <IndustryField
+            path={`${workspace.base}/clients/industry-options`}
+            disabled={disabled}
+          />
+        </div>
       </div>
-
-      <IndustryField
-        path={`${workspace.base}/clients/industry-options`}
-        disabled={disabled}
-      />
     </div>
   )
 }

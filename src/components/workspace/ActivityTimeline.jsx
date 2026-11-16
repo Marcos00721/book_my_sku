@@ -19,6 +19,7 @@ import {
 } from './Elements'
 import { SectionHeading } from './SectionHeading'
 import { CursorPager } from './CursorPager'
+import { RichText } from '../common/RichText'
 
 function formatWhen(value) {
   const parsed = Date.parse(value)
@@ -78,15 +79,15 @@ function ActivityChanges({ changes }) {
               {activityFieldLabel(change.field)}
             </span>
             <div className="activity-timeline-change-values">
-              <span className="activity-timeline-value activity-timeline-value-before">
-                {before}
-              </span>
+              <div className="activity-timeline-value activity-timeline-value-before">
+                {change.field === 'text' ? <RichText value={before} /> : before}
+              </div>
               <span className="activity-timeline-arrow" aria-hidden="true">
                 →
               </span>
-              <span className="activity-timeline-value activity-timeline-value-after">
-                {after}
-              </span>
+              <div className="activity-timeline-value activity-timeline-value-after">
+                {change.field === 'text' ? <RichText value={after} /> : after}
+              </div>
             </div>
           </li>
         )

@@ -450,6 +450,13 @@ export function ScheduleEditor({
           close={close}
           disabled={!editable || (cost && !rules.variants.length)}
           label="Save pricing draft"
+          onClear={editable ? () => {
+            setRules(structuredClone(schedule?.rules || blankPricingRules()))
+            setSales(structuredClone(
+              schedule?.sales || schedule?.rules?.variants?.map(({ id, sale }) => ({ id, sale })) || [],
+            ))
+            setErrors([])
+          } : undefined}
         />
       </form>
     </Dialog>

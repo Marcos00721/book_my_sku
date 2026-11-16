@@ -482,7 +482,18 @@ function ApplicationCommand({ command, path, record, close, saved }) {
               </p>
             )}
           </fieldset>
-          <SaveFooter mutation={mutation} close={close} label="Confirm" />
+          <SaveFooter
+            mutation={mutation}
+            close={close}
+            label="Confirm"
+            onClear={() => {
+              setReason('')
+              setTrialMonths(record.offer?.terms.trialMonths || 0)
+              setDiscountType(record.offer?.terms.discount.type || 'none')
+              setAmount(record.offer?.terms.discount.percent || record.offer?.terms.discount.amountMinor || '')
+              setMonths(record.offer?.terms.discount.months || 1)
+            }}
+          />
         </form>
       )}
     </Dialog>
@@ -585,6 +596,10 @@ function PlanEditor({ plan, close, saved }) {
           mutation={mutation}
           close={close}
           label="Create plan version"
+          onClear={() => {
+            setAmount(plan.unitAmountMinor)
+            setReason('')
+          }}
         />
       </form>
     </Dialog>
@@ -804,6 +819,12 @@ function ExtensionEditor({ id, revision, close, saved }) {
           mutation={mutation}
           close={close}
           label={preview ? 'Apply reviewed extension' : 'Preview extension'}
+          onClear={() => {
+            setKind('trial')
+            setMonths(1)
+            setReason('')
+            setPreview(null)
+          }}
         />
       </form>
     </Dialog>
@@ -907,6 +928,10 @@ function CatalogEditor({ entry, close, saved }) {
           mutation={mutation}
           close={close}
           label="Save catalog entry"
+          onClear={() => {
+            setLabel(entry.label)
+            setEnabled(entry.enabled)
+          }}
         />
       </form>
     </Dialog>

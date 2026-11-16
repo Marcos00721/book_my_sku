@@ -429,6 +429,12 @@ function RoleEditor({ role, catalog, close, saved }) {
           mutation={mutation}
           close={close}
           label={role.archive ? 'Archive' : 'Save'}
+          onClear={role.archive ? undefined : () => {
+            setName(role.name || '')
+            setGrants((role.grants || []).filter((grant) =>
+              catalog.some((entry) => entry.key === grant.key && entry.enabled && entry.scopes.includes(grant.scope)),
+            ))
+          }}
         />
       </form>
     </Dialog>

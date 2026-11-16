@@ -233,6 +233,12 @@ export function ConfigurationEditor({ path, product, close, saved }) {
           close={close}
           disabled={mode === 'variants' && !dimensions.length}
           label="Save options"
+          onClear={() => {
+            setMode(initial.mode)
+            setDimensions(structuredClone(initial.dimensions))
+            setIdentification(initial.customIdentification || '')
+            setError('')
+          }}
         />
       </form>
     </Dialog>

@@ -735,6 +735,12 @@ function MatrixEditor({ base, matrix, close, saved }) {
           close={close}
           disabled={size > 60000}
           label="Save matrix draft"
+          onClear={() => {
+            setContent(structuredClone(matrix?.content || {
+              name: '', currency: 'USD', supplierId: null, methodId: null, rules: [],
+            }))
+            setValidation(null)
+          }}
         />
       </form>
     </Dialog>
@@ -805,6 +811,10 @@ function MatrixCommand({ base, matrix, command, close, saved }) {
           close={close}
           disabled={!consent}
           label={`Confirm ${command}`}
+          onClear={() => {
+            setName(`${matrix.content.name} copy`)
+            setConsent(false)
+          }}
         />
       </form>
     </Dialog>

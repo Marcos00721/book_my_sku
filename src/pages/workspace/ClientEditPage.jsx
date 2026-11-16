@@ -13,6 +13,7 @@ import { Card } from '../../components/common/Card'
 import { TextLink } from '../../components/common/TextLink'
 import { FormApiAlert } from '../../components/forms/FormApiAlert'
 import { AppFormProvider } from '../../components/forms/AppFormProvider'
+import { ClearFormButton } from '../../components/forms/ClearFormButton'
 import { useAppForm } from '../../components/forms/useAppForm'
 import {
   buildClientPayload,
@@ -242,6 +243,10 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
             }}
           />
           <div className="client-edit-footer">
+            <ClearFormButton disabled={saving || mutation.uncertain} onClear={() => {
+              mutation.reset()
+              setApiError(null)
+            }} />
             <Button
               type="button"
               variant="secondary"

@@ -53,7 +53,8 @@ export function AssistedAdmin() {
 
 function AssistedCreate({ close, saved }) {
   const [scope, setScope] = useState('organization')
-  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', companyName:'', contactNumber:'', companyWebsite:'', organizationId:'', role:'member', termsKind:'deferred', startsAt:'', unitAmountMinor:'4900', currency:'usd', expiresAt:'', reason:'', requestReference:'', verifiedChannel:'verified_email' })
+  const initialForm = { firstName:'', lastName:'', email:'', companyName:'', contactNumber:'', companyWebsite:'', organizationId:'', role:'member', termsKind:'deferred', startsAt:'', unitAmountMinor:'4900', currency:'usd', expiresAt:'', reason:'', requestReference:'', verifiedChannel:'verified_email' }
+  const [form, setForm] = useState(initialForm)
   const mutation = useMutation()
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   async function submit(event) {
@@ -115,7 +116,10 @@ function AssistedCreate({ close, saved }) {
             <Field label="Reason for offer" required maxLength={500} value={form.reason} onChange={event => set('reason', event.target.value)} />
           </section>
         </fieldset>
-        <SaveFooter mutation={mutation} close={close} label="Create reviewed offer" />
+        <SaveFooter mutation={mutation} close={close} label="Create reviewed offer" onClear={() => {
+          setScope('organization')
+          setForm({ ...initialForm })
+        }} />
       </form>
     </Dialog>
   )
@@ -165,6 +169,14 @@ function AssistedChange({ id, grant, command, close, saved }) {
   const [kind, setKind] = useState(grant.terms?.kind || 'deferred')
   const mutation = useMutation()
   const title = command === 'edit' ? 'Revise future offer' : command === 'resend' ? 'Resend invitation' : 'Revoke invitation'
+  function clear() {
+    setReason('')
+    setRequestReference('')
+    setVerifiedChannel('verified_email')
+    setStartsAt('')
+    setAmount(grant.terms?.unitAmountMinor || 4900)
+    setKind(grant.terms?.kind || 'deferred')
+  }
   async function submit(event) {
     event.preventDefault()
     const evidence = { expectedRevision: grant.revision, reason: reason.trim(), requestReference: requestReference.trim(), verifiedChannel }
@@ -172,5 +184,5 @@ function AssistedChange({ id, grant, command, close, saved }) {
     const body = command === 'edit' ? { ...evidence, terms } : evidence
     if (await mutation.run('post', `/admin/assisted/${id}/${command}`, body)) saved()
   }
-  return <Dialog title={title} close={close} locked={mutation.pending || mutation.uncertain}><form onSubmit={submit}><fieldset disabled={mutation.pending || mutation.uncertain}>{command === 'edit' && <><Field label="Agreement type" value={kind} onChange={(event) => setKind(event.target.value)}><option value="deferred">Future monthly billing</option><option value="complimentary">Complimentary</option></Field>{kind === 'deferred' && <div className="form-grid"><Field label="Billing starts at" type="datetime-local" required value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /><Field label="Monthly price per seat (USD cents)" type="number" min="1" required value={amount} onChange={(event) => setAmount(event.target.value)} /></div>}</>}<Field label="Verified channel" value={verifiedChannel} onChange={(event) => setVerifiedChannel(event.target.value)}><option value="verified_email">Verified email</option><option value="verified_call">Verified call</option><option value="signed_request">Signed request</option></Field><Field label="Request or support case reference" required maxLength={160} value={requestReference} onChange={(event) => setRequestReference(event.target.value)} /><Field label="Reason" required maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /></fieldset><SaveFooter mutation={mutation} close={close} label={command === 'edit' ? 'Save revised offer' : command === 'resend' ? 'Resend link' : 'Revoke offer'} /></form></Dialog>
+  return <Dialog title={title} close={close} locked={mutation.pending || mutation.uncertain}><form onSubmit={submit}><fieldset disabled={mutation.pending || mutation.uncertain}>{command === 'edit' && <><Field label="Agreement type" value={kind} onChange={(event) => setKind(event.target.value)}><option value="deferred">Future monthly billing</option><option value="complimentary">Complimentary</option></Field>{kind === 'deferred' && <div className="form-grid"><Field label="Billing starts at" type="datetime-local" required value={startsAt} onChange={(event) => setStartsAt(event.target.value)} /><Field label="Monthly price per seat (USD cents)" type="number" min="1" required value={amount} onChange={(event) => setAmount(event.target.value)} /></div>}</>}<Field label="Verified channel" value={verifiedChannel} onChange={(event) => setVerifiedChannel(event.target.value)}><option value="verified_email">Verified email</option><option value="verified_call">Verified call</option><option value="signed_request">Signed request</option></Field><Field label="Request or support case reference" required maxLength={160} value={requestReference} onChange={(event) => setRequestReference(event.target.value)} /><Field label="Reason" required maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /></fieldset><SaveFooter mutation={mutation} close={close} onClear={clear} label={command === 'edit' ? 'Save revised offer' : command === 'resend' ? 'Resend link' : 'Revoke offer'} /></form></Dialog>
 }

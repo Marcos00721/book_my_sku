@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { hasRichTextContent } from '../utils/richText'
 
 export const managementFormSchema = z.object({
   relationshipStatus: z.enum(['prospect', 'customer', 'dormant']),
@@ -24,7 +25,8 @@ export const noteFormSchema = z
       .string()
       .trim()
       .min(1, 'Note is required')
-      .max(2000, 'Use no more than 2000 characters.'),
+      .max(2000, 'Use no more than 2000 characters.')
+      .refine(hasRichTextContent, 'Note is required'),
     reason: z.string().trim().max(250, 'Use no more than 250 characters.').default(''),
     isEdit: z.boolean().default(false),
   })

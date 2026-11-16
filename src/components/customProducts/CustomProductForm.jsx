@@ -11,6 +11,7 @@ import {
   productToFormValues,
 } from '../../schemas/customProductFormSchema'
 import { AppFormProvider } from '../forms/AppFormProvider'
+import { ClearFormButton } from '../forms/ClearFormButton'
 import { FormApiAlert } from '../forms/FormApiAlert'
 import { useAppForm } from '../forms/useAppForm'
 import { SupplierEditor } from '../suppliers/SupplierEditor'
@@ -78,6 +79,7 @@ export function CustomProductForm({
   const [addingSupplier, setAddingSupplier] = useState(false)
   const [newSupplier, setNewSupplier] = useState(null)
   const [imageFile, setImageFile] = useState(null)
+  const [imageResetKey, setImageResetKey] = useState(0)
   const [createdProduct, setCreatedProduct] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageProgress, setImageProgress] = useState(0)
@@ -256,6 +258,7 @@ export function CustomProductForm({
             categorySelectedLabel={product?.category?.label}
             imageField={!isEdit ? (
               <CustomProductImageField
+                key={imageResetKey}
                 file={imageFile}
                 onChange={setImageFile}
                 disabled={locked || Boolean(createdProduct)}
@@ -294,6 +297,20 @@ export function CustomProductForm({
           />
         </div>
         <div className="dialog-footer custom-product-form-footer">
+          {!createdProduct ? (
+            <ClearFormButton
+              disabled={locked}
+              onClear={() => {
+                mutation.reset()
+                setImageFile(null)
+                setImageResetKey((value) => value + 1)
+                setImageError(null)
+                setImageProgress(0)
+                imageUpload.current = null
+                setNewSupplier(null)
+              }}
+            />
+          ) : null}
           <Action
             variant="secondary"
             disabled={locked}

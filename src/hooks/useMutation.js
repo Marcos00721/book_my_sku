@@ -38,5 +38,10 @@ export function useMutation() {
       locked.current = false
     }
   }
-  return { ...state, run }
+  function reset() {
+    if (locked.current || state.uncertain) return
+    saved.current = null
+    setState({ pending: false, error: null, uncertain: false })
+  }
+  return { ...state, run, reset }
 }

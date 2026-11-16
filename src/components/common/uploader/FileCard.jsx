@@ -2,6 +2,7 @@ import { Image as ImageIcon, X } from 'lucide-react'
 import { theme } from '@/crm-theme'
 import { Badge } from '../Badge'
 import { Button } from '../Button'
+import { Tooltip } from '../Tooltip'
 import { formatFileSize } from './formatFileSize'
 import { ProgressBar } from './ProgressBar'
 
@@ -47,9 +48,11 @@ export function FileCard({
 
       <div className="file-card-body">
         <div className="file-card-heading">
-          <p className="file-card-name" title={item.name}>
-            {item.name}
-          </p>
+          <Tooltip content={item.name}>
+            <p className="file-card-name">
+              {item.name}
+            </p>
+          </Tooltip>
           {item.isCover ? <Badge tone="primary">Cover</Badge> : null}
         </div>
         <p className="muted">
