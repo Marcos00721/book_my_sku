@@ -90,6 +90,11 @@ const BillingPage = lazy(() =>
     default: page.BillingPage,
   })),
 );
+const SettingsPage = lazy(() =>
+  import("./pages/workspace/SettingsPage").then((page) => ({
+    default: page.SettingsPage,
+  })),
+);
 const SuppliersPage = lazy(() =>
   import("./pages/workspace/SuppliersPage").then((page) => ({
     default: page.SuppliersPage,
@@ -214,6 +219,8 @@ export default function App() {
           <Route path="team" element={<TeamPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="billing" element={<BillingPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/integrations" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

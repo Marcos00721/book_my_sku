@@ -114,8 +114,11 @@ Products Images tab example: [`src/pages/workspace/ProductMedia.jsx`](src/pages/
 | `/app/decoration-matrices`, `.../:id` | Decoration |
 | `/app/master-data` | Master data |
 | `/app/team`, `/app/roles`, `/app/billing` | Team / roles / billing |
+| `/app/settings`, `/app/settings/integrations` | Owner settings and SAGE connection management |
 
 ## API layer
+
+- SAGE settings use the existing `{org}/sage/connection` GET and `/configure`, `/test`, `/disconnect` POST contracts. `useSageConnection` holds original UUID/body retries only inside the mounted flow; credential bodies must not enter the shared mutation fingerprint cache. The backend feature flag, organization qualification, schema and billing admission remain authoritative.
 - Base URL: `VITE_API_BASE_URL` or `/api/v1` (`src/services/api.js`)
 - Auth: Supabase client in `src/services/auth.js`; bearer attached via `setAccessTokenProvider`
 - Reads: `useResource(path)` → `api.get`

@@ -14,6 +14,7 @@ import {
   ListTree,
   Paintbrush,
   Shield,
+  Settings,
   Users,
   Truck,
 } from 'lucide-react'
@@ -60,6 +61,7 @@ export function WorkspaceLayout() {
           { to: '/app/team', label: 'Team', Icon: Users },
           { to: '/app/roles', label: 'Roles & permissions', Icon: Shield },
           { to: '/app/billing', label: 'Billing', Icon: CreditCard },
+          { to: '/app/settings', label: 'Settings', Icon: Settings },
         ]
       : []),
   ]
@@ -73,7 +75,7 @@ export function WorkspaceLayout() {
     { label: 'Overview', paths: ['/app'] },
     { label: 'Relationships', paths: ['/app/clients', '/app/suppliers'] },
     { label: 'Catalog', paths: ['/app/products', '/app/decoration-matrices'] },
-    { label: 'Workspace', paths: ['/app/master-data', '/app/team', '/app/roles', '/app/billing'] },
+    { label: 'Workspace', paths: ['/app/master-data', '/app/team', '/app/roles', '/app/billing', '/app/settings'] },
   ].map(({ label, paths }) => ({ label, items: activeLinks.filter((link) => paths.includes(link.to)) }))
   async function signOut() {
     setSigningOut(true)
