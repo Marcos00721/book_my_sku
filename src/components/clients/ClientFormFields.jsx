@@ -17,7 +17,7 @@ function IndustryField({ path, disabled }) {
     <>
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading && !items.length ? (
-        <Loading label="Loading industries…" />
+        <Loading variant="field" label="Loading industries…" />
       ) : (
         <FormSelectField
           name="industryId"

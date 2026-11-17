@@ -6,12 +6,12 @@ import { captureInvitation, clearInvitation } from '../services/invitation'
 import { getAuthClient } from '../services/auth'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { PageLoader } from '../components/common/Loader'
 import { ButtonLink } from '../components/common/ButtonLink'
 import {
   Action,
   Empty,
   ErrorNotice,
-  Loading,
   PageHeader,
 } from '../components/workspace/Elements'
 import { LoginPage } from './LoginPage'
@@ -35,7 +35,7 @@ export function InvitationPage() {
         </Empty>
       </div>
     )
-  if (auth.loading) return <Loading />
+  if (auth.loading) return <PageLoader label="Checking your session…" />
   if (!auth.session) return <LoginPage returnTo="/team/accept" />
   if (accepted) return <Navigate to="/app" replace />
   return (

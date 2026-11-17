@@ -614,14 +614,6 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
 }
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-4xl) var(--space-md);
-  color: rgb(var(--color-text-muted));
-}
 .spin {
   animation: app-spin 1s linear infinite;
 }

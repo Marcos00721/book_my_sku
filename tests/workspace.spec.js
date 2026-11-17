@@ -198,6 +198,128 @@ test('restricted billing preserves reads while hiding client writes', async ({
   )
 })
 
+test('background billing verification keeps Create and the current draft mounted', async ({ page }) => {
+  await workspace(page)
+  await mockOnboardingStatus(page, application)
+  let stale = false
+  let refreshes = 0
+  let accessReads = 0
+  let releaseRefresh
+  const refreshGate = new Promise((resolve) => { releaseRefresh = resolve })
+  await page.route(`**/organizations/${orgA}/access`, (route) => {
+    accessReads++
+    return route.fulfill({ json: { data: stale
+      ? { state: 'unverified', writesAllowed: false, nextAction: 'refresh_billing' }
+      : { state: 'normal', writesAllowed: true, nextAction: 'none' },
+    } })
+  })
+  await page.route(`**/applications/${applicationId}/billing/refresh`, async (route) => {
+    refreshes++
+    await refreshGate
+    stale = false
+    await route.fulfill({ json: { data: { billingEligible: true } } })
+  })
+  await page.goto('/app/clients')
+  const create = page.getByRole('button', { name: 'Create', exact: true })
+  await expect(create).toBeVisible()
+  const createNode = await create.elementHandle()
+  await create.click()
+  const draft = page.getByRole('dialog').getByLabel('Client name')
+  await draft.fill('Unsaved client')
+
+  stale = true
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect.poll(() => refreshes).toBe(1)
+  try {
+    expect(await createNode.evaluate((node) => node.isConnected)).toBe(true)
+    await expect(draft).toHaveValue('Unsaved client')
+    await expect(page.getByText('Workspace changes are paused.', { exact: false })).toHaveCount(0)
+    // Repeated focus events must share the billing operation already running.
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect.poll(() => accessReads).toBe(3)
+  } finally {
+    releaseRefresh()
+  }
+  await expect(create).toBeVisible()
+  await expect(draft).toHaveValue('Unsaved client')
+  expect(await createNode.evaluate((node) => node.isConnected)).toBe(true)
+  expect(refreshes).toBe(1)
+})
+
+for (const outcome of ['restricted', 'unverified', 'failed']) {
+  test(`billing verification applies ${outcome} access without retaining write buttons`, async ({ page }) => {
+    await workspace(page)
+    await mockOnboardingStatus(page, application)
+    let access = { state: 'normal', writesAllowed: true, nextAction: 'none' }
+    let refreshes = 0
+    let accessReads = 0
+    await page.route(`**/organizations/${orgA}/access`, (route) => {
+      accessReads++
+      return route.fulfill({ json: { data: access } })
+    })
+    await page.route(`**/applications/${applicationId}/billing/refresh`, (route) => {
+      refreshes++
+      if (outcome === 'failed')
+        return route.fulfill({ status: 503, json: { error: { message: 'Billing unavailable.' } } })
+      if (outcome === 'restricted')
+        access = { state: 'restricted', writesAllowed: false, nextAction: 'payment_recovery' }
+      return route.fulfill({ json: { data: { billingEligible: false } } })
+    })
+    await page.goto('/app/clients')
+    await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
+    access = { state: 'unverified', writesAllowed: false, nextAction: 'refresh_billing' }
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0)
+    await expect(page.getByText('Workspace changes are paused.', { exact: false })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Acme Promotions', exact: true })).toBeVisible()
+    expect(refreshes).toBe(1)
+    // Still-unverified and failed checks must respect the refresh cooldown.
+    const previousReads = accessReads
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect.poll(() => accessReads).toBeGreaterThan(previousReads)
+    expect(refreshes).toBe(1)
+  })
+}
+
+test('initial stale billing is verified before showing workspace write actions', async ({ page }) => {
+  await workspace(page)
+  await mockOnboardingStatus(page, application)
+  let verified = false
+  let refreshes = 0
+  await page.route(`**/organizations/${orgA}/access`, (route) =>
+    route.fulfill({ json: { data: verified
+      ? { state: 'normal', writesAllowed: true, nextAction: 'none' }
+      : { state: 'unverified', writesAllowed: false, nextAction: 'refresh_billing' },
+    } }),
+  )
+  await page.route(`**/applications/${applicationId}/billing/refresh`, (route) => {
+    refreshes++
+    verified = true
+    return route.fulfill({ json: { data: { billingEligible: true } } })
+  })
+  await page.goto('/app/clients')
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible()
+  expect(refreshes).toBe(1)
+})
+
+test('members with stale billing keep reads without attempting an owner billing refresh', async ({ page }) => {
+  await workspace(page, { owner: false })
+  let refreshes = 0
+  await page.route(`**/organizations/${orgA}/access`, (route) =>
+    route.fulfill({ json: { data: {
+      state: 'unverified', writesAllowed: false, nextAction: 'refresh_billing',
+    } } }),
+  )
+  await page.route('**/billing/refresh', (route) => {
+    refreshes++
+    return route.fulfill({ json: { data: { billingEligible: true } } })
+  })
+  await page.goto('/app/clients')
+  await expect(page.getByRole('link', { name: 'Acme Promotions', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0)
+  expect(refreshes).toBe(0)
+})
+
 test('permission denial refreshes effective permissions without legacy role fallback', async ({
   page,
 }) => {

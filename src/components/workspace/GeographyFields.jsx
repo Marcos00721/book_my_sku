@@ -16,7 +16,7 @@ export function GeographyFields({
   const catalog = countries.data?.countries || []
   const country = catalog.find((item) => item.code === values.country)
   const choices = states.data?.states || []
-  if (countries.loading) return <Loading label="Loading countries…" />
+  if (countries.loading) return <Loading variant="field" label="Loading countries…" />
   return (
     <>
       <ErrorNotice error={countries.error} retry={countries.reload} />

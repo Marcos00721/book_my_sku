@@ -40,7 +40,7 @@ function SupplierRecord({ base }) {
   const [editing, setEditing] = useState(false)
   const mutation = useMutation()
 
-  if (resource.loading) return <Loading label="Loading supplier…" />
+  if (resource.loading) return <Loading variant="detail" label="Loading supplier…" backTo="/app/suppliers" backLabel="Back to suppliers" />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
 

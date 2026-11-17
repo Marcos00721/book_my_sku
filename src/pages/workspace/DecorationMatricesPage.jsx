@@ -174,7 +174,7 @@ function MatrixRecord({ base, id }) {
   const [editor, setEditor] = useState(false),
     [command, setCommand] = useState(null),
     [tab, setTab] = useState('definition')
-  if (resource.loading) return <Loading />
+  if (resource.loading) return <Loading variant="detail" label="Loading decoration matrix…" backTo="/app/decoration-matrices" backLabel="Back to decoration matrices" />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const matrix = resource.data,

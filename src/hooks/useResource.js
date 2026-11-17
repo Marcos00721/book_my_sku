@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { readData } from '../services/workspace'
 
-export function useResource(path, { retainDataOnError = false } = {}) {
+export function useResource(path, { retainDataOnError = false, load = readData } = {}) {
   const activeRequest = useRef(null)
   const [version, setVersion] = useState(0)
   const [state, setState] = useState({
@@ -22,7 +22,7 @@ export function useResource(path, { retainDataOnError = false } = {}) {
     if (!path) return
     const controller = new AbortController()
     activeRequest.current = controller
-    readData(path, { signal: controller.signal })
+    load(path, { signal: controller.signal })
       .then((data) => {
         if (!controller.signal.aborted)
           setState({ path, data, loading: false, error: null })
@@ -42,7 +42,7 @@ export function useResource(path, { retainDataOnError = false } = {}) {
           }))
       })
     return () => controller.abort()
-  }, [path, version, retainDataOnError])
+  }, [path, version, retainDataOnError, load])
   // A changed URL never exposes data from the previous organization or filter.
   return {
     ...(!path

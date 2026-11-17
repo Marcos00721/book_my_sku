@@ -131,7 +131,7 @@ export function DuplicateHints({
     <aside className="notice" aria-label="Possible duplicates">
       <strong>Possible matches</strong>
       {resource.loading ? (
-        <Loading label="Checking possible matches…" />
+        <Loading variant="inline" label="Checking possible matches…" />
       ) : (
         <>
           <ErrorNotice error={resource.error} retry={resource.reload} />

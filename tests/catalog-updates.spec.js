@@ -658,6 +658,7 @@ test('pricing correction review shows packaging changes and retries partial fail
     .getByRole('button', { name: 'Review packaging corrections', exact: true })
     .click()
   const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('checkbox')).toHaveCount(2)
   for (const checkbox of await dialog.getByRole('checkbox').all())
     await checkbox.check()
   await dialog
@@ -1044,6 +1045,8 @@ async function setup(
     if (name === path) return reply(product)
     if (name === `${path}/variants`)
       return reply({ items: [variant], next: null })
+    if (name === `${path}/pricing/tables`)
+      return reply({ blocker: 'PRICE_TABLE_ADOPTION_REQUIRED' })
     if (name === `${path}/pricing/schedules`)
       return reply({ items: [], next: null })
     if (name === `${root}/suppliers`)

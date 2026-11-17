@@ -196,7 +196,7 @@ export function PaymentHandoff({ request, snapshot, reload, done }) {
               ? 'Your existing payment setup is still processing. Check its status or retry opening it when the waiting period ends.'
               : 'We will open your secure Stripe page automatically when your current setup step is ready.'}
       </p>
-      {state.pending && <Loading label="Redirecting to payment…" />}
+      {state.pending && <Loading variant="inline" label="Redirecting to payment…" />}
       <FormApiAlert
         error={state.error}
         onRetry={

@@ -7,7 +7,8 @@ import { useResource } from '../hooks/useResource'
 import { getAuthClient } from '../services/auth'
 import { mutate, paymentDestination } from '../services/workspace'
 import { money } from '../utils/format'
-import { Action, Empty, ErrorNotice, Field, Loading, PageHeader, Status } from '../components/workspace/Elements'
+import { PageLoader } from '../components/common/Loader'
+import { Action, Empty, ErrorNotice, Field, PageHeader, Status } from '../components/workspace/Elements'
 
 let pendingInvite
 function captureAssistedInvite() {
@@ -34,11 +35,11 @@ export function AssistedAcceptPage() {
   const grantResource = useResource(invite && auth.session?.user?.email_confirmed_at ? `/assisted/${invite.grantId}` : null)
   const applicant = useResource(invite && auth.session?.user?.email_confirmed_at ? '/onboarding/me' : null)
   const acceptance = useMutation()
-  if (auth.loading) return <Loading label="Checking your sign-in…" />
+  if (auth.loading) return <PageLoader label="Checking your sign-in…" />
   if (!invite) return <div className="setup-layout"><PageHeader title="Invitation link unavailable" description="This link has no valid invitation token. Ask the sender to issue a fresh link." /><ButtonLink variant="secondary" to="/login">Sign in</ButtonLink></div>
   if (auth.session && !auth.session.user.email_confirmed_at) return <div className="setup-layout"><PageHeader title="Confirm your email" description="Keep this invitation page open. After confirming your email, return here to accept the offer." /><p className="muted">If you opened the confirmation link in another tab, this page will update when the sign-in session is ready.</p></div>
   if (!auth.session) return <div className="setup-layout"><PageHeader title={mode === 'signup' ? 'Create your BookMySku account' : 'Sign in to accept'} description="The invited email must match this verified BookMySku account. Your invitation is not a company application." /><section className="panel"><form onSubmit={async (event) => { event.preventDefault(); setAuthError(null); try { const client = getAuthClient(); if (mode === 'signup') { const { data, error } = await client.auth.signUp({ email: email.trim().toLowerCase(), password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } }); if (error) throw error; setSent(!data.session); } else { const { error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password }); if (error) throw error; } } catch (error) { setAuthError(error) } }}><fieldset><Field label="Email address" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /><Field label="Password" type="password" required autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} /></fieldset><ErrorNotice error={authError} />{sent && <p className="notice">Check your inbox to confirm your account. Keep this page open, then return after confirmation.</p>}<div className="actions"><Action type="submit">{mode === 'signup' ? 'Create account' : 'Sign in'}</Action><Action variant="secondary" onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setAuthError(null) }}>{mode === 'signup' ? 'I already have an account' : 'Create an account'}</Action></div></form></section></div>
-  if (grantResource.loading || applicant.loading) return <Loading label="Loading the invitation details…" />
+  if (grantResource.loading || applicant.loading) return <PageLoader label="Loading the invitation details…" />
   if (grantResource.error || applicant.error) return <div className="setup-layout"><PageHeader title="We could not load this invitation" /><ErrorNotice error={grantResource.error || applicant.error} retry={() => { grantResource.reload(); applicant.reload() }} /></div>
   const grant = grantResource.data.grant || grantResource.data
   async function accept(event) {
@@ -52,7 +53,7 @@ export function AssistedAcceptPage() {
 export function AssistedWorkspacePage() {
   const [selected, setSelected] = useState(null)
   const resource = useResource('/assisted?limit=25')
-  if (resource.loading) return <Loading label="Loading assisted onboarding…" />
+  if (resource.loading) return <PageLoader label="Loading assisted onboarding…" />
   if (resource.error) return <div className="setup-layout"><PageHeader title="Assisted onboarding" /><ErrorNotice error={resource.error} retry={resource.reload} /><ButtonLink variant="secondary" to="/continue">Back to next step</ButtonLink></div>
   const grants = resource.data.items || []
   if (selected) return <AssistedWorkspaceRecord key={selected} id={selected} back={() => { setSelected(null); resource.reload() }} />
@@ -70,14 +71,14 @@ function AssistedWorkspaceRecord({ id, back }) {
   const agree = useMutation()
   const schedule = useMutation()
   const refresh = useMutation()
-  if (resource.loading) return <Loading label="Loading your setup checklist…" />
+  if (resource.loading) return <PageLoader label="Loading your setup checklist…" />
   if (resource.error) return <><Action variant="text-button" onClick={back}>← Back</Action><ErrorNotice error={resource.error} retry={resource.reload} /></>
   const record = resource.data
   const grant = record.grant || record
   if (grant.scope === 'seat') return <SeatRequestRecord grant={grant} preview={record.billing} back={back} />
-  if (setup.loading) return <Loading label="Checking company setup…" />
+  if (setup.loading) return <PageLoader label="Checking company setup…" />
   if (setup.error) return <ErrorNotice error={setup.error} retry={setup.reload} />
-  if (onboarding.loading) return <Loading label="Checking workspace readiness…" />
+  if (onboarding.loading) return <PageLoader label="Checking workspace readiness…" />
   if (onboarding.error) return <ErrorNotice error={onboarding.error} retry={onboarding.reload} />
   const billing = record.billing || grant.billing || {}
   const payload = { expectedRevision: grant.revision, expectedQuantity: billing.quantity, recurringConsent: true, termsVersion: billing.termsVersion || 'assisted-recurring-v1' }

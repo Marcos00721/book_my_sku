@@ -56,7 +56,7 @@ function ProductRecord({ id }) {
     if (resource.data?.id) saveProduct(resource.data)
   }, [resource.data, saveProduct])
 
-  if (resource.loading) return <Loading label="Loading product…" />
+  if (resource.loading) return <Loading variant="detail" label="Loading product…" backTo="/app/products" backLabel="Back to products" />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
 

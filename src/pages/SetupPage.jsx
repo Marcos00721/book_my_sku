@@ -12,6 +12,7 @@ import { Navigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Pencil } from "lucide-react";
 import { BrandMark } from "../components/auth/BrandMark";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
+import { PageLoader } from "../components/common/Loader";
 import { ButtonLink } from "../components/common/ButtonLink";
 import { BillingPanel } from "../components/workspace/BillingPanel";
 import { GeographyFields } from "../components/workspace/GeographyFields";
@@ -23,7 +24,6 @@ import { setupStepFromJourney } from "../utils/setupProgress";
 import {
   Action,
   ErrorNotice,
-  Loading,
   PageHeader,
   Status,
 } from "../components/workspace/Elements";
@@ -41,7 +41,7 @@ import {
 
 export function SetupPage() {
   const journey = useJourneyStatus();
-  if (journey.loading) return <Loading label="Loading your setup progress…" />;
+  if (journey.loading) return <PageLoader label="Loading your setup progress…" />;
   if (!journey.data)
     return <ErrorNotice error={journey.error} retry={journey.reload} />;
   return <SetupJourney key={journey.data.actorId} journey={journey} />;
@@ -100,9 +100,9 @@ function SetupJourney({ journey }) {
     setWizardPhase("workspace");
   }, []);
   if (returnedBilling.loading)
-    return <Loading label="Checking your payment confirmation…" />;
+    return <PageLoader label="Checking your payment confirmation…" />;
   if (checkoutRefresh.pending)
-    return <Loading label="Verifying your Checkout with the billing service…" />;
+    return <PageLoader label="Verifying your Checkout with the billing service…" />;
   if (checkoutRefresh.error)
     return <ErrorNotice error={checkoutRefresh.error} retry={checkoutRefresh.retry} />;
   if (

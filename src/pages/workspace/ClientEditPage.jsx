@@ -23,6 +23,7 @@ import {
 import { ConflictReview } from '../../components/workspace/RecordTools'
 import {
   Loading,
+  ErrorNotice,
   PageHeader,
   PermissionDenied,
 } from '../../components/workspace/Elements'
@@ -74,7 +75,7 @@ export function ClientEditPage() {
   const canView = workspace.can('clients.view')
   const canEdit = workspace.can('clients.edit') && workspace.writesAllowed
 
-  const { clients, loading: listLoading, loaded, saveClient } = useClients({
+  const { clients, loading: listLoading, loaded, error: listError, refetch, saveClient } = useClients({
     autoFetch: canView,
   })
 
@@ -86,11 +87,17 @@ export function ClientEditPage() {
   const waiting =
     !canView ||
     listLoading ||
-    (!loaded && !fromStore) ||
+    (!loaded && !fromStore && !listError) ||
     (shouldFetchDetail && detail.loading)
 
   if (!canView || !canEdit) return <PermissionDenied />
-  if (waiting) return <Loading label="Loading client…" />
+  if (waiting) return <Loading variant="form" label="Loading client…" backTo="/app/clients" backLabel="Back to clients" />
+  if (listError && !client) return (
+    <section className="client-edit-page">
+      <TextLink to="/app/clients" className="back-link"><ArrowLeft size={16} />Back to clients</TextLink>
+      <ErrorNotice error={{ message: listError }} retry={refetch} />
+    </section>
+  )
 
   const notFound =
     !client ||

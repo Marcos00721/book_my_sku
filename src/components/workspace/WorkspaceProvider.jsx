@@ -51,38 +51,50 @@ function WorkspaceSession({ session, children }) {
       ? `/organizations/${organization.id}`
       : null
   const permissions = useResource(base ? `${base}/permissions` : null)
-  const access = useResource(base ? `${base}/access` : null)
+  const owner = permissions.data?.owner === true
+  const billingSyncs = useRef(new Map())
+  // Resolve expired billing evidence before publishing access. Background checks
+  // retain the current UI until the final result, rather than hiding every write
+  // action for the duration of an otherwise successful billing refresh.
+  const loadAccess = useCallback(async (path, options) => {
+    const current = await readData(path, options)
+    if (!owner || current.writesAllowed === true || current.nextAction !== 'refresh_billing')
+      return current
+    let sync = billingSyncs.current.get(path)
+    if (!sync?.promise) {
+      if (sync && Date.now() - sync.startedAt < 60_000) return current
+      sync = { startedAt: Date.now(), promise: null }
+      sync.promise = (async () => {
+        const me = await readData('/onboarding/me')
+        const applicationId = me?.application?.id
+        if (applicationId) {
+          await mutate(
+            'post',
+            `/applications/${applicationId}/billing/refresh`,
+            {},
+            { idempotent: false },
+          )
+        }
+      })().finally(() => { sync.promise = null })
+      billingSyncs.current.set(path, sync)
+    }
+    try {
+      await sync.promise
+      return await readData(path, options)
+    } catch {
+      // A failed verification must still publish the server's denied access.
+      return current
+    }
+  }, [owner])
+  const access = useResource(
+    base && permissions.data ? `${base}/access` : null,
+    { load: loadAccess },
+  )
   const reloadPermissions = permissions.reload
   const reloadAccess = access.reload
-  const billingSyncInFlight = useRef(false)
-  const lastBillingSyncAt = useRef(0)
   const refreshAccess = useCallback(() => {
     reloadPermissions()
     reloadAccess()
-  }, [reloadPermissions, reloadAccess])
-  const syncStaleBillingAccess = useCallback(async () => {
-    if (billingSyncInFlight.current) return
-    if (Date.now() - lastBillingSyncAt.current < 60_000) return
-    billingSyncInFlight.current = true
-    lastBillingSyncAt.current = Date.now()
-    try {
-      const me = await readData('/onboarding/me')
-      const applicationId = me?.application?.id
-      if (applicationId) {
-        await mutate(
-          'post',
-          `/applications/${applicationId}/billing/refresh`,
-          {},
-          { idempotent: false },
-        )
-      }
-    } catch {
-      // Access reload below still picks up whatever evidence is available.
-    } finally {
-      billingSyncInFlight.current = false
-      reloadPermissions()
-      reloadAccess()
-    }
   }, [reloadPermissions, reloadAccess])
   useEffect(() => {
     window.addEventListener('workspace-access-changed', refreshAccess)
@@ -92,24 +104,6 @@ function WorkspaceSession({ session, children }) {
       window.removeEventListener('focus', refreshAccess)
     }
   }, [refreshAccess])
-  // Stale billing evidence expires (~5m). When access asks for refresh_billing,
-  // reconcile so Add / write actions reappear without a manual billing click.
-  useEffect(() => {
-    if (!base || permissions.loading || access.loading || access.error) return
-    if (permissions.data?.owner !== true) return
-    if (access.data?.writesAllowed === true) return
-    if (access.data?.nextAction !== 'refresh_billing') return
-    void syncStaleBillingAccess()
-  }, [
-    base,
-    permissions.loading,
-    permissions.data?.owner,
-    access.loading,
-    access.error,
-    access.data?.writesAllowed,
-    access.data?.nextAction,
-    syncStaleBillingAccess,
-  ])
   async function loadMore() {
     setLoadingMore(true)
     setPageError(null)
@@ -201,7 +195,6 @@ function WorkspaceSession({ session, children }) {
         </ButtonLink>
       </div>
     )
-  const owner = permissions.data?.owner === true
   const can = (key) =>
     permissions.data?.grants?.some((grant) => grant.key === key) === true
   const value = {

@@ -83,8 +83,8 @@ export function ErrorNotice({ error, retry }) {
   )
 }
 
-export function Loading({ label = 'Loading your workspace…' }) {
-  return <Loader label={label} />
+export function Loading({ label = 'Loading your workspace…', ...props }) {
+  return <Loader label={label} {...props} />
 }
 
 export function Empty({ title = 'Nothing here yet', children, action, icon }) {

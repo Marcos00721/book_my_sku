@@ -11,6 +11,7 @@ import { ScheduleDetail } from './ScheduleDetail'
 import { PublicationDialog } from './PublicationDialog'
 import { GoodsPreview } from './GoodsPreview'
 import { PricingAdoptionDialog } from './PricingAdoptionDialog'
+import { PriceTableEditor } from './PriceTableEditor'
 
 export function ProductPricing({ path, product }) {
   const workspace = useWorkspace()
@@ -25,14 +26,23 @@ export function ProductPricing({ path, product }) {
     )
   }
   return (
-    <PricingWorkspace
-      key={rights.join(':')}
+    <PriceTableEditor
+      key={`${path}:${rights.join(':')}:${workspace.writesAllowed}`}
       path={path}
       product={product}
       edit={rights[0]}
-      publish={rights[1]}
       preview={rights[2]}
       cost={rights[3]}
+      legacy={
+        <PricingWorkspace
+          path={path}
+          product={product}
+          edit={rights[0]}
+          publish={rights[1]}
+          preview={rights[2]}
+          cost={rights[3]}
+        />
+      }
     />
   )
 }

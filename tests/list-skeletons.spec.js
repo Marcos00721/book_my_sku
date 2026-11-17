@@ -3,7 +3,7 @@ import { mockSignedIn } from './helpers/auth'
 
 const organizationId = '507f1f77bcf86cd799439011'
 const base = `/organizations/${organizationId}`
-const grants = ['clients.view', 'suppliers.view', 'products.view', 'master_data.view']
+const grants = ['clients.view', 'clients.edit', 'suppliers.view', 'products.view', 'products.edit', 'master_data.view']
   .map((key) => ({ key, scope: 'all' }))
 
 async function mockWorkspace(page, respond) {
@@ -126,6 +126,112 @@ test('product skeletons fit a mobile viewport and respect reduced motion', async
     const animation = await skeleton.locator('.motion-safe\\:animate-pulse').first()
       .evaluate((element) => getComputedStyle(element).animationName)
     expect(animation).toBe('none')
+  } finally {
+    release()
+  }
+})
+
+for (const mode of ['light', 'dark']) {
+  for (const width of [390, 1440]) {
+    test(`client detail preserves its layout while loading in ${mode} at ${width}px`, async ({ page }, testInfo) => {
+      const clientId = '507f1f77bcf86cd799439021'
+      const endpoint = `${base}/clients/${clientId}`
+      await page.setViewportSize({ width, height: 900 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.addInitScript((theme) => localStorage.setItem('theme', theme), mode)
+      let release
+      const pending = new Promise((resolve) => { release = resolve })
+      await mockWorkspace(page, async ({ path, reply }) => {
+        if (path !== endpoint) return false
+        await pending
+        await reply({ _id: clientId, name: 'Acme Promotions', status: 'active', __v: 1 })
+        return true
+      })
+      try {
+        const requested = page.waitForRequest((request) => new URL(request.url()).pathname === `/api/v1${endpoint}`)
+        await page.goto(`/app/clients/${clientId}`)
+        await requested
+        const skeleton = page.locator('.loading-state--detail').filter({ hasText: 'Loading client…' })
+        await expect(skeleton).toBeVisible()
+        await expect(skeleton).toHaveAttribute('aria-busy', 'true')
+        await expect(skeleton.getByRole('link', { name: 'Back to clients' })).toBeVisible()
+        await expect(skeleton.locator('.loading-placeholder-field')).toHaveCount(6)
+        await expect(skeleton.locator('.loading-placeholder-tabs')).toBeVisible()
+        await expect(skeleton.getByRole('tab')).toHaveCount(0)
+        const layout = await skeleton.evaluate((element) => ({
+          height: element.getBoundingClientRect().height,
+          display: getComputedStyle(element).display,
+          fits: document.documentElement.scrollWidth <= innerWidth,
+        }))
+        expect(layout.height).toBeGreaterThan(350)
+        expect(layout.display).toBe('block')
+        expect(layout.fits).toBe(true)
+        await page.screenshot({ path: testInfo.outputPath(`client-loading-${mode}-${width}.png`), fullPage: true })
+        release()
+        await expect(skeleton).toHaveCount(0)
+        await expect(page.getByRole('heading', { name: 'Acme Promotions', exact: true })).toBeVisible()
+      } finally {
+        release()
+      }
+    })
+  }
+}
+
+for (const { collection, label } of [{ collection: 'clients', label: 'client' }, { collection: 'products', label: 'product' }]) {
+  test(`${label} edit shows field placeholders and replaces them with a failed request`, async ({ page }) => {
+    const recordId = '507f1f77bcf86cd799439021'
+    let release
+    const pending = new Promise((resolve) => { release = resolve })
+    await mockWorkspace(page, async ({ path, route }) => {
+      if (path !== `${base}/${collection}`) return false
+      await pending
+      await route.fulfill({ status: 500, json: { error: { message: `Could not load ${label}.`, code: 'INTERNAL_ERROR' } } })
+      return true
+    })
+    try {
+      const requested = page.waitForRequest((request) => new URL(request.url()).pathname === `/api/v1${base}/${collection}`)
+      await page.goto(`/app/${collection}/${recordId}/edit`)
+      await requested
+      const skeleton = page.locator('.loading-state--form').filter({ hasText: `Loading ${label}…` })
+      await expect(skeleton).toBeVisible()
+      await expect(skeleton.locator('.loading-placeholder-input')).toHaveCount(6)
+      await expect(skeleton.getByRole('textbox')).toHaveCount(0)
+      await expect(skeleton.getByRole('link', { name: `Back to ${collection}` })).toBeVisible()
+      release()
+      await expect(skeleton).toHaveCount(0)
+      await expect(page.getByRole('alert')).toContainText(`Could not load ${label}.`)
+      await expect(page.getByRole('button', { name: 'Reload latest data' })).toBeVisible()
+    } finally {
+      release()
+    }
+  })
+}
+
+test('workspace startup shows a centered loading card with reduced motion', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.addInitScript(() => localStorage.setItem('theme', 'dark'))
+  let release
+  const pending = new Promise((resolve) => { release = resolve })
+  await mockWorkspace(page, async ({ path, reply }) => {
+    if (path !== '/organizations') return false
+    await pending
+    await reply({ items: [{ id: organizationId, name: 'Test workspace', status: 'active' }], next: null })
+    return true
+  })
+  try {
+    await page.goto('/app/clients')
+    const loader = page.locator('.page-loading-content').filter({ hasText: 'Opening your workspace…' })
+    await expect(loader).toBeVisible()
+    await expect(loader).toHaveAttribute('aria-busy', 'true')
+    expect(await loader.locator('.page-loading-track > span').evaluate((element) => getComputedStyle(element).animationName)).toBe('none')
+    const card = await loader.boundingBox()
+    expect(Math.abs(card.y + card.height / 2 - 422)).toBeLessThan(2)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('workspace-loading-mobile.png') })
+    release()
+    await expect(loader).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Clients', exact: true })).toBeVisible()
   } finally {
     release()
   }

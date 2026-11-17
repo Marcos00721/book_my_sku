@@ -34,7 +34,7 @@ function OptionsSelect({
     <div className="min-w-0">
       <ErrorNotice error={resource.error} retry={resource.reload} />
       {resource.loading && !items.length ? (
-        <Loading label={`Loading ${label.toLowerCase()}…`} />
+        <Loading variant="field" label={`Loading ${label.toLowerCase()}…`} />
       ) : (
         <FormSelectField
           name={name}

@@ -188,7 +188,25 @@ optional details. Existing products with other dimensions keep the generic
 `ConfigurationEditor.jsx`. Structural edits remain draft-only; active products
 keep their correction flow. Pricing is unchanged.
 
-## Products Pricing tab (PRODUCT-04 schedules)
+## Products Pricing tab
+
+`ProductPricing.jsx` opens `PriceTableEditor.jsx` using `GET/POST /pricing/tables`.
+The simple editor displays a compact row per quantity with Cost, Margin %, Price
+and Margin (profit per item); mobile rows wrap without horizontal scrolling.
+Table names, applicability and extra tables are under collapsed Pricing options.
+Save is enabled after edits, with a visible unsaved/saved state.
+`src/utils/priceTable.js` uses exact six-place decimal
+arithmetic matching the backend; only the last price/margin edit intent is sent.
+Save submits the whole table set with the returned product/source revisions.
+An uncertain save locks edits and retries the original payload and UUID.
+Costs and margins require cost access; writes also require product/pricing edit
+access and unrestricted billing. Draft/current status follows the Save receipt.
+The UI supports all-current or selected variant applicability without editing
+variant records. Existing pricing returning `PRICE_TABLE_ADOPTION_REQUIRED`
+retains the schedule workflow below; conversion is a separate backend operation.
+Styles are scoped in `components/productPricing/price-tables.css`.
+
+### Legacy schedule workflow (PRODUCT-04)
 The current variant and pricing flow follows backend corrections/packaging (#133)
 and exact part-code lookup (#151). Options use readable names with generated,
 stable keys. Packaging edits explicitly send `baseUnit: "item"`. Active variants

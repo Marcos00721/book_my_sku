@@ -41,7 +41,7 @@ function ClientRecord({ path }) {
     navigate(location.pathname, { replace: true, state: {} })
   }, [location.pathname, location.state, navigate])
 
-  if (resource.loading) return <Loading label="Loading client…" />
+  if (resource.loading) return <Loading variant="detail" label="Loading client…" backTo="/app/clients" backLabel="Back to clients" />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const client = resource.data

@@ -14,6 +14,7 @@ import { useAppForm } from '../../components/forms/useAppForm'
 import { ConflictReview } from '../../components/workspace/RecordTools'
 import {
   Loading,
+  ErrorNotice,
   PageHeader,
   PermissionDenied,
 } from '../../components/workspace/Elements'
@@ -77,7 +78,7 @@ export function CustomProductEditPage() {
   const canView = workspace.can('products.view')
   const canEdit = workspace.can('products.edit') && workspace.writesAllowed
 
-  const { products, loading: listLoading, loaded, saveProduct } =
+  const { products, loading: listLoading, loaded, error: listError, refetch, saveProduct } =
     useCustomProducts({ autoFetch: canView })
 
   const fromStore = products.find((item) => item.id === productId) || null
@@ -88,11 +89,17 @@ export function CustomProductEditPage() {
   const waiting =
     !canView ||
     listLoading ||
-    (!loaded && !fromStore) ||
+    (!loaded && !fromStore && !listError) ||
     (shouldFetchDetail && detail.loading)
 
   if (!canView || !canEdit) return <PermissionDenied />
-  if (waiting) return <Loading label="Loading product…" />
+  if (waiting) return <Loading variant="form" label="Loading product…" backTo="/app/products" backLabel="Back to products" />
+  if (listError && !product) return (
+    <section className="client-edit-page">
+      <TextLink to="/app/products" className="back-link"><ArrowLeft size={16} />Back to products</TextLink>
+      <ErrorNotice error={{ message: listError }} retry={refetch} />
+    </section>
+  )
 
   const notFound =
     !product ||

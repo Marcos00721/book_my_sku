@@ -32,6 +32,12 @@ export function WorkspaceLayout() {
   const content = useRef(null)
   const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState(null)
+  const isListRoute = /^\/app\/(clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
+  const loadingVariant = location.pathname.endsWith('/edit')
+    ? 'form'
+    : /^\/app\/(clients|suppliers|products|decoration-matrices)\/.+/.test(location.pathname)
+      ? 'detail'
+      : 'page'
   const links = [
     { to: '/app', label: 'Overview', Icon: LayoutDashboard, end: true },
     ...(workspace.can('clients.view')
@@ -140,9 +146,9 @@ export function WorkspaceLayout() {
           )}
           <Suspense
             fallback={
-              /^\/app\/(clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
+              isListRoute
                 ? <ListSkeleton label="Loading list…" />
-                : <Loading />
+                : <Loading variant={loadingVariant} />
             }
           >
             <Outlet />
