@@ -215,14 +215,15 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
         : null
 
   return (
-    <section className="client-edit-page">
+    <section className="client-edit-page client-profile-editor">
       <TextLink to={`/app/clients/${client._id}`} className="back-link">
         <ArrowLeft size={16} />
         Back to client
       </TextLink>
       <PageHeader
-        title="Edit"
-        description="Update the company profile used across your workspace."
+        eyebrow={[client.clientCode, client.name].filter(Boolean).join(' · ')}
+        title="Edit client"
+        description="Update the company details and notes shared across your workspace."
       />
       <Card className="client-edit-card">
         <AppFormProvider
@@ -232,7 +233,7 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
           className="client-edit-form"
         >
           <FormApiAlert error={alertError} />
-          <ClientFormFields disabled={saving} autoFocusName />
+          <ClientFormFields disabled={saving} autoFocusName layout="page" />
           <ClientConflictReview
             error={mutation.error}
             path={path}
@@ -242,6 +243,13 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
             }}
           />
           <div className="client-edit-footer">
+            <p className="client-edit-save-status" role="status">
+              {mutation.pending || isSubmitting
+                ? 'Saving changes…'
+                : mutation.uncertain
+                  ? 'Save unconfirmed. Retry to confirm.'
+                  : isDirty ? 'Unsaved changes' : 'No unsaved changes'}
+            </p>
             <ClearFormButton disabled={saving || mutation.uncertain} onClear={() => {
               mutation.reset()
             }} />

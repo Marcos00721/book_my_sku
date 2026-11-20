@@ -1551,6 +1551,89 @@
   padding-top: var(--space-md);
   border-top: var(--border-width) solid rgb(var(--color-border-subtle));
 }
+.client-profile-editor {
+  width: min(880px, 100%);
+  margin-inline: auto;
+}
+.client-profile-editor .page-heading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.client-profile-editor .back-link {
+  font-size: var(--font-size-sm);
+}
+.client-profile-editor .client-edit-card {
+  max-width: none;
+  padding: 0;
+}
+.client-profile-editor .client-edit-form {
+  gap: 0;
+}
+.client-profile-editor .client-form-fields--page {
+  padding: var(--space-xl);
+  gap: var(--space-lg);
+}
+.client-edit-section-heading h2 {
+  margin: 0 0 var(--space-xs);
+}
+.client-edit-section-heading p {
+  margin: 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+.client-profile-editor .client-profile-fields {
+  column-gap: var(--space-lg);
+  row-gap: var(--space-lg);
+}
+.client-profile-editor .client-edit-notes {
+  padding-top: var(--space-lg);
+  border-top: var(--border-width) solid rgb(var(--color-border-subtle) / 0.6);
+}
+.client-profile-editor .text-editor-toolbar,
+.client-profile-editor .text-editor-toolbar-actions {
+  flex-wrap: wrap;
+}
+.client-profile-editor .client-edit-footer {
+  align-items: center;
+  margin: 0;
+  padding: var(--space-md) var(--space-xl);
+  background: rgb(var(--color-surface-muted) / 0.25);
+}
+.client-edit-save-status {
+  flex: 1 1 10rem;
+  margin: 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-sm);
+}
+.client-profile-editor .client-edit-footer > .form-clear-button {
+  margin-right: 0;
+}
+.client-profile-editor .client-edit-form > :is(.notice, .crm-notice) {
+  margin: var(--space-md) var(--space-xl);
+}
+@media (max-width: 600px) {
+  .client-profile-editor .client-form-fields--page {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .client-profile-editor .client-profile-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .client-profile-editor .client-edit-footer {
+    padding: var(--space-md);
+    gap: var(--space-xs);
+  }
+  .client-edit-save-status {
+    flex-basis: 100%;
+    margin-bottom: var(--space-micro);
+  }
+  .client-profile-editor .client-edit-footer > .form-clear-button {
+    margin-right: auto;
+  }
+  .client-profile-editor .client-edit-form > :is(.notice, .crm-notice) {
+    margin-inline: var(--space-md);
+  }
+}
 .client-flash {
   margin-bottom: var(--space-md);
 }

@@ -92,11 +92,18 @@ function ClientDuplicateHints() {
 }
 
 /** Shared add/edit fields — must render inside AppFormProvider / FormProvider. */
-export function ClientFormFields({ disabled = false, autoFocusName = false }) {
+export function ClientFormFields({ disabled = false, autoFocusName = false, layout = 'dialog' }) {
   const workspace = useWorkspace()
+  const isPage = layout === 'page'
 
   return (
-    <div className="client-form-fields">
+    <div className={`client-form-fields${isPage ? ' client-form-fields--page' : ''}`}>
+      {isPage && (
+        <header className="client-edit-section-heading">
+          <h2>Company details</h2>
+          <p>Keep the company profile up to date. Only the client name is required.</p>
+        </header>
+      )}
       <fieldset className="form-grid client-profile-fields" disabled={disabled}>
         <div className="client-form-name">
           <FormTextField
@@ -129,6 +136,8 @@ export function ClientFormFields({ disabled = false, autoFocusName = false }) {
       <FormTextEditor
         name="notes"
         label="Notes"
+        className={isPage ? 'client-edit-notes' : ''}
+        hint={isPage ? 'Add useful context and preferences for your team.' : undefined}
         maxLength={2000}
         rows={5}
         placeholder="Write a note…"
