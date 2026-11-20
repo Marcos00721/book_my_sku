@@ -7,6 +7,7 @@ export function FormTextEditor({
   label,
   hint,
   disabled,
+  readOnly = false,
   className = '',
   onChange,
   onBlur,
@@ -15,7 +16,7 @@ export function FormTextEditor({
   const { control, formState } = useFormContext()
   const { field, fieldState } = useController({ name, control, disabled })
   const isDisabled = Boolean(
-    field.disabled || formState.disabled || disabled || formState.isSubmitting,
+    field.disabled || formState.disabled || disabled || readOnly || formState.isSubmitting,
   )
 
   return (

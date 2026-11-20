@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { hasRichTextContent } from '../utils/richText'
 
 export const managementFormSchema = z.object({
   relationshipStatus: z.enum(['prospect', 'customer', 'dormant']),
@@ -18,27 +17,6 @@ export const archiveRestoreFormSchema = z.object({
     .min(1, 'Reason is required')
     .max(250, 'Use no more than 250 characters.'),
 })
-
-export const noteFormSchema = z
-  .object({
-    text: z
-      .string()
-      .trim()
-      .min(1, 'Note is required')
-      .max(2000, 'Use no more than 2000 characters.')
-      .refine(hasRichTextContent, 'Note is required'),
-    reason: z.string().trim().max(250, 'Use no more than 250 characters.').default(''),
-    isEdit: z.boolean().default(false),
-  })
-  .superRefine((value, context) => {
-    if (value.isEdit && !value.reason.trim()) {
-      context.addIssue({
-        code: 'custom',
-        path: ['reason'],
-        message: 'Correction reason is required',
-      })
-    }
-  })
 
 export const addressFormSchema = z.object({
   label: z

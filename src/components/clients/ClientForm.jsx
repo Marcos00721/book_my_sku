@@ -12,10 +12,10 @@ import { ConflictReview } from '../workspace/RecordTools'
 import { Dialog, SaveFooter } from '../workspace/Elements'
 import { ClientFormFields } from './ClientFormFields'
 
-const FIELD_NAMES = ['name', 'website', 'accountLabel', 'industryId']
+const FIELD_NAMES = ['name', 'website', 'accountLabel', 'industryId', 'notes']
 
 function ClientConflictReview({ error, path, onReview }) {
-  const [name, website, accountLabel, industryId] = useWatch({
+  const [name, website, accountLabel, industryId, notes] = useWatch({
     name: FIELD_NAMES,
   })
   return (
@@ -27,6 +27,7 @@ function ClientConflictReview({ error, path, onReview }) {
         website: website || '',
         accountLabel: accountLabel || '',
         industryId: industryId || '',
+        notes: notes || '',
       }}
       onReview={onReview}
     />
@@ -35,8 +36,8 @@ function ClientConflictReview({ error, path, onReview }) {
 
 /** Dialog form for add (and legacy modal edit). Page edit uses ClientEditPage. */
 export function ClientForm({ path, client, close, saved }) {
-  const mutation = useMutation()
   const [version, setVersion] = useState(client?.__v)
+  const mutation = useMutation()
   const locked = mutation.pending || mutation.uncertain
 
   const form = useAppForm(clientFormSchema, {

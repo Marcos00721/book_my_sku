@@ -4,7 +4,7 @@ Current integration targets the local backend `main` at `ca21925`, including PRO
 
 ## Current frontend update
 
-- Clients: normalized prefix search and lifecycle filters; stable codes and account labels; optional website/industry through client-specific lookups; advisory duplicates; contact archive/restore and separate primary/billing defaults; canonical address geography/readiness; relationship, scoped manager selection, notes/corrections/version history and protected activity.
+- Clients: normalized prefix search and lifecycle filters; stable codes and account labels; optional website/industry through client-specific lookups; advisory duplicates; contact archive/restore and separate primary/billing defaults; canonical address geography/readiness; relationship, scoped manager selection, rich-text profile notes and protected activity. Add/Edit send optional `notes` with the client POST/PATCH, read it from the client response, preserve omitted values and clear with null. These screens do not call the separate notes API. The backend change requires the reviewed `client-notes-v1` schema release and backend deployment; legacy separate notes/history are retained without automatic conversion.
 - Suppliers: codes and exact-code search, three independent capabilities including Fulfillment, optional profile fields, advisory duplicates, protected activity, required contact email and responsibilities, canonical addresses including Receiving, paginated default selection and explicit atomic child-create/default intent. Restore never reinstates old defaults.
 - Products: `/app/products` and `/app/products/:productId` provide supplier-linked drafts, status/search filters, details/edit/copy/archive/restore and protected activity. Supplier selection is immutable on edit; copying requests a destination and a new explicit supplier item code or null. Leading zeros/case are preserved. Configuration supports explicit single/variant modes and selected combinations with units. Only owners with product edit access can activate eligible drafts. Active configuration changes require archive/restore.
 - Variant setup uses separate Color and Size inputs with Add buttons, removable values and case-insensitive duplicate checks. Empty lists save a standard product; typed values are included on save. Existing IDs and supplier identification are preserved. Combinations are selected explicitly, with optional part code/packaging collapsed by default. Products with other dimensions retain their existing editor. These screens use the existing backend configuration/variant commands; no pricing contract changes.
@@ -32,6 +32,17 @@ Super Admin is resolved only by `/admin/me`, with the existing TOTP challenge fo
 Workspace owners manage their own team, roles and billing. Non-owner members use explicit effective grants. Master Data reads require enabled `master_data.view`; writes, workspace history and decoration matrices remain owner-only. Product archive/restore/history and pricing edit/publish/preview/cost have separate grants. Product activation additionally requires ownership. All business writes also require current server `writesAllowed`; restricted billing preserves authorized reads. API authorization remains authoritative after every request/retry.
 
 ## Screens and contracts
+
+Leads: `/app/leads` uses `GET /organizations/:organizationId/inquiries` with
+`limit=25`, company-prefix `search`, optional `stage`, and the server's `next`
+object serialized as JSON in `before`. Sidebar visibility and page access require
+the effective `inquiries.view` grant. Company labels prefer corrections over the
+submitted value. The list shows company, stage, source and creation date; the
+backend summary does not include contact details or an owner label. Filter changes
+reset cursor pagination. This first slice is read-only; create/detail workflows
+are separate. Inquiry runtime must be enabled and qualified on the backend; an
+unavailable route displays an error, never an empty list. Browser verification uses
+mocked API responses and does not establish live staging availability.
 
 | Route                                      | Integrated behavior                                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

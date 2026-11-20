@@ -17,7 +17,7 @@ export function BillingPage() {
     <>
       <PageHeader
         title="Billing"
-        description="Your agreed plan, payment status, and a little peace of mind."
+        description="Manage your plan, seats, and payment status in one place."
       />
       {status.loading ? (
         <Loading />

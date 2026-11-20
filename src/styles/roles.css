@@ -1,0 +1,345 @@
+.app-dialog.role-editor-dialog {
+  --dialog-width: 780px;
+  height: min(780px, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: hidden;
+}
+.app-dialog.role-editor-dialog--archive {
+  --dialog-width: 480px;
+  height: auto;
+}
+.app-dialog.role-editor-dialog > .app-dialog-header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-ml) var(--space-lg);
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+}
+.role-editor-dialog .app-dialog-description {
+  font-size: 0.875rem;
+}
+.role-editor-dialog > .app-dialog-body,
+.role-editor-form,
+.role-editor-fields {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.role-editor-fields {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.role-editor-details {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+}
+.role-editor-details label {
+  font-size: 0.875rem;
+}
+.role-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-shrink: 0;
+  padding: 0 var(--space-lg) var(--space-md);
+}
+.role-editor-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.role-editor-section-heading h3 {
+  font-size: 1rem;
+}
+.role-editor-count {
+  border-radius: var(--radius-md);
+  padding: var(--space-tiny) var(--space-xs);
+  background: rgb(var(--color-primary-soft));
+  color: rgb(var(--color-primary-ink));
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.role-editor-search {
+  flex: 0 1 300px;
+  min-width: 0;
+}
+.role-editor-search > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.role-editor-catalog {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+  border-block: 1px solid rgb(var(--color-border-subtle));
+  margin-inline: var(--space-lg);
+}
+.role-editor-catalog::-webkit-scrollbar {
+  width: 12px;
+}
+.role-editor-catalog::-webkit-scrollbar-track {
+  background: rgb(var(--color-surface-muted));
+}
+.role-editor-catalog::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-text-muted));
+  border: 3px solid rgb(var(--color-surface-muted));
+  border-radius: 10px;
+}
+.role-editor-groups {
+  display: flex;
+  flex-direction: column;
+}
+.role-editor-group {
+  min-width: 0;
+}
+.role-editor-group-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: rgb(var(--color-surface-muted));
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+}
+.role-editor-group-heading h4 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+}
+.role-editor-select-all,
+.role-editor-permission {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.role-editor-select-all {
+  min-height: 44px;
+  flex-shrink: 0;
+  color: rgb(var(--color-text-muted));
+  font-size: 0.875rem;
+}
+.role-editor-dialog input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: rgb(var(--color-primary));
+  cursor: inherit;
+}
+.role-editor-column-headings,
+.role-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0 var(--space-md);
+}
+.role-editor-column-headings {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 34px;
+  background: rgb(var(--color-surface));
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+  font-size: 0.8125rem;
+  color: rgb(var(--color-text-muted));
+}
+.role-editor-row {
+  min-height: 48px;
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+  transition: background-color 140ms ease;
+}
+.role-editor-row.is-selected {
+  background: rgb(var(--color-primary) / 0.05);
+}
+.role-editor-row:not(.is-disabled):hover {
+  background: rgb(var(--color-primary) / 0.09);
+}
+.role-editor-permission {
+  align-self: stretch;
+  min-width: 0;
+  padding: var(--space-xs) 0;
+}
+.role-editor-permission span {
+  overflow-wrap: anywhere;
+}
+.role-editor-row.is-disabled .role-editor-permission {
+  color: rgb(var(--color-text-muted));
+  cursor: not-allowed;
+}
+.role-editor-access-note {
+  color: rgb(var(--color-text-muted));
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.role-editor-scope {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+  margin: var(--space-micro) 0;
+}
+.role-editor-scope select {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  line-height: 1.25;
+  appearance: none;
+  padding: var(--space-tiny) var(--space-lg) var(--space-tiny) var(--space-xs);
+  border: 1px solid rgb(var(--color-border-control));
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-text-base));
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.role-editor-scope svg {
+  position: absolute;
+  right: var(--space-xs);
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(var(--color-text-muted));
+  pointer-events: none;
+}
+.role-editor-dialog :is(input[type='checkbox'], select):focus-visible,
+.role-editor-catalog:focus-visible {
+  outline: 2px solid rgb(var(--color-focus-ring));
+  outline-offset: 2px;
+}
+.role-editor-dependency {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  margin: 0 var(--space-lg) var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-primary-soft));
+  font-size: 0.875rem;
+}
+.role-editor-dependency > svg {
+  flex-shrink: 0;
+}
+.role-editor-dependency p {
+  flex: 1;
+  margin: 0;
+}
+.role-editor-dependency button {
+  padding: var(--space-tiny) var(--space-xs);
+  font-size: 0.8125rem;
+}
+.role-editor-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  color: rgb(var(--color-text-muted));
+  font-size: 0.875rem;
+}
+.role-editor-empty h4,
+.role-editor-empty p {
+  margin: 0;
+}
+.role-editor-form > .notice {
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow: auto;
+  margin: 0 var(--space-lg) var(--space-md);
+}
+.role-editor-form > .dialog-footer {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: rgb(var(--color-surface));
+  border: 0;
+}
+.role-editor-form > .dialog-footer button[type='submit'] svg {
+  display: none;
+}
+.role-editor-archive {
+  padding: var(--space-ml) var(--space-lg);
+  overflow-y: auto;
+}
+.role-editor-archive p {
+  margin: 0;
+}
+.role-editor-dialog--archive :is(.app-dialog-body, .role-editor-form) {
+  flex-basis: auto;
+}
+@media (max-width: 600px) {
+  .app-dialog.role-editor-dialog {
+    width: calc(100% - 1rem);
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+  .app-dialog.role-editor-dialog--archive {
+    height: auto;
+  }
+  .role-editor-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+  .role-editor-search {
+    flex: auto;
+  }
+  .role-editor-section-heading {
+    justify-content: space-between;
+  }
+  .app-dialog.role-editor-dialog > .app-dialog-header,
+  .role-editor-details,
+  .role-editor-archive,
+  .role-editor-form > .dialog-footer {
+    padding: var(--space-md);
+  }
+  .role-editor-toolbar {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+  .role-editor-catalog {
+    margin-inline: var(--space-md);
+  }
+  .role-editor-column-headings,
+  .role-editor-group-heading,
+  .role-editor-row {
+    grid-template-columns: minmax(0, 1fr) 128px;
+    gap: var(--space-xs);
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+  .role-editor-dependency {
+    flex-wrap: wrap;
+    margin-left: var(--space-md);
+    margin-right: var(--space-md);
+  }
+  .role-editor-dependency button {
+    margin-left: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .role-editor-row {
+    transition: none;
+  }
+}

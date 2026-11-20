@@ -108,6 +108,7 @@ Products Images tab example: [`src/pages/workspace/ProductMedia.jsx`](src/pages/
 | `/team/accept` | InvitationPage |
 | `/admin` | AdminPage (+ `?section=`) |
 | `/app` | Workspace (Overview) |
+| `/app/leads` | Leads (backend Inquiries): company search, stage filters and cursor pagination |
 | `/app/clients`, `/app/clients/:id`, `/app/clients/:id/edit` | Clients |
 | `/app/suppliers`, `/app/suppliers/:id` | Suppliers |
 | `/app/products`, `/app/products/:id`, `/app/products/:id/edit` | Products (Custom Product) |

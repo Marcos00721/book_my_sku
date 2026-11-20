@@ -3,102 +3,117 @@ import { mockSignedIn } from './helpers/auth'
 
 const org = '507f1f77bcf86cd799439011'
 const clientId = '507f1f77bcf86cd799439021'
-const path = `/organizations/${org}/clients/${clientId}`
+const root = `/organizations/${org}/clients`
+const path = `${root}/${clientId}`
 
-async function setup(page) {
+async function setup(page, { notes = '<p><strong>Project brief</strong> with <em>details</em></p>', failFirstWrite = false } = {}) {
   await mockSignedIn(page)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.route('https://fonts.googleapis.com/**', route => route.abort())
   await page.route('https://fonts.gstatic.com/**', route => route.abort())
   const writes = []
-  const notes = [
-    { id: 'rich', text: '<p><strong>Project brief</strong> with <em>details</em></p><ul><li>First step</li></ul>' },
-    { id: 'legacy', text: 'Legacy first line\nSecond line & details' },
-    { id: 'unsafe', text: '<p onclick="window.noteAttack = true">Safe content</p><script>window.noteAttack = true</script><img src=x onerror="window.noteAttack = true"><a href="javascript:window.noteAttack=true">Unsafe link</a>' },
-  ].map(note => ({ ...note, revision: 1, createdAt: '2026-11-16T10:00:00Z', actor: { label: 'Alex' } }))
+  const notesRequests = []
+  const client = { _id: clientId, name: 'QA Client', notes, status: 'active', __v: 1 }
+  let failed = false
   await page.route('**/api/v1/**', async route => {
     const request = route.request()
     const current = new URL(request.url()).pathname.replace('/api/v1', '')
     let data = { items: [], next: null }
+    if (current.includes('/notes')) notesRequests.push(current)
     if (current === '/organizations') data = { items: [{ id: org, name: 'QA Studio', status: 'active' }], next: null }
-    else if (current.endsWith('/permissions')) data = { owner: true, grants: ['clients.view', 'clients.edit', 'clients.history.view'].map(key => ({ key, scope: 'all' })) }
+    else if (current.endsWith('/permissions')) data = { owner: true, grants: ['clients.view', 'clients.create', 'clients.edit', 'clients.history.view'].map(key => ({ key, scope: key === 'clients.create' ? 'none' : 'all' })) }
     else if (current.endsWith('/access')) data = { state: 'normal', writesAllowed: true }
-    else if (current === path) data = { _id: clientId, name: 'QA Client', status: 'active', __v: 1 }
-    else if (current === `${path}/management`) data = { relationshipStatus: 'customer', clientVersion: 1 }
-    else if (current === `${path}/activity`) data = { items: [{
-      id: 'note-event', action: 'note.corrected', entity: { type: 'note' },
-      occurredAt: '2026-11-16T10:00:00Z',
-      changes: [{ field: 'text', before: '<p><em>Old briefing</em></p>', after: '<p><strong>New briefing</strong></p>' }],
-    }], next: null }
-    else if (current === `${path}/notes` && request.method() === 'POST') {
-      writes.push({ method: 'POST', body: request.postDataJSON() })
-      data = { id: 'created', revision: 1, createdAt: '2026-11-16T10:00:00Z', ...request.postDataJSON() }
-      notes.unshift(data)
-    } else if (current === `${path}/notes`) data = { items: notes, next: null }
-    else if (current === `${path}/notes/legacy` && request.method() === 'PATCH') {
+    else if ((current === root && request.method() === 'POST') || (current === path && request.method() === 'PATCH')) {
       const body = request.postDataJSON()
-      writes.push({ method: 'PATCH', body })
-      Object.assign(notes.find(note => note.id === 'legacy'), { text: body.text, revision: 2 })
-      data = notes.find(note => note.id === 'legacy')
-    } else if (current.endsWith('/versions')) data = { items: [{ id: 'version', revision: 1, text: notes.find(note => note.id === 'rich').text }], next: null }
+      writes.push({ method: request.method(), path: current, body, key: request.headers()['idempotency-key'] })
+      if (failFirstWrite && !failed) {
+        failed = true
+        return route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Please retry saving the client.' } } })
+      }
+      Object.assign(client, body, { __v: request.method() === 'POST' ? 0 : client.__v + 1 })
+      data = client
+    } else if (current === path) data = client
+    else if (current === `${path}/management`) data = { relationshipStatus: 'customer', clientVersion: client.__v }
     await route.fulfill({ json: { data } })
   })
-  return writes
+  return { writes, notesRequests }
 }
 
 for (const width of [375, 1440]) {
-  test(`client notes edit and display rich text safely at ${width}px`, async ({ page }) => {
+  test(`client add and edit save rich notes through the client API at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
-    const writes = await setup(page)
-    await page.goto(`/app/clients/${clientId}`)
-    const notes = page.getByRole('tabpanel', { name: 'Overview' }).locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Notes', exact: true }) })
-    const rich = notes.locator('.note-card').filter({ hasText: 'Project brief' })
-    await expect(rich.locator('strong')).toHaveText('Project brief')
-    await expect(rich.locator('em')).toHaveText('details')
-    await expect(rich.locator('li')).toHaveText('First step')
-    const legacy = notes.locator('.note-card').filter({ hasText: 'Legacy first line' })
-    await expect(legacy.locator('.rich-text')).toHaveText('Legacy first line\nSecond line & details')
-    const unsafe = notes.locator('.note-card').filter({ hasText: 'Safe content' })
-    await expect(unsafe.locator('img, script, [onclick], a[href]')).toHaveCount(0)
-    await expect(unsafe).not.toContainText('<p')
-    await expect.poll(() => page.evaluate(() => window.noteAttack)).toBeUndefined()
-
-    await rich.getByRole('button', { name: 'Version history' }).click()
-    const history = page.getByRole('dialog', { name: 'Note versions' })
-    await expect(history.locator('strong')).toHaveText('Project brief')
-    await expect(history.locator('li')).toHaveText('First step')
-    await history.getByRole('button', { name: 'Close dialog' }).click()
-
-    await legacy.getByRole('button', { name: 'Edit', exact: true }).click()
-    const edit = page.getByRole('dialog', { name: 'Edit note' })
-    const legacyEditor = edit.locator('[contenteditable="true"]')
-    await expect(legacyEditor).toContainText('Legacy first line')
-    await expect(legacyEditor.locator('br')).toHaveCount(1)
-    await edit.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(edit.getByRole('alert')).toHaveText('Correction reason is required')
-    await edit.getByRole('textbox', { name: 'Correction reason' }).fill('Clarified briefing')
-    await edit.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(edit).toHaveCount(0)
-    expect(writes[0]).toEqual({ method: 'PATCH', body: { text: '<p>Legacy first line<br>Second line &amp; details</p>', expectedVersion: 1, reason: 'Clarified briefing' } })
-
-    await notes.getByRole('button', { name: 'Create', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Add note' })
-    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(dialog.getByRole('alert')).toHaveText('Note is required')
+    const { writes, notesRequests } = await setup(page)
+    await page.goto('/app/clients')
+    await page.locator('.page-heading').getByRole('button', { name: 'Create', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Add client' })
+    await dialog.getByRole('textbox', { name: 'Client name', exact: true }).fill('New client')
     const editor = dialog.locator('[contenteditable="true"]')
-    await editor.fill('New briefing')
+    await editor.fill('Initial briefing')
     await editor.press('ControlOrMeta+a')
     await dialog.getByRole('button', { name: 'Bold', exact: true }).click()
-    await expect(editor.locator('strong')).toHaveText('New briefing')
-    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(dialog).toHaveCount(0)
-    expect(writes[1]).toEqual({ method: 'POST', body: { text: '<p><strong>New briefing</strong></p>' } })
-    await expect(notes.locator('.note-card').filter({ hasText: 'New briefing' }).locator('strong')).toHaveText('New briefing')
+    await dialog.getByRole('button', { name: 'Add client', exact: true }).click()
+    await expect(page).toHaveURL(`/app/clients/${clientId}`)
+    const notes = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Notes', exact: true }) }).last()
+    await expect(notes.locator('strong')).toHaveText('Initial briefing')
+    expect(writes[0].body).toEqual({ name: 'New client', notes: '<p><strong>Initial briefing</strong></p>' })
 
-    await page.getByRole('tab', { name: 'Activity', exact: true }).click()
-    const activity = page.getByRole('tabpanel', { name: 'Activity' })
-    await expect(activity.locator('.activity-timeline-value-before em')).toHaveText('Old briefing')
-    await expect(activity.locator('.activity-timeline-value-after strong')).toHaveText('New briefing')
-    await expect(activity).not.toContainText('<p>')
+    await notes.getByRole('link', { name: 'Edit notes' }).click()
+    const form = page.locator('.client-edit-form')
+    const edit = form.locator('[contenteditable="true"]')
+    await expect(edit.locator('strong')).toHaveText('Initial briefing')
+    await edit.fill('Updated briefing')
+    await edit.press('ControlOrMeta+a')
+    await form.getByRole('button', { name: 'Italic', exact: true }).click()
+    await form.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page).toHaveURL(`/app/clients/${clientId}`)
+    await expect(notes.locator('em')).toHaveText('Updated briefing')
+    expect(writes[1].body).toEqual({ notes: '<p><strong><em>Updated briefing</em></strong></p>', expectedVersion: 0 })
+    expect(writes).toHaveLength(2)
+    expect(notesRequests).toEqual([])
+
+    await notes.getByRole('link', { name: 'Edit notes' }).click()
+    await page.locator('.client-edit-form [contenteditable="true"]').fill('')
+    await page.locator('.client-edit-form').getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page).toHaveURL(`/app/clients/${clientId}`)
+    expect(writes[2].body).toEqual({ notes: null, expectedVersion: 1 })
+    await expect(notes).toContainText('No notes yet.')
+    expect(notesRequests).toEqual([])
   })
 }
+
+test('uncertain create retries the same client and notes body and operation key', async ({ page }) => {
+  const { writes, notesRequests } = await setup(page, { failFirstWrite: true })
+  await page.goto('/app/clients')
+  await page.locator('.page-heading').getByRole('button', { name: 'Create', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add client' })
+  await dialog.getByRole('textbox', { name: 'Client name', exact: true }).fill('New client')
+  await dialog.locator('[contenteditable="true"]').fill('Initial briefing')
+  await dialog.getByRole('button', { name: 'Add client', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Retry same request' }).click()
+  await expect(page).toHaveURL(`/app/clients/${clientId}`)
+  expect(writes).toHaveLength(2)
+  expect(writes[1]).toEqual(writes[0])
+  expect(notesRequests).toEqual([])
+})
+
+test('legacy profile text preserves line breaks and unrelated edits omit notes', async ({ page }) => {
+  const { writes, notesRequests } = await setup(page, { notes: 'First line\nSecond line & details' })
+  await page.goto(`/app/clients/${clientId}/edit`)
+  const form = page.locator('.client-edit-form')
+  await expect(form.locator('[contenteditable="true"] br')).toHaveCount(1)
+  await form.getByRole('textbox', { name: 'Account label', exact: true }).fill('West campus')
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page).toHaveURL(`/app/clients/${clientId}`)
+  expect(writes[0].body).toEqual({ accountLabel: 'West campus', expectedVersion: 1 })
+  expect(notesRequests).toEqual([])
+})
+
+test('profile notes render supported formatting without executing stored HTML', async ({ page }) => {
+  const { notesRequests } = await setup(page, { notes: '<p onclick="window.noteAttack = true"><strong>Safe content</strong></p><script>window.noteAttack = true</script><img src=x onerror="window.noteAttack = true"><a href="javascript:window.noteAttack=true">Unsafe link</a>' })
+  await page.goto(`/app/clients/${clientId}`)
+  const notes = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Notes', exact: true }) }).last()
+  await expect(notes.locator('strong')).toHaveText('Safe content')
+  await expect(notes.locator('img, script, [onclick], a[href^="javascript:"]')).toHaveCount(0)
+  expect(await page.evaluate(() => window.noteAttack)).toBeUndefined()
+  expect(notesRequests).toEqual([])
+})

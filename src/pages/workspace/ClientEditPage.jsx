@@ -28,10 +28,10 @@ import {
   PermissionDenied,
 } from '../../components/workspace/Elements'
 
-const FIELD_NAMES = ['name', 'website', 'accountLabel', 'industryId']
+const FIELD_NAMES = ['name', 'website', 'accountLabel', 'industryId', 'notes']
 
 function ClientConflictReview({ error, path, onReview }) {
-  const [name, website, accountLabel, industryId] = useWatch({
+  const [name, website, accountLabel, industryId, notes] = useWatch({
     name: FIELD_NAMES,
   })
   return (
@@ -43,6 +43,7 @@ function ClientConflictReview({ error, path, onReview }) {
         website: website || '',
         accountLabel: accountLabel || '',
         industryId: industryId || '',
+        notes: notes || '',
       }}
       onReview={onReview}
     />
@@ -165,9 +166,8 @@ export function ClientEditPage() {
 }
 
 function ClientEditForm({ client, path, onCancel, onSaved }) {
-  const mutation = useMutation()
   const [version, setVersion] = useState(client.__v)
-  const [apiError, setApiError] = useState(null)
+  const mutation = useMutation()
   const locked = mutation.pending || mutation.uncertain
 
   const form = useAppForm(clientFormSchema, {
@@ -175,19 +175,11 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
   })
 
   useEffect(() => {
-    form.reset(clientToFormValues(client))
-    setVersion(client.__v)
-    setApiError(null)
-  }, [client, form])
-
-  useEffect(() => {
     if (!mutation.error) return
-    setApiError(mutation.error)
     applyServerFieldErrors(form, mutation.error)
   }, [form, mutation.error])
 
   async function onSubmit(values) {
-    setApiError(null)
     const payload = buildClientPayload(values, {
       client: { ...client, __v: version },
       dirtyFields: form.formState.dirtyFields,
@@ -205,12 +197,12 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
       ...payload,
       expectedVersion: version,
     })
-
     if (result?.data) onSaved(result.data)
   }
 
   const { isDirty, isSubmitting } = form.formState
   const saving = locked || isSubmitting
+  const apiError = mutation.error
   const alertError =
     apiError?.status === 409
       ? null
@@ -252,7 +244,6 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
           <div className="client-edit-footer">
             <ClearFormButton disabled={saving || mutation.uncertain} onClear={() => {
               mutation.reset()
-              setApiError(null)
             }} />
             <Button
               type="button"
@@ -262,8 +253,8 @@ function ClientEditForm({ client, path, onCancel, onSaved }) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || !isDirty}>
-              {saving
+            <Button type="submit" disabled={mutation.pending || isSubmitting || (!isDirty && !mutation.uncertain)}>
+              {mutation.pending || isSubmitting
                 ? 'Saving…'
                 : mutation.uncertain
                   ? 'Retry same request'

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { hasRichTextContent, toEditorHtml } from '../utils/richText'
 
 function optionalHttpUrl(value) {
   if (!value) return true
@@ -34,6 +35,7 @@ export const clientFormSchema = z.object({
     .default('')
     .refine(optionalHttpUrl, 'Use an http or https website.'),
   industryId: z.string().default(''),
+  notes: z.string().trim().max(2000, 'Use no more than 2000 characters.').default(''),
 })
 
 /** Map a Client record into RHF default values. */
@@ -43,6 +45,7 @@ export function clientToFormValues(client) {
     accountLabel: client?.accountLabel || '',
     website: client?.website || '',
     industryId: client?.industryId || '',
+    notes: toEditorHtml(client?.notes || ''),
   }
 }
 
@@ -56,6 +59,7 @@ export function buildClientPayload(values, { client, dirtyFields } = {}) {
     website: values.website.trim() || null,
     accountLabel: values.accountLabel.trim() || null,
     industryId: values.industryId || null,
+    notes: hasRichTextContent(values.notes) ? values.notes.trim() : null,
   }
 
   if (!client) {
@@ -70,7 +74,8 @@ export function buildClientPayload(values, { client, dirtyFields } = {}) {
 
   const payload = {}
   for (const key of keys) {
-    if (next[key] !== (client[key] ?? null)) payload[key] = next[key]
+    const previous = key === 'notes' ? toEditorHtml(client.notes || '') || null : client[key] ?? null
+    if (next[key] !== previous) payload[key] = next[key]
   }
   return payload
 }

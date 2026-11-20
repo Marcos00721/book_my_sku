@@ -3,21 +3,15 @@ import { Pencil } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import { useClients } from '../../hooks/useClients'
-import { queryPath } from '../../services/workspace'
 import { ManagementEditor } from '../../components/clients/ManagementEditor'
-import { NoteEditor } from '../../components/clients/NoteEditor'
+import { ClientNotes } from '../../components/clients/ClientNotes'
 import { ButtonLink } from '../../components/common/ButtonLink'
-import { RichText } from '../../components/common/RichText'
 import {
   Action,
-  Dialog,
-  Empty,
   ErrorNotice,
   Loading,
-  ListSkeleton,
   Status,
 } from '../../components/workspace/Elements'
-import { Pager } from '../../components/workspace/RecordTools'
 
 export function ClientManagement({ path, client, reload }) {
   const workspace = useWorkspace()
@@ -112,9 +106,8 @@ export function ClientManagement({ path, client, reload }) {
         )}
       </section>
       <ClientNotes
-        key={client.__v}
-        path={path}
-        editable={canEdit && client.status !== 'archived'}
+        notes={client.notes}
+        editPath={canEdit && client.status !== 'archived' ? `/app/clients/${client._id}/edit` : undefined}
       />
       {editor && (
         <ManagementEditor
@@ -132,110 +125,6 @@ export function ClientManagement({ path, client, reload }) {
           }}
         />
       )}
-    </>
-  )
-}
-
-function ClientNotes({ path, editable }) {
-  const workspace = useWorkspace()
-  const [pages, setPages] = useState([])
-  const [editing, setEditing] = useState(null)
-  const [history, setHistory] = useState(null)
-  const resource = useResource(
-    queryPath(`${path}/notes`, { limit: 25, after: pages.at(-1) }),
-  )
-  return (
-    <section className="panel">
-      <div className="section-heading">
-        <h2>Notes</h2>
-        {editable && <Action onClick={() => setEditing({})}>Create</Action>}
-      </div>
-      <ErrorNotice error={resource.error} retry={resource.reload} />
-      {resource.loading ? (
-        <ListSkeleton label="Loading notes…" variant="list" rows={4} />
-      ) : resource.data?.items?.length ? (
-        resource.data.items.map((note) => (
-          <article className="note-card" key={note.id}>
-            <RichText value={note.text} />
-            <small>
-              {note.actor?.label || 'Author unavailable'} ·{' '}
-              {new Date(note.updatedAt || note.createdAt).toLocaleString()}
-            </small>
-            <div className="actions">
-              {editable && (
-                <Action variant="secondary" onClick={() => setEditing(note)}>
-                  Edit
-                </Action>
-              )}
-              {workspace.can('clients.history.view') && (
-                <Action variant="secondary" onClick={() => setHistory(note)}>
-                  Version history
-                </Action>
-              )}
-            </div>
-          </article>
-        ))
-      ) : (
-        !resource.error && (
-          <Empty title="No notes yet">
-            Keep business context here. Corrections retain previous versions.
-          </Empty>
-        )
-      )}
-      <Pager
-        resource={resource}
-        pages={pages}
-        setPages={setPages}
-        label="notes"
-      />
-      {editing && (
-        <NoteEditor
-          path={path}
-          note={editing}
-          close={() => setEditing(null)}
-          saved={() => {
-            setEditing(null)
-            resource.reload()
-          }}
-        />
-      )}
-      {history && (
-        <Dialog title="Note versions" close={() => setHistory(null)}>
-          <NoteVersions path={`${path}/notes/${history.id}/versions`} />
-        </Dialog>
-      )}
-    </section>
-  )
-}
-
-function NoteVersions({ path }) {
-  const [pages, setPages] = useState([])
-  const resource = useResource(
-    queryPath(path, { limit: 25, after: pages.at(-1) }),
-  )
-  return (
-    <>
-      <ErrorNotice error={resource.error} retry={resource.reload} />
-      {resource.loading ? (
-        <ListSkeleton label="Loading versions…" variant="list" rows={4} />
-      ) : (
-        resource.data?.items?.map((version) => (
-          <article key={version.id || version.revision}>
-            <h3>Version {version.revision}</h3>
-            <RichText value={version.text} />
-            <small>
-              {version.actor?.label || 'Author unavailable'} ·{' '}
-              {version.reason || 'Original note'}
-            </small>
-          </article>
-        ))
-      )}
-      <Pager
-        resource={resource}
-        pages={pages}
-        setPages={setPages}
-        label="versions"
-      />
     </>
   )
 }

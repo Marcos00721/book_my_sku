@@ -15,6 +15,7 @@ const FIELD_LABELS = {
   website: 'Website',
   accountLabel: 'Account label',
   industryId: 'Industry',
+  notesChanged: 'Notes updated',
   email: 'Email',
   phone: 'Phone',
   jobTitle: 'Job title',

@@ -1,0 +1,38 @@
+.leads-toolbar {
+  flex-wrap: wrap;
+}
+.leads-search {
+  flex: 1 1 16rem;
+  max-width: 26rem;
+}
+.leads-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-sm);
+}
+.leads-stage {
+  min-width: 10rem;
+}
+.leads-search-hint {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-sm);
+}
+.lead-company {
+  min-width: 12rem;
+  max-width: 28rem;
+  overflow-wrap: anywhere;
+}
+.lead-created {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .leads-toolbar .leads-search {
+    flex: auto;
+    width: 100%;
+    max-width: none;
+  }
+  .leads-toolbar-actions {
+    width: 100%;
+  }
+}

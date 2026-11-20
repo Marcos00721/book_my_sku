@@ -1,0 +1,241 @@
+.team-panel {
+  padding: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.team-tabs {
+  display: flex;
+  gap: var(--space-lg);
+  padding: 0 var(--space-ml);
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+}
+.team-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) 0;
+  min-height: 48px;
+  border-bottom: 2px solid transparent;
+  color: rgb(var(--color-text-muted));
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.team-tabs > button[aria-selected='true'] {
+  border-bottom-color: rgb(var(--color-primary));
+  color: rgb(var(--color-primary-ink));
+}
+.team-tabs > button:hover {
+  color: rgb(var(--color-text-base));
+}
+.team-tabs > button:focus-visible,
+.team-panel [role='tabpanel']:focus-visible {
+  outline: 2px solid rgb(var(--color-focus-ring));
+  outline-offset: -3px;
+}
+.team-list {
+  padding: var(--space-ml);
+}
+.team-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.team-search {
+  width: min(100%, 360px);
+  margin: 0;
+}
+.team-search > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.team-seat-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-md);
+  color: rgb(var(--color-text-muted));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.team-seat-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.team-feedback {
+  margin: 0 0 var(--space-md);
+  font-size: 0.875rem;
+}
+.team-feedback:empty {
+  margin: 0;
+}
+.team-table {
+  width: 100%;
+}
+.team-table th,
+.team-table td {
+  padding: var(--space-md) var(--space-sm);
+  font-size: 0.875rem;
+}
+.team-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.team-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-primary-soft));
+  color: rgb(var(--color-primary-ink));
+  font-weight: var(--font-weight-semibold);
+}
+.team-person {
+  display: block;
+  overflow-wrap: anywhere;
+  font-weight: var(--font-weight-medium);
+}
+.team-identity small,
+.team-action-note {
+  color: rgb(var(--color-text-muted));
+}
+.team-table .team-manage-heading {
+  text-align: right;
+}
+.team-row-actions {
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+.team-row-actions > button {
+  white-space: nowrap;
+}
+.app-dialog.team-dialog {
+  padding: 0;
+}
+.app-dialog.team-dialog > .app-dialog-header {
+  margin: 0;
+  padding: var(--space-ml);
+  border-bottom: 1px solid rgb(var(--color-border-subtle));
+}
+.team-dialog .app-dialog-description {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+.team-dialog > .app-dialog-body {
+  padding: 0;
+}
+.team-form-fields {
+  display: grid;
+  gap: var(--space-ml);
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: var(--space-ml);
+}
+.team-form-fields .field,
+.team-form-fields p {
+  margin: 0;
+}
+.team-form-fields label {
+  font-size: 0.875rem;
+}
+.team-form > .notice,
+.team-form > .error-notice {
+  margin: 0 var(--space-ml) var(--space-md);
+}
+.team-form .dialog-footer {
+  margin: 0;
+  padding: var(--space-md) var(--space-ml);
+  gap: var(--space-sm);
+}
+.team-form .dialog-footer > button[type='submit'] svg {
+  display: none;
+}
+@media (max-width: 640px) {
+  .team-tabs {
+    gap: var(--space-md);
+    padding: 0 var(--space-md);
+  }
+  .team-tabs > button {
+    flex: 1;
+    white-space: nowrap;
+  }
+  .team-tabs > button svg {
+    display: none;
+  }
+  .team-list {
+    padding: var(--space-md);
+  }
+  .team-toolbar {
+    gap: var(--space-xs);
+  }
+  .team-toolbar > button {
+    flex-shrink: 0;
+  }
+  .team-table {
+    display: block;
+  }
+  .team-list .table-scroll {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .team-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .team-table tbody {
+    display: grid;
+    gap: var(--space-md);
+  }
+  .team-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid rgb(var(--color-border-subtle));
+    border-radius: var(--radius-md);
+  }
+  .team-table td {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+  }
+  .team-table td[data-label]::before {
+    display: block;
+    content: attr(data-label);
+    margin-bottom: var(--space-tiny);
+    font-size: 0.8125rem;
+    color: rgb(var(--color-text-muted));
+  }
+  .team-identity-cell,
+  .team-actions-cell {
+    grid-column: 1 / -1;
+  }
+  .team-row-actions {
+    justify-content: flex-start;
+  }
+  .team-actions-cell:not(:has(button)) {
+    display: none;
+  }
+  .team-form-fields,
+  .app-dialog.team-dialog > .app-dialog-header,
+  .team-form .dialog-footer {
+    padding: var(--space-md);
+  }
+}

@@ -70,6 +70,11 @@ const ClientDetailPage = lazy(() =>
     default: page.ClientDetailPage,
   })),
 );
+const LeadsPage = lazy(() =>
+  import("./pages/workspace/LeadsPage").then((page) => ({
+    default: page.LeadsPage,
+  })),
+);
 const ClientEditPage = lazy(() =>
   import("./pages/workspace/ClientEditPage").then((page) => ({
     default: page.ClientEditPage,
@@ -188,6 +193,7 @@ export default function App() {
           }
         >
           <Route index element={<OverviewPage />} />
+          <Route path="leads" element={<LeadsPage />} />
           <Route path="clients" element={<ClientsPage />} />
           <Route path="clients/:clientId/edit" element={<ClientEditPage />} />
           <Route path="clients/:clientId" element={<ClientDetailPage />} />

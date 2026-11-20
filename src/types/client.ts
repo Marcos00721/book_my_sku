@@ -13,6 +13,7 @@ export interface Client {
   website?: string | null
   accountLabel?: string | null
   industryId?: string | null
+  notes?: string | null
   defaultBillingAddressId?: string | null
   defaultShippingAddressId?: string | null
   normalizedName?: string
@@ -32,4 +33,5 @@ export interface ClientFormValues {
   accountLabel: string
   website: string
   industryId: string
+  notes: string
 }

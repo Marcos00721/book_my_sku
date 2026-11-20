@@ -6,6 +6,7 @@ import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { queryPath } from '../../services/workspace'
 import { FormSelectField } from '../forms/FormSelectField'
 import { FormTextField } from '../forms/FormTextField'
+import { FormTextEditor } from '../forms/FormTextEditor'
 import { ErrorNotice, Loading } from '../workspace/Elements'
 
 function IndustryField({ path, disabled }) {
@@ -96,7 +97,7 @@ export function ClientFormFields({ disabled = false, autoFocusName = false }) {
 
   return (
     <div className="client-form-fields">
-      <div className="form-grid">
+      <fieldset className="form-grid client-profile-fields" disabled={disabled}>
         <div className="client-form-name">
           <FormTextField
             name="name"
@@ -104,7 +105,6 @@ export function ClientFormFields({ disabled = false, autoFocusName = false }) {
             required
             maxLength={160}
             autoFocus={autoFocusName}
-            disabled={disabled}
           />
           <ClientDuplicateHints />
         </div>
@@ -112,23 +112,28 @@ export function ClientFormFields({ disabled = false, autoFocusName = false }) {
           name="accountLabel"
           label="Account label"
           maxLength={120}
-          disabled={disabled}
         />
         <FormTextField
           name="website"
           label="Website"
           type="url"
           maxLength={300}
-          disabled={disabled}
           placeholder="https://example.com"
         />
         <div>
           <IndustryField
             path={`${workspace.base}/clients/industry-options`}
-            disabled={disabled}
           />
         </div>
-      </div>
+      </fieldset>
+      <FormTextEditor
+        name="notes"
+        label="Notes"
+        maxLength={2000}
+        rows={5}
+        placeholder="Write a note…"
+        readOnly={disabled}
+      />
     </div>
   )
 }

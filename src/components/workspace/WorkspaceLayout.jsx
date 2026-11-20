@@ -14,6 +14,7 @@ import {
   ListTree,
   Paintbrush,
   Shield,
+  UserRoundSearch,
   Users,
   Truck,
 } from 'lucide-react'
@@ -32,7 +33,7 @@ export function WorkspaceLayout() {
   const content = useRef(null)
   const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState(null)
-  const isListRoute = /^\/app\/(clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
+  const isListRoute = /^\/app\/(leads|clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
   const loadingVariant = location.pathname.endsWith('/edit')
     ? 'form'
     : /^\/app\/(clients|suppliers|products|decoration-matrices)\/.+/.test(location.pathname)
@@ -40,6 +41,9 @@ export function WorkspaceLayout() {
       : 'page'
   const links = [
     { to: '/app', label: 'Overview', Icon: LayoutDashboard, end: true },
+    ...(workspace.can('inquiries.view')
+      ? [{ to: '/app/leads', label: 'Leads', Icon: UserRoundSearch }]
+      : []),
     ...(workspace.can('clients.view')
       ? [{ to: '/app/clients', label: 'Clients', Icon: Building2 }]
       : []),
@@ -77,7 +81,7 @@ export function WorkspaceLayout() {
   }))
   const groups = [
     { label: 'Overview', paths: ['/app'] },
-    { label: 'Relationships', paths: ['/app/clients', '/app/suppliers'] },
+    { label: 'Relationships', paths: ['/app/leads', '/app/clients', '/app/suppliers'] },
     { label: 'Catalog', paths: ['/app/products', '/app/decoration-matrices'] },
     { label: 'Workspace', paths: ['/app/master-data', '/app/team', '/app/roles', '/app/billing'] },
   ].map(({ label, paths }) => ({ label, items: activeLinks.filter((link) => paths.includes(link.to)) }))

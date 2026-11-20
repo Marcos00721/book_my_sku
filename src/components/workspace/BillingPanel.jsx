@@ -1,6 +1,7 @@
 import { dateLabel, money } from '../../utils/format'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CreditCard, ExternalLink, LoaderCircle, RefreshCw } from 'lucide-react'
+import { CalendarDays, CreditCard, ExternalLink, LoaderCircle, RefreshCw, ShieldCheck, Users, Wallet } from 'lucide-react'
+import '../../styles/billing.css'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { mutate, paymentDestination } from '../../services/workspace'
@@ -132,13 +133,14 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
     snapshot?.nextAction !== 'review_and_start' &&
     snapshot?.nextAction !== 'contact_support'
   return (
-    <section className="panel">
-      <div className="section-heading">
-        <div>
-          <h2>One workspace. Room for your whole team.</h2>
-          <p className="muted">
-            Review your agreed offer and keep payment details up to date.
-          </p>
+    <section className="panel billing-panel" aria-label="Workspace billing">
+      <div className="billing-heading">
+        <div className="billing-heading-copy">
+          <span className="billing-icon" aria-hidden="true"><CreditCard size={22} /></span>
+          <div>
+            <h2>{offer.data.state === 'available' ? 'Your workspace plan' : 'Your subscription'}</h2>
+            <p className="muted">One workspace. Room for your whole team.</p>
+          </div>
         </div>
         <Status value={status.status} />
       </div>
@@ -181,75 +183,7 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
           reload={reload}
         />
       ) : (
-        <>
-          <dl className="detail-list">
-            <div>
-              <dt>Subscription</dt>
-              <dd>
-                <Status value={status.status} />
-              </dd>
-            </div>
-            <div>
-              <dt>Paid seats</dt>
-              <dd>{status.quantity}</dd>
-            </div>
-            <div>
-              <dt>Payment verified</dt>
-              <dd>
-                {status.billingEligible
-                  ? 'Verified'
-                  : 'Awaiting current verification'}
-              </dd>
-            </div>
-            <div>
-              <dt>Synchronization</dt>
-              <dd>{String(status.synchronization).replaceAll('_', ' ')}</dd>
-            </div>
-            {Object.entries(status.dates || {})
-              .filter(
-                ([, value]) =>
-                  typeof value === 'string' || typeof value === 'number',
-              )
-              .map(([key, value]) => (
-                <div key={key}>
-                  <dt>{key.replace(/([A-Z])/g, ' $1')}</dt>
-                  <dd>{dateLabel(value)}</dd>
-                </div>
-              ))}
-          </dl>
-          {status.terms && (
-            <p className="muted">
-              Agreed standard price:{' '}
-              {money(
-                status.terms.unitAmountMinor,
-                status.terms.currency || 'USD',
-              )}{' '}
-              per seat / month
-              {status.terms.trialMonths
-                ? `, after ${status.terms.trialMonths} trial months`
-                : ''}
-              . Accepted offer revision {status.offerRevision}.
-            </p>
-          )}
-          {status.terms?.discount && status.terms.discount.type !== 'none' && (
-            <p className="muted">
-              Introductory discount:{' '}
-              {status.terms.discount.type === 'percent'
-                ? `${status.terms.discount.percent}%`
-                : money(
-                    status.terms.discount.amountMinor,
-                    status.terms.currency,
-                  )}{' '}
-              off per seat for {status.terms.discount.months} months.
-            </p>
-          )}
-          {!pendingRecovery && (
-            <p className="muted">
-              Payment confirmation comes from the billing service. A return from
-              Stripe may still need a status refresh.
-            </p>
-          )}
-        </>
+        <BillingOverview status={status} pendingRecovery={pendingRecovery} />
       )}
       {showRecovery &&
         !(pendingRecovery && recovery.state === 'processing') && (
@@ -276,55 +210,53 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
             </div>
           </div>
         )}
-      {(busy || waiting) && (
-        <p className="billing-check-status" aria-live="polite">
-          <RefreshCw size={14} className="spin" aria-hidden="true" />
-          {busyAction === 'recovery'
-            ? 'Recovering existing billing setup…'
-            : busyAction === 'refresh'
-              ? 'Checking billing status…'
-              : 'Payment is still confirming. Status checks continue automatically.'}
-        </p>
-      )}
-      <div
-        className="actions"
-        style={{ marginTop: pendingRecovery || busy || waiting ? 'var(--space-md)' : 'var(--space-lg)' }}
-        aria-busy={busy || undefined}
-      >
-        {status.flowVersion === 2 && status.status !== 'canceled' && (
+      <div className="billing-toolbar">
+        <div className="billing-toolbar-copy">
+          <h3>Billing status</h3>
+          <p className="muted">Refresh to check the latest payment confirmation.</p>
+          {(busy || waiting) && (
+            <p className="billing-check-status" aria-live="polite">
+              <RefreshCw size={14} className="spin" aria-hidden="true" />
+              {busyAction === 'recovery'
+                ? 'Recovering existing billing setup…'
+                : busyAction === 'refresh'
+                  ? 'Checking billing status…'
+                  : 'Payment is still confirming. Status checks continue automatically.'}
+            </p>
+          )}
+        </div>
+        <div
+          className="actions billing-actions"
+          aria-busy={busy || undefined}
+        >
           <Action
             variant="secondary"
-            disabled={busy}
-            onClick={() => setCanceling(true)}
+            disabled={busy || waiting}
+            onClick={() => reconcile('refresh')}
           >
-            Cancel before workspace access
+            <RefreshCw
+              size={15}
+              className={busyAction === 'refresh' || waiting ? 'spin' : undefined}
+              aria-hidden="true"
+            />
+            {busyAction === 'refresh' ? 'Checking…' : 'Refresh billing status'}
           </Action>
-        )}
-        <Action
-          variant="secondary"
-          disabled={busy || waiting}
-          onClick={() => reconcile('refresh')}
-        >
-          <RefreshCw
-            size={15}
-            className={busyAction === 'refresh' || waiting ? 'spin' : undefined}
-            aria-hidden="true"
-          />
-          {busyAction === 'refresh' ? 'Checking…' : 'Refresh billing status'}
-        </Action>
-        {offer.data.state === 'billing_started' &&
-          !waiting &&
-          recovery?.state !== 'support_required' && (
-            <Action
-              variant="secondary"
-              disabled={busy}
-              onClick={() => reconcile('recovery')}
-            >
-              {busyAction === 'recovery'
-                ? 'Recovering…'
-                : 'Resume payment / recover'}
-            </Action>
-          )}
+          {offer.data.state === 'billing_started' &&
+            !['card_ready', 'active', 'trialing', 'canceled'].includes(status.status) &&
+            !status.cancellation?.state &&
+            !waiting &&
+            recovery?.state !== 'support_required' && (
+              <Action
+                variant="secondary"
+                disabled={busy}
+                onClick={() => reconcile('recovery')}
+              >
+                {busyAction === 'recovery'
+                  ? 'Recovering…'
+                  : 'Resume payment / recover'}
+              </Action>
+            )}
+        </div>
       </div>
       {pendingRecovery && (
         <h3>{['checkout_creating', 'checkout_pending'].includes(status.status)
@@ -343,6 +275,17 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
           recover={() => reconcile('recovery')}
         />
       )}
+      {status.flowVersion === 2 && status.status !== 'canceled' && (
+        <div className="billing-cancellation">
+          <Action
+            variant="text-button"
+            disabled={busy}
+            onClick={() => setCanceling(true)}
+          >
+            Cancel before workspace access
+          </Action>
+        </div>
+      )}
       {canceling && (
         <CancelBeforeAccess
           path={path}
@@ -354,6 +297,80 @@ export function BillingPanel({ applicationId, changed, snapshot }) {
         />
       )}
     </section>
+  )
+}
+
+function BillingOverview({ status, pendingRecovery }) {
+  const terms = status.terms
+  const discount = terms?.discount
+  const dates = Object.entries(status.dates || {}).filter(
+    ([, value]) => typeof value === 'string' || typeof value === 'number',
+  )
+  return (
+    <>
+      <dl className="billing-summary">
+        <div className="billing-stat billing-stat-price">
+          <dt><Wallet size={17} aria-hidden="true" /> Standard price</dt>
+          <dd>{terms ? money(terms.unitAmountMinor, terms.currency || 'USD') : 'Not available'}
+            <span>{terms ? 'per seat / month' : 'Your agreed price will appear here'}</span>
+          </dd>
+        </div>
+        <div className="billing-stat">
+          <dt><Users size={17} aria-hidden="true" /> Paid seats</dt>
+          <dd>{status.quantity ?? '—'}<span>Seats on your subscription</span></dd>
+        </div>
+        <div className={`billing-stat billing-stat-verification${status.billingEligible ? ' is-verified' : ''}`}>
+          <dt><ShieldCheck size={17} aria-hidden="true" /> Payment verification</dt>
+          <dd>{status.billingEligible ? 'Verified' : 'Pending'}
+            <span>{status.billingEligible ? 'Current payment verified' : 'Awaiting current verification'}</span>
+          </dd>
+        </div>
+      </dl>
+      <div className="billing-details-grid">
+        <section className="billing-detail-section" aria-label="Billing timeline">
+          <h3><CalendarDays size={18} aria-hidden="true" /> Billing timeline</h3>
+          {dates.length > 0 ? (
+            <dl className="detail-list billing-date-list">
+              {dates.map(([key, value]) => (
+                <div key={key}>
+                  <dt>{key.replace(/([A-Z])/g, ' $1').replaceAll('_', ' ').trim().toLowerCase()}</dt>
+                  <dd>{dateLabel(value)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : <p className="muted">Billing dates will appear once your subscription is confirmed.</p>}
+        </section>
+        <section className="billing-detail-section" aria-label="Plan agreement">
+          <h3><CreditCard size={18} aria-hidden="true" /> Plan agreement</h3>
+          {terms ? (
+            <>
+              <p>Monthly billing per paid seat{terms.trialMonths ? `, after ${terms.trialMonths} trial month${terms.trialMonths === 1 ? '' : 's'}` : ''}.</p>
+              {discount && discount.type !== 'none' && (
+                <p className="billing-discount">
+                  {discount.type === 'percent'
+                    ? `${discount.percent}%`
+                    : money(discount.amountMinor, terms.currency || 'USD')}{' '}
+                  off per seat for {discount.months} month{discount.months === 1 ? '' : 's'}.
+                </p>
+              )}
+              {status.offerRevision != null && <p className="billing-meta">Accepted offer revision {status.offerRevision}</p>}
+            </>
+          ) : <p className="muted">Your accepted plan terms will appear here when available.</p>}
+          <dl className="detail-list billing-date-list">
+            <div>
+              <dt>Synchronization</dt>
+              <dd>{status.synchronization ? String(status.synchronization).replaceAll('_', ' ') : 'Not available'}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+      {!pendingRecovery && (
+        <p className="billing-payment-note">
+          <ShieldCheck size={16} aria-hidden="true" />
+          Payment updates can take a moment after returning from Stripe. Refresh to check your latest status.
+        </p>
+      )}
+    </>
   )
 }
 
@@ -571,34 +588,35 @@ function CheckoutOffer({ path, preview, flowVersion, reload }) {
           checked={consent}
           change={setConsent}
           disabled={mutation.pending || mutation.uncertain}
-        />
-        <ErrorNotice error={mutation.error || linkError} />
-        {mutation.error?.code === 'OFFER_REVISION_CONFLICT' && (
-          <Action variant="secondary" onClick={reload}>
-            Reload offer and review again
-          </Action>
-        )}
-        {['BILLING_BUSY', 'CHECKOUT_ALREADY_STARTED'].includes(mutation.error?.code) && (
-          <Action variant="secondary" onClick={reload}>Check existing payment status</Action>
-        )}
-        {mutation.uncertain && (
-          <p className="notice">
-            Retry this same Checkout request to recover the existing attempt.
-          </p>
-        )}
-        <Action
-          type="submit"
-          disabled={!consent || !preview.checkoutAllowed || mutation.pending}
         >
-          {mutation.pending
-            ? 'Preparing secure Checkout…'
-            : mutation.uncertain
-              ? 'Retry same Checkout'
-              : subscriptionCheckout
-                ? startTrial ? 'Start trial' : 'Pay and subscribe'
-                : 'Continue to secure Checkout'}
-          <ExternalLink size={15} />
-        </Action>
+          <ErrorNotice error={mutation.error || linkError} />
+          {mutation.error?.code === 'OFFER_REVISION_CONFLICT' && (
+            <Action variant="secondary" onClick={reload}>
+              Reload offer and review again
+            </Action>
+          )}
+          {['BILLING_BUSY', 'CHECKOUT_ALREADY_STARTED'].includes(mutation.error?.code) && (
+            <Action variant="secondary" onClick={reload}>Check existing payment status</Action>
+          )}
+          {mutation.uncertain && (
+            <p className="notice">
+              Retry this same Checkout request to recover the existing attempt.
+            </p>
+          )}
+          <Action
+            type="submit"
+            disabled={!consent || !preview.checkoutAllowed || mutation.pending}
+          >
+            {mutation.pending
+              ? 'Preparing secure Checkout…'
+              : mutation.uncertain
+                ? 'Retry same Checkout'
+                : subscriptionCheckout
+                  ? startTrial ? 'Start trial' : 'Pay and subscribe'
+                  : 'Continue to secure Checkout'}
+            <ExternalLink size={15} />
+          </Action>
+        </CheckoutTerms>
       </form>
     </>
   )

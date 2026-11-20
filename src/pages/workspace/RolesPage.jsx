@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Plus, Shield } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, Info, Plus, Search, Shield } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
@@ -16,6 +16,7 @@ import {
   SaveFooter,
   Status,
 } from '../../components/workspace/Elements'
+import '../../styles/roles.css'
 
 function scopeLabel(scope) {
   if (scope === 'all') return 'All records'
@@ -61,14 +62,75 @@ function groupCatalog(catalog) {
   return [...groups.entries()]
 }
 
-function FormSection({ title, aside, children }) {
+function PermissionGroup({ prefix, entries, grants, locked, filtered, toggleGrant, toggleGroup, setScope }) {
+  const checkboxRef = useRef(null)
+  const available = entries.filter((entry) => entry.enabled && entry.scopes.length)
+  const selectedCount = available.filter((entry) => grants.some((grant) => grant.key === entry.key)).length
+  const allSelected = available.length > 0 && selectedCount === available.length
+  useEffect(() => {
+    checkboxRef.current.indeterminate = selectedCount > 0 && !allSelected
+  }, [selectedCount, allSelected])
+
   return (
-    <section className="supplier-form-section">
-      <div className="role-form-section-heading">
-        <h3 className="supplier-form-section-title">{title}</h3>
-        {aside ? <span className="role-form-section-aside">{aside}</span> : null}
+    <section className="role-editor-group" aria-labelledby={`role-group-${prefix}`}>
+      <div className="role-editor-group-heading">
+        <h4 id={`role-group-${prefix}`}>{groupTitle(prefix)}</h4>
+        <label className="role-editor-select-all">
+          <input
+            ref={checkboxRef}
+            type="checkbox"
+            aria-label={`Select all ${filtered ? 'matching ' : ''}${groupTitle(prefix)} permissions`}
+            checked={allSelected}
+            disabled={locked || !available.length}
+            onChange={(event) => toggleGroup(available, event.target.checked)}
+          />
+          {filtered ? 'All matches' : 'Select all'}
+        </label>
       </div>
-      <div className="supplier-form-section-body">{children}</div>
+      <div className="role-editor-rows">
+        {entries.map((entry) => {
+          const selected = grants.find((grant) => grant.key === entry.key)
+          const unavailable = !entry.enabled || !entry.scopes.length
+          return (
+            <div
+              className={`role-editor-row${selected ? ' is-selected' : ''}${unavailable ? ' is-disabled' : ''}`}
+              key={entry.key}
+            >
+              <label className="role-editor-permission">
+                <input
+                  type="checkbox"
+                  disabled={unavailable || locked}
+                  checked={Boolean(selected)}
+                  aria-label={entry.label || entry.key}
+                  onChange={(event) => toggleGrant(entry, event.target.checked)}
+                />
+                <span>{permissionActionLabel(entry, prefix)}</span>
+              </label>
+              {unavailable ? (
+                <span className="role-editor-access-note">Unavailable</span>
+              ) : selected && entry.scopes.length > 1 ? (
+                <div className="role-editor-scope">
+                  <select
+                    aria-label={`Scope for ${entry.label || entry.key}`}
+                    value={selected.scope}
+                    disabled={locked}
+                    onChange={(event) => setScope(entry.key, event.target.value)}
+                  >
+                    {entry.scopes.map((scope) => (
+                      <option key={scope} value={scope}>{scopeLabel(scope)}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={15} aria-hidden="true" />
+                </div>
+              ) : (
+                <span className="role-editor-access-note">
+                  {selected ? scopeLabel(selected.scope) : 'No access'}
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </section>
   )
 }
@@ -224,6 +286,11 @@ function RoleEditor({ role, catalog, close, saved }) {
   const mutation = useMutation()
   const locked = mutation.pending || mutation.uncertain
   const [name, setName] = useState(role.name || '')
+  const [search, setSearch] = useState('')
+  const nameRef = useRef(null)
+  useEffect(() => {
+    nameRef.current?.focus()
+  }, [])
   const [grants, setGrants] = useState(
     (role.grants || []).filter((grant) =>
       catalog.some(
@@ -235,9 +302,15 @@ function RoleEditor({ role, catalog, close, saved }) {
     ),
   )
 
-  const groups = useMemo(() => groupCatalog(catalog), [catalog])
-  const enabledCount = catalog.filter((entry) => entry.enabled).length
+  const groups = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return groupCatalog(catalog.filter((entry) =>
+      `${groupTitle(entry.key.split('.')[0])} ${entry.label || ''} ${entry.key}`.toLowerCase().includes(query),
+    ))
+  }, [catalog, search])
+  const enabledCount = catalog.filter((entry) => entry.enabled && entry.scopes.length).length
   const selectedCount = grants.length
+  const clientsView = catalog.find((entry) => entry.key === 'clients.view' && entry.enabled && entry.scopes.length)
   const needsClientsView =
     grants.some((grant) => grant.key.startsWith('contacts.')) &&
     !grants.some((grant) => grant.key === 'clients.view')
@@ -261,6 +334,15 @@ function RoleEditor({ role, catalog, close, saved }) {
     )
   }
 
+  function toggleGroup(entries, checked) {
+    const keys = new Set(entries.map((entry) => entry.key))
+    setGrants((current) => checked
+      ? [...current, ...entries.filter((entry) => !current.some((grant) => grant.key === entry.key))
+        .map((entry) => ({ key: entry.key, scope: entry.scopes[0] }))]
+      : current.filter((grant) => !keys.has(grant.key)),
+    )
+  }
+
   async function submit(event) {
     event.preventDefault()
     const method = role.archive || !role.id ? 'post' : 'put'
@@ -278,10 +360,8 @@ function RoleEditor({ role, catalog, close, saved }) {
   return (
     <Dialog
       size={role.archive ? 'sm' : 'lg'}
-      className="supplier-form-dialog"
-      title={
-        role.archive ? 'Archive' : role.id ? 'Edit' : 'Create'
-      }
+      className={`role-editor-dialog${role.archive ? ' role-editor-dialog--archive' : ''}`}
+      title={role.archive ? 'Archive role' : role.id ? 'Edit role' : 'Create role'}
       description={
         role.archive
           ? 'Archived roles stay in history but cannot be assigned to new members.'
@@ -290,147 +370,94 @@ function RoleEditor({ role, catalog, close, saved }) {
       close={close}
       locked={locked}
     >
-      <form className="supplier-form role-form" onSubmit={submit}>
+      <form className="role-editor-form" onSubmit={submit}>
         {role.archive ? (
-          <div className="supplier-form-fields">
+          <div className="role-editor-archive">
             <p className="muted">
               Archive “{role.name}”? Roles used by active members or live
               invitations cannot be archived.
             </p>
           </div>
         ) : (
-          <fieldset
-            className="supplier-form-fields"
-            disabled={locked}
+          <div
+            className="role-editor-fields"
+            aria-disabled={locked || undefined}
           >
-            <FormSection title="Role details">
+            <div className="role-editor-details">
               <Field
+                ref={nameRef}
                 label="Role name"
                 maxLength={80}
                 required
-                autoFocus={!role.id}
-                hint="Use a clear name your team will recognize."
+                disabled={locked}
+                placeholder="e.g. Account manager"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
-            </FormSection>
+            </div>
 
-            <FormSection
-              title="Permissions"
-              aside={`${selectedCount} selected · ${enabledCount} available`}
-            >
-              <div className="supplier-form-field-note">
-                <p className="supplier-form-field-note-title">Tips</p>
-                <p className="muted">
-                  Permissions come from the platform catalog. Unavailable
-                  entries cannot be granted. Contacts also need Clients view.
-                </p>
+            <div className="role-editor-toolbar">
+              <div className="role-editor-section-heading">
+                <h3>Permissions</h3>
+                <span className="role-editor-count" role="status">{selectedCount} of {enabledCount} selected</span>
               </div>
+              <Field
+                label="Search permissions"
+                className="role-editor-search"
+                type="search"
+                disabled={locked}
+                icon={<Search size={17} />}
+                placeholder="Find a permission or area…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
 
-              {needsClientsView ? (
-                <p className="role-form-dependency-hint" role="status">
-                  Contacts permissions work best with Clients view enabled.
-                </p>
-              ) : null}
-
-              <div className="role-permission-groups">
-                {groups.map(([prefix, entries]) => (
-                  <section
-                    className="role-permission-group"
-                    key={prefix}
-                    aria-labelledby={`role-group-${prefix}`}
-                  >
-                    <h4
-                      className="role-permission-group-title"
-                      id={`role-group-${prefix}`}
-                    >
-                      {groupTitle(prefix)}
-                    </h4>
-                    <div className="role-permission-list">
-                      {entries.map((entry) => {
-                        const selected = grants.find(
-                          (grant) => grant.key === entry.key,
-                        )
-                        const unavailable = !entry.enabled
-                        const showScope =
-                          Boolean(selected) && entry.scopes.length > 1
-                        return (
-                          <div
-                            className={`role-permission-card${selected ? ' is-selected' : ''}${unavailable ? ' is-disabled' : ''}`}
-                            key={entry.key}
-                          >
-                            <label className="role-permission-card-main">
-                              <input
-                                type="checkbox"
-                                disabled={unavailable || locked}
-                                checked={Boolean(selected)}
-                                aria-label={entry.label || entry.key}
-                                onChange={(event) =>
-                                  toggleGrant(entry, event.target.checked)
-                                }
-                              />
-                              <span
-                                className="role-permission-card-copy"
-                                aria-hidden="true"
-                              >
-                                <span className="role-permission-card-label">
-                                  {permissionActionLabel(entry, prefix)}
-                                </span>
-                                <span className="role-permission-card-key">
-                                  {entry.key}
-                                </span>
-                              </span>
-                              {unavailable ? (
-                                <span
-                                  className="role-permission-card-badge"
-                                  aria-hidden="true"
-                                >
-                                  Unavailable
-                                </span>
-                              ) : null}
-                            </label>
-                            {showScope ? (
-                              <div className="role-permission-scope">
-                                <label
-                                  className="role-permission-scope-label"
-                                  htmlFor={`scope-${entry.key}`}
-                                >
-                                  Access level
-                                </label>
-                                <select
-                                  id={`scope-${entry.key}`}
-                                  className="role-permission-scope-select"
-                                  aria-label={`Scope for ${entry.label || entry.key}`}
-                                  value={selected.scope}
-                                  disabled={locked}
-                                  onChange={(event) =>
-                                    setScope(entry.key, event.target.value)
-                                  }
-                                >
-                                  {entry.scopes.map((scope) => (
-                                    <option key={scope} value={scope}>
-                                      {scopeLabel(scope)}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            ) : null}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </section>
-                ))}
+            {needsClientsView && (
+              <div className="role-editor-dependency" role="status">
+                <Info size={17} aria-hidden="true" />
+                <p>Contacts also need Clients view to be accessible.</p>
+                {clientsView && <Action variant="text-button" disabled={locked} onClick={() => toggleGrant(clientsView, true)}>Enable Clients view</Action>}
               </div>
-            </FormSection>
-          </fieldset>
+            )}
+
+            <div className="role-editor-catalog" role="region" aria-label="Permission groups" tabIndex={0}>
+              <div className="role-editor-column-headings" aria-hidden="true">
+                <span>Permission</span>
+                <span>Access</span>
+              </div>
+              <div className="role-editor-groups">
+                {groups.map(([prefix, entries]) => <PermissionGroup
+                  key={prefix}
+                  prefix={prefix}
+                  entries={entries}
+                  grants={grants}
+                  locked={locked}
+                  filtered={Boolean(search.trim())}
+                  toggleGrant={toggleGrant}
+                  toggleGroup={toggleGroup}
+                  setScope={setScope}
+                />)}
+              </div>
+              {!groups.length && (
+                <div className="role-editor-empty">
+                  <Search size={24} aria-hidden="true" />
+                  <h4>{search.trim() ? 'No matching permissions' : 'No permissions available'}</h4>
+                  <p>{search.trim() ? 'Try another name or clear your search.' : 'You can save this role and add permissions when they become available.'}</p>
+                  {search.trim() && <Action variant="secondary" onClick={() => setSearch('')}>Clear search</Action>}
+                </div>
+              )}
+            </div>
+          </div>
         )}
         <SaveFooter
           mutation={mutation}
           close={close}
-          label={role.archive ? 'Archive' : 'Save'}
+          label={role.archive ? 'Archive role' : 'Save'}
+          disabled={!role.archive && !name.trim()}
           onClear={role.archive ? undefined : () => {
             setName(role.name || '')
+            setSearch('')
             setGrants((role.grants || []).filter((grant) =>
               catalog.some((entry) => entry.key === grant.key && entry.enabled && entry.scopes.includes(grant.scope)),
             ))
