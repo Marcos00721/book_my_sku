@@ -41,6 +41,71 @@ test('a successful superadmin login opens administration without owner onboardin
   expect(journeyReads).toBe(0)
 })
 
+test('a signed-in member typing the login URL returns to the workspace on navigation and reload', async ({ page }) => {
+  await mockSignedIn(page)
+  await page.route('**/api/v1/**', (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/admin/me'))
+      return route.fulfill({
+        status: 403,
+        json: { error: { code: 'PLATFORM_ACCESS_REQUIRED', message: 'Platform administrator access is required.' } },
+      })
+    return route.fulfill({
+      json: {
+        data: path.endsWith('/onboarding/journey')
+          ? { nextAction: 'open_workspace', invitations: { items: [] } }
+          : { items: [], next: null },
+      },
+    })
+  })
+  await page.goto('/app')
+  await expect(page.getByRole('link', { name: 'Continue workspace setup' })).toBeVisible()
+  await page.goto('/login')
+  await expect(page).toHaveURL('/app')
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('link', { name: 'Continue workspace setup' })).toBeVisible()
+  await expect(page).toHaveURL('/app')
+})
+
+test('login waits for a stored session to refresh and sends an existing admin to administration', async ({ page }) => {
+  await mockSignedIn(page, { ...makeSession(), expires_at: Math.floor(Date.now() / 1000) - 60 })
+  let releaseRefresh
+  let startedRefresh
+  const refreshing = new Promise(resolve => { startedRefresh = resolve })
+  const released = new Promise(resolve => { releaseRefresh = resolve })
+  await page.route(`${authUrl}/auth/v1/token?grant_type=refresh_token`, async route => {
+    startedRefresh()
+    await released
+    await route.fulfill({ json: makeSession('refreshed-token') })
+  })
+  await page.route('**/api/v1/**', route => route.fulfill({
+    json: {
+      data: new URL(route.request().url()).pathname.endsWith('/admin/me')
+        ? { role: 'super_admin' }
+        : { items: [] },
+    },
+  }))
+  await page.goto('/login')
+  await refreshing
+  try {
+    await expect(page.getByRole('status')).toContainText('Checking your session')
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveCount(0)
+  } finally {
+    releaseRefresh()
+  }
+  await expect(page).toHaveURL('/admin')
+  await expect(page.getByRole('navigation', { name: 'Platform administration' })).toBeVisible()
+})
+
+test('an unconfirmed session visiting login continues email verification', async ({ page }) => {
+  await mockSignedIn(page, makeSession('unconfirmed-token', { ...user, email_confirmed_at: null }))
+  await page.goto('/login')
+  await expect(page).toHaveURL('/register')
+  await expect(page.getByRole('heading', { name: 'Confirm your email' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveCount(0)
+})
+
 test('an allowlisted admin needing MFA reaches the challenge before administration', async ({
   page,
 }) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Mail } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { theme } from '@/crm-theme'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { AuthPageContent } from '../components/auth/AuthPageContent'
@@ -9,12 +9,16 @@ import { FormPasswordField } from '../components/forms/FormPasswordField'
 import { FormSubmitButton } from '../components/forms/FormSubmitButton'
 import { FormTextField } from '../components/forms/FormTextField'
 import { useAppForm } from '../components/forms/useAppForm'
+import { PageLoader } from '../components/common/Loader'
+import { useAuthSession } from '../hooks/useAuthSession'
 import { loginFormSchema } from '../schemas/authSchemas'
 import { getAuthClient } from '../services/auth'
 import { hasPendingInvitation } from '../services/invitation'
 
 export function LoginPage({ returnTo }) {
   const navigate = useNavigate()
+  const { session, loading } = useAuthSession()
+  const destination = returnTo || (hasPendingInvitation() ? '/team/accept' : '/continue')
   const [error, setError] = useState('')
   const loginForm = useAppForm(loginFormSchema, {
     defaultValues: { email: '', password: '' },
@@ -28,13 +32,16 @@ export function LoginPage({ returnTo }) {
         password,
       })
       if (error) throw error
-      navigate(returnTo || (hasPendingInvitation() ? '/team/accept' : '/continue'), {
+      navigate(destination, {
         replace: true,
       })
     } catch (failure) {
       setError(failure.message)
     }
   }
+
+  if (loading) return <PageLoader label="Checking your session…" />
+  if (session) return <Navigate to={destination} replace />
 
   return (
     <AuthLayout variant="login" tone="lagoon">
