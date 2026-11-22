@@ -1,0 +1,182 @@
+/* Scoped verification screen; colors follow the active workspace theme. */
+.setup-layout.admin-access {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) clamp(var(--space-md), 5vw, var(--space-4xl));
+}
+
+.admin-access .setup-top {
+  margin-bottom: 0;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid rgb(var(--color-border-subtle) / 0.45);
+}
+
+.admin-access .brand-mark-logo { width: 10rem; }
+
+.admin-access-main {
+  width: min(100%, 32rem);
+  margin: auto;
+  padding-block: var(--space-xl);
+}
+
+.admin-access-main .page-heading {
+  display: block;
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.admin-access-main .eyebrow {
+  margin-bottom: var(--space-sm);
+  color: rgb(var(--color-primary-ink));
+  letter-spacing: var(--tracking-widest);
+}
+
+.admin-access-main .page-heading h1 {
+  margin-bottom: var(--space-sm);
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  line-height: 1.25;
+}
+
+.admin-access-main .page-heading .muted {
+  max-width: 26rem;
+  margin-inline: auto;
+  font-size: var(--font-size-base);
+}
+
+.mfa-card {
+  padding: clamp(1.5rem, 4vw, 2rem);
+  border: 1px solid rgb(var(--color-border-subtle) / 0.55);
+  border-radius: var(--radius-card);
+  background: rgb(var(--color-surface-raised));
+  box-shadow: 0 20px 60px -32px rgb(var(--color-overlay) / 0.22), 0 2px 8px rgb(var(--color-overlay) / 0.025);
+  animation: mfa-enter 360ms var(--ease-decelerate) both;
+}
+
+.mfa-heading { text-align: center; }
+
+.mfa-emblem {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  margin: 0 auto var(--space-sm);
+  border: 1px solid rgb(var(--color-primary) / 0.16);
+  border-radius: 1.125rem;
+  background: rgb(var(--color-primary) / 0.08);
+  color: rgb(var(--color-primary-ink));
+}
+
+.mfa-badge {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  color: rgb(var(--color-primary-ink));
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.mfa-card .mfa-heading h2 {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.375rem;
+  line-height: 1.35;
+}
+
+.mfa-heading p, .mfa-setup p, .mfa-enrollment p {
+  margin: 0;
+  color: rgb(var(--color-text-muted));
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.mfa-form, .mfa-setup {
+  display: grid;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+}
+
+.mfa-code-field .mfa-code-input {
+  height: 3.75rem;
+  padding-inline: var(--space-md);
+  border-color: rgb(var(--color-border-subtle));
+  background: rgb(var(--color-canvas) / 0.5);
+  font-size: 1.625rem;
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  text-align: center;
+}
+
+.mfa-code-input::placeholder { color: rgb(var(--color-text-subtle) / 0.45); }
+.mfa-code-field > p { font-size: 0.8125rem; }
+
+.mfa-card .mfa-submit {
+  width: 100%;
+  min-height: 3rem;
+  font-weight: var(--font-weight-semibold);
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+.mfa-submit:hover:not(:disabled) { box-shadow: 0 4px 14px rgb(var(--color-primary) / 0.18); }
+.mfa-submit:active:not(:disabled) { transform: translateY(1px); }
+.mfa-submit:disabled { opacity: 0.55; }
+
+.mfa-help, .mfa-footer, .mfa-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  color: rgb(var(--color-text-muted));
+  font-size: 0.8125rem;
+  line-height: var(--line-height-relaxed);
+  text-align: center;
+}
+
+.mfa-help { margin: 0; }
+.mfa-help svg, .mfa-footer svg { flex-shrink: 0; }
+.mfa-loading { min-height: 11rem; }
+
+.mfa-footer {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgb(var(--color-border-subtle) / 0.5);
+  font-size: var(--font-size-xs);
+}
+
+.mfa-enrollment {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgb(var(--color-border-subtle) / 0.6);
+  border-radius: var(--radius-control);
+  text-align: center;
+}
+
+.mfa-enrollment img {
+  max-width: 100%;
+  height: auto;
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.mfa-spinner { animation: mfa-spin 900ms linear infinite; }
+
+@keyframes mfa-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mfa-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  .admin-access .setup-top { gap: var(--space-xs); }
+  .admin-access .setup-top .actions { gap: var(--space-xs); }
+  .admin-access .brand-mark-logo { width: 8rem; }
+  .admin-access-main { padding-block: var(--space-xl); }
+  .mfa-card .mfa-heading h2 { font-size: var(--font-size-xl); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mfa-card, .mfa-spinner { animation: none; }
+  .mfa-card .mfa-submit { transition: none; }
+}

@@ -16,8 +16,22 @@ export function toEditorHtml(value = '') {
 }
 
 export function hasRichTextContent(value) {
-  return Boolean(value
+  if (/<hr\b/i.test(value || '')) return true
+  return Boolean((value || '')
     .replace(/<[^>]*>/g, '')
     .replace(/&(?:nbsp|#0*160|#x0*a0);/gi, ' ')
     .trim())
+}
+
+/** Keep editor links and saved rich text on the same explicit protocol allowlist. */
+export function isSafeRichTextUrl(value) {
+  if (typeof value !== 'string' || Array.from(value).some(char => char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127)) return false
+  if (!/^(?:https?:\/\/|mailto:|tel:)/i.test(value)) return false
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'http:' || url.protocol === 'https:') return Boolean(url.hostname)
+    return Boolean(url.pathname)
+  } catch {
+    return false
+  }
 }

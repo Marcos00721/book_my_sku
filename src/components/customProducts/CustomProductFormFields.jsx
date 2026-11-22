@@ -154,7 +154,7 @@ export function CustomProductFormFields({
           <FormTextEditor
             name="privateNotes"
             label="Private notes"
-            hint="Internal only — never shown to customers. Supports basic formatting."
+            hint="Internal only — never shown to customers. Supports rich text formatting."
             maxLength={4000}
             disabled={disabled}
             rows={4}

@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { CustomProductCopy } from '../../components/customProducts/CustomProductCopy'
 import { CustomProductForm } from '../../components/customProducts/CustomProductForm'
 import { TextLink } from '../../components/common/TextLink'
+import { RichText } from '../../components/common/RichText'
 import { askConfirm } from '../../components/common/confirm'
 import {
   Action,
@@ -293,7 +294,7 @@ function ProductOverview({ product }) {
         ].map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value || '—'}</dd>
+            <dd>{value && ['Description', 'Private notes'].includes(label) ? <RichText value={value} /> : value || '—'}</dd>
           </div>
         ))}
       </dl>

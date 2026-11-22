@@ -50,14 +50,7 @@ export function AdminPage() {
   const tab = sections.includes(requested) ? requested : 'overview'
   if (identity.loading || identity.error)
     return (
-      <div
-        className={[
-          'setup-layout',
-          identity.error?.code === 'ADMIN_MFA_REQUIRED' && 'auth-lagoon',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
+      <div className="setup-layout admin-access">
         <header className="setup-top">
           <BrandMark />
           <div className="actions">
@@ -67,18 +60,20 @@ export function AdminPage() {
             <ThemeToggle />
           </div>
         </header>
-        <PageHeader
-          eyebrow="PLATFORM ADMINISTRATION"
-          title="A thoughtful start for every business."
-          description="Review applications and manage commercial offers with platform authorization."
-        />
-        {identity.loading ? (
-          <Loading />
-        ) : identity.error?.code === 'ADMIN_MFA_REQUIRED' ? (
-          <MfaChallenge verified={identity.reload} />
-        ) : identity.error ? (
-          <ErrorNotice error={identity.error} retry={identity.reload} />
-        ) : null}
+        <main className="admin-access-main">
+          <PageHeader
+            eyebrow="PLATFORM ADMINISTRATION"
+            title="Your platform, securely managed."
+            description="A quick verification to access your administration workspace."
+          />
+          {identity.loading ? (
+            <Loading label="Checking your access…" />
+          ) : identity.error?.code === 'ADMIN_MFA_REQUIRED' ? (
+            <MfaChallenge verified={identity.reload} />
+          ) : identity.error ? (
+            <ErrorNotice error={identity.error} retry={identity.reload} />
+          ) : null}
+        </main>
       </div>
     )
   if (identity.data?.role !== 'super_admin') return <PermissionDenied />
