@@ -1,7 +1,11 @@
 import { dateLabel, money } from '../utils/format'
 import { formatNumber } from '../utils/phone'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ChevronDown, RefreshCw, Search } from 'lucide-react'
+import {
+  ArrowLeft, ArrowRight, Building2, CalendarDays, Check, CheckCircle2,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Clock3,
+  ExternalLink, FileText, Inbox, MessageSquareText, RefreshCw, Search, X,
+} from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
@@ -25,8 +29,12 @@ import { useMutation } from '../hooks/useMutation'
 import { queryPath } from '../services/workspace'
 import { RegistrationIntakes, AssistedAdmin } from './admin/AdminOperations'
 import { MasterDataTemplates } from './admin/MasterDataTemplates'
+import { PermissionCatalog } from './admin/PermissionCatalog'
+import { StandardPlan } from './admin/StandardPlan'
 import { AdminLayout } from '../components/admin/AdminLayout'
 import { AdminOverview } from './admin/AdminOverview'
+import { isSafeRichTextUrl } from '../utils/richText'
+import '../styles/admin-applications.css'
 
 export function AdminPage() {
   const identity = useResource('/admin/me')
@@ -98,234 +106,198 @@ export function AdminPage() {
   )
 }
 
+const applicationViews = [
+  { value: 'pending', label: 'Pending review', Icon: Clock3 },
+  { value: 'approved', label: 'Approved', Icon: CheckCircle2 },
+  { value: 'rejected', label: 'Needs corrections', Icon: MessageSquareText },
+  { value: '', label: 'All applications', Icon: Inbox },
+]
+
+function ApplicationStatus({ status }) {
+  const view = applicationViews.find(item => item.value === status)
+  if (!view || !status) return <Status value={status} />
+  const Icon = view.Icon
+  return <span className={`admin-application-status admin-application-status--${status}`}><Icon size={14} aria-hidden="true" />{view.label}</span>
+}
+
+function applicantName(application) {
+  return [application.firstName, application.lastName].filter(Boolean).join(' ')
+}
+
 function Applications() {
-  const [status, setStatus] = useState('pending')
-  const [email, setEmail] = useState('')
-  const [filterEmail, setFilterEmail] = useState('')
-  const [history, setHistory] = useState([])
-  const [selected, setSelected] = useState(null)
-  const resource = useResource(
-    queryPath('/admin/applications', {
-      status,
-      email: filterEmail,
-      after: history.at(-1),
-      limit: 20,
-    }),
-  )
-  if (selected)
-    return (
-      <ApplicationOverview
-        id={selected}
-        back={() => {
-          setSelected(null)
-          resource.reload()
-        }}
-      />
-    )
+  const [parameters, setParameters] = useSearchParams()
+  const requestedStatus = parameters.get('status')
+  const status = requestedStatus === 'all' ? '' : applicationViews.some(view => view.value === requestedStatus) ? requestedStatus : 'pending'
+  const filterEmail = parameters.get('email') || ''
+  const [emailDraft, setEmail] = useState(null)
+  const email = emailDraft ?? filterEmail
+  const filterKey = JSON.stringify([status, filterEmail])
+  const [pagination, setPagination] = useState({ filterKey, cursors: [] })
+  const history = pagination.filterKey === filterKey ? pagination.cursors : []
+  function setHistory(next) {
+    setPagination(previous => ({
+      filterKey,
+      cursors: typeof next === 'function' ? next(previous.filterKey === filterKey ? previous.cursors : []) : next,
+    }))
+  }
+  const selected = parameters.get('application')
+  const resource = useResource(queryPath('/admin/applications', {
+    status, email: filterEmail, after: history.at(-1), limit: 20,
+  }))
+  const items = resource.data?.items || []
+
+  function clearEmail() {
+    setEmail(null)
+    setParameters(previous => {
+      const next = new URLSearchParams(previous)
+      next.delete('email')
+      return next
+    })
+    setHistory([])
+  }
+
+  function setStatus(value) {
+    setParameters(previous => {
+      const next = new URLSearchParams(previous)
+      next.set('status', value || 'all')
+      return next
+    })
+    setHistory([])
+  }
+
+  function resetFilters() {
+    setEmail(null)
+    setHistory([])
+    setParameters(previous => {
+      const next = new URLSearchParams(previous)
+      next.delete('email')
+      next.delete('status')
+      return next
+    })
+  }
+
+  function selectApplication(id) {
+    setParameters(previous => {
+      const next = new URLSearchParams(previous)
+      if (id) next.set('application', id)
+      else next.delete('application')
+      return next
+    })
+  }
+
+  if (selected) return <ApplicationOverview key={selected} id={selected} back={() => { selectApplication(null); resource.reload() }} />
+
   return (
-    <section className="panel admin-list-panel">
-      <div className="section-heading">
-        <div><h2>Company applications</h2><p className="muted">Find a request and open it to review the company and its offer.</p></div>
-      </div>
-      <div className="toolbar admin-list-toolbar">
-        <Field
-          label="Review status"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value)
-            setHistory([])
-          }}
-        >
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="">All applications</option>
-        </Field>
-        <form
-          className="search-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            setFilterEmail(email.trim().toLowerCase())
-            setHistory([])
-          }}
-        >
-          <Field
-            label="Exact email"
-            type="email"
-            placeholder="name@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <Action type="submit" variant="secondary">
-            <Search size={16} aria-hidden="true" /> Find
-          </Action>
+    <section className="panel admin-applications" aria-labelledby="application-queue-title">
+      <h2 id="application-queue-title" className="sr-only">Company applications</h2>
+      <div className="admin-queue-filters">
+        <div className="admin-application-views" role="group" aria-label="Review status">
+          {applicationViews.map(({ value, label, Icon }) => (
+            <button key={value} type="button" aria-pressed={status === value} onClick={() => setStatus(value)}>
+              <Icon size={15} aria-hidden="true" /><span>{label}</span>
+            </button>
+          ))}
+        </div>
+        <form className="admin-application-search" onSubmit={event => {
+          event.preventDefault()
+          const nextEmail = email.trim().toLowerCase()
+          setEmail(null)
+          setParameters(previous => {
+            const next = new URLSearchParams(previous)
+            if (nextEmail) next.set('email', nextEmail)
+            else next.delete('email')
+            return next
+          })
+          setHistory([])
+        }}>
+          <Field label="Exact email" type="email" placeholder="Exact applicant email" value={email} onChange={event => setEmail(event.target.value)} icon={<Search size={16} aria-hidden="true" />} />
+          <Action type="submit" variant="secondary">Find</Action>
         </form>
-        <Action variant="secondary" onClick={resource.reload}>
-          <RefreshCw size={16} aria-hidden="true" /> Refresh
-        </Action>
+        <Action variant="secondary" className="admin-queue-refresh" onClick={resource.reload} disabled={resource.loading} aria-label="Refresh applications" title="Refresh applications"><RefreshCw size={16} aria-hidden="true" /></Action>
       </div>
+      {filterEmail && <div className="admin-application-filter-summary"><span>Filtered by email</span><button type="button" onClick={clearEmail} aria-label="Clear email filter">{filterEmail}<X size={14} aria-hidden="true" /></button></div>}
       <ErrorNotice error={resource.error} retry={resource.reload} />
-      {resource.loading ? (
-        <ListSkeleton label="Loading applications…" columns={['Company', 'Email', 'Status', 'Review']} />
-      ) : resource.data?.items.length ? (
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Review</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resource.data.items.map((application) => (
+      <div className="admin-queue-results" aria-busy={resource.loading}>
+        {resource.loading ? (
+          <ListSkeleton label="Loading applications…" columns={['Company', 'Applicant', 'Status', 'Review']} />
+        ) : items.length ? (
+          <div className="table-scroll admin-application-table-wrap">
+            <table className="data-table admin-application-table">
+              <caption className="sr-only">Company applications, {applicationViews.find(view => view.value === status)?.label.toLowerCase()}</caption>
+              <thead><tr><th scope="col">Company</th><th scope="col">Applicant</th><th scope="col">Review status</th><th scope="col"><span className="sr-only">Review application</span></th></tr></thead>
+              <tbody>{items.map(application => (
                 <tr key={application.id}>
-                  <td>{application.companyName}</td>
-                  <td>{application.email}</td>
-                  <td>
-                    <Status value={application.status} />
-                  </td>
-                  <td>
-                    <Action
-                      variant="secondary"
-                      onClick={() => setSelected(application.id)}
-                    >
-                      Open application
-                    </Action>
-                  </td>
+                  <td data-label="Company"><div className="admin-application-company"><span className="admin-company-avatar" aria-hidden="true">{application.companyName?.trim().charAt(0).toUpperCase() || <Building2 size={18} />}</span><div><strong>{application.companyName || 'Unnamed company'}</strong><small><CalendarDays size={12} aria-hidden="true" />Submitted {dateLabel(application.submittedAt)}</small></div></div></td>
+                  <td data-label="Applicant"><div className="admin-application-applicant">{applicantName(application) && <span>{applicantName(application)}</span>}{application.email ? <a href={`mailto:${application.email}`}>{application.email}</a> : <span className="muted">Email not provided</span>}</div></td>
+                  <td data-label="Review status"><ApplicationStatus status={application.status} /></td>
+                  <td><Action variant="text-button" className="admin-application-open" aria-label="Open application" title={`Review ${application.companyName}`} onClick={() => selectApplication(application.id)}>Review<ArrowRight size={16} aria-hidden="true" /></Action></td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        !resource.error && (
-          <Empty title="All caught up">No applications match this view.</Empty>
-        )
-      )}
-      {resource.data && (
-        <div className="table-bottom">
-          <span>{resource.data.items.length} applications</span>
-          <div className="actions">
-            <Action
-              variant="secondary"
-              disabled={!history.length}
-              onClick={() => setHistory((value) => value.slice(0, -1))}
-            >
-              Previous
-            </Action>
-            <Action
-              variant="secondary"
-              disabled={!resource.data.nextCursor}
-              onClick={() =>
-                setHistory((value) => [...value, resource.data.nextCursor])
-              }
-            >
-              Next
-            </Action>
+              ))}</tbody>
+            </table>
           </div>
-        </div>
-      )}
+        ) : !resource.error ? (
+          <Empty title={status === 'pending' && !filterEmail ? 'All caught up' : 'No matching applications'} icon={status === 'pending' && !filterEmail ? <CheckCircle2 size={26} aria-hidden="true" /> : <Search size={26} aria-hidden="true" />} action={(filterEmail || status !== 'pending') ? <Action variant="secondary" onClick={resetFilters}>Clear filters</Action> : undefined}>
+            {status === 'pending' && !filterEmail ? 'New company requests will appear here when they are ready for review.' : 'Try a different review status or clear the email filter.'}
+          </Empty>
+        ) : <div className="admin-queue-error"><Inbox size={24} aria-hidden="true" /><p>Applications could not be loaded.</p><Action variant="secondary" onClick={resource.reload}>Try again</Action></div>}
+      </div>
+      {resource.data && !resource.loading && <div className="admin-queue-footer">
+        <p role="status"><strong>{items.length}</strong> {items.length === 1 ? 'application' : 'applications'} on this page</p>
+        <div className="admin-queue-pagination"><span>Page {history.length + 1}</span><Action variant="secondary" disabled={!history.length} onClick={() => setHistory(value => value.slice(0, -1))}><ChevronLeft size={15} aria-hidden="true" />Previous</Action><Action variant="secondary" disabled={!resource.data.nextCursor} onClick={() => setHistory(value => [...value, resource.data.nextCursor])}>Next<ChevronRight size={15} aria-hidden="true" /></Action></div>
+      </div>}
     </section>
   )
 }
 
 function ApplicationOverview({ id, back }) {
-  const path = `/admin/applications/${id}`
+  const path = `/admin/applications/${encodeURIComponent(id)}`
   const resource = useResource(path)
   const [command, setCommand] = useState(null)
-  if (resource.loading) return <Loading />
-  if (resource.error)
-    return <><Action variant="text-button" onClick={back}><ArrowLeft size={16} aria-hidden="true" /> Back to applications</Action><ErrorNotice error={resource.error} retry={resource.reload} /></>
+  const backButton = <Action className="admin-back" variant="text-button" onClick={back}><ArrowLeft size={16} aria-hidden="true" />Back to applications</Action>
+  if (resource.loading) return <div className="admin-record">{backButton}<Loading variant="detail" label="Loading application…" /></div>
+  if (resource.error) return <div className="admin-record">{backButton}<ErrorNotice error={resource.error} retry={resource.reload} /></div>
   const { application, offer, organization } = resource.data
+  const canPrepareOffer = application.status === 'approved' && !organization && (!offer || offer.status === 'draft')
+  const website = isSafeRichTextUrl(application.companyWebsite) && /^https?:\/\//i.test(application.companyWebsite)
   return (
-    <div className={`admin-record${application.status === 'approved' ? ' admin-application-record' : ''}`}>
-      <Action className="admin-back" variant="text-button" onClick={back}>
-        <ArrowLeft size={16} aria-hidden="true" /> Back to applications
-      </Action>
-      <section className="panel">
-        <div className="section-heading">
-          <h2>{application.companyName}</h2>
-          <Status value={application.status} />
+    <div className="admin-record admin-application-detail">
+      <div className="admin-application-detail-nav">{backButton}<Action variant="text-button" onClick={resource.reload} aria-label="Refresh application"><RefreshCw size={15} aria-hidden="true" />Refresh</Action></div>
+      <div className="admin-application-detail-grid">
+        <div className="admin-application-main">
+          <section className="panel admin-application-profile">
+            <div className="admin-application-profile-heading"><span className="admin-company-avatar admin-company-avatar--large" aria-hidden="true"><Building2 size={24} /></span><div><p className="admin-application-eyebrow">Company profile</p><h2>{application.companyName}</h2></div><ApplicationStatus status={application.status} /></div>
+            <p className="admin-application-submitted"><CalendarDays size={14} aria-hidden="true" />Submitted {dateLabel(application.submittedAt)}</p>
+            <dl className="detail-list admin-profile-details admin-application-contact">
+              <div><dt>Primary contact</dt><dd>{applicantName(application) || 'Not provided'}</dd></div>
+              <div><dt>Email address</dt><dd>{application.email ? <a className="app-link" href={`mailto:${application.email}`}>{application.email}</a> : 'Not provided'}</dd></div>
+              <div><dt>Phone number</dt><dd>{application.contactNumber ? formatNumber(application.contactNumber) : 'Not provided'}</dd></div>
+              <div><dt>Company website</dt><dd>{website ? <a className="app-link admin-application-website" href={application.companyWebsite} target="_blank" rel="noopener noreferrer">{application.companyWebsite.replace(/^https?:\/\//i, '').replace(/\/$/, '')}<ExternalLink size={13} aria-hidden="true" /></a> : application.companyWebsite || 'Not provided'}</dd></div>
+            </dl>
+          </section>
+          <section className="panel admin-application-commercial" aria-labelledby="application-commercial-title">
+            <div className="admin-application-card-title"><FileText size={18} aria-hidden="true" /><h2 id="application-commercial-title">Commercial offer</h2>{offer && <Status value={offer.status} />}</div>
+            {offer ? <><div className="admin-application-offer-price"><strong>{money(offer.terms.unitAmountMinor, offer.terms.currency)}</strong><span>per seat / month</span></div><p className="muted">Agreed standard price · Offer revision {offer.revision}</p></> : <p className="muted">{application.status === 'pending' ? 'Approve the application to prepare a commercial offer for this company.' : application.status === 'rejected' ? 'The applicant needs to update their details before review can continue.' : 'No offer has been prepared for this company yet.'}</p>}
+            {canPrepareOffer && <Action variant="secondary" onClick={() => setCommand('offer')}>{offer ? 'Edit draft offer' : 'Prepare offer'}<ArrowRight size={15} aria-hidden="true" /></Action>}
+            <div className="admin-application-workspace"><span>Workspace</span>{organization ? <Status value={organization.status} /> : <span className="muted">Not created yet</span>}</div>
+          </section>
         </div>
-        <dl className="detail-list admin-profile-details">
-          {[
-            ['Contact', `${application.firstName} ${application.lastName}`],
-            ['Email', application.email],
-            [
-              'Phone',
-              application.contactNumber
-                ? formatNumber(application.contactNumber)
-                : '',
-            ],
-            ['Website', application.companyWebsite],
-            ['Submitted', dateLabel(application.submittedAt)],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value || 'Not provided'}</dd>
-            </div>
-          ))}
-        </dl>
-        {application.reason && (
-          <p className="notice">Review feedback: {application.reason}</p>
-        )}
-        <div className="actions">
-          {application.status === 'pending' && (
-            <>
-              <Action onClick={() => setCommand('approve')}>
-                Approve application
-              </Action>
-              <Action
-                variant="danger-button"
-                onClick={() => setCommand('reject')}
-              >
-                Request corrections
-              </Action>
-            </>
-          )}
-          {application.status === 'approved' &&
-            !organization &&
-            (!offer || offer.status === 'draft') && (
-              <Action onClick={() => setCommand('offer')}>
-                {offer ? 'Edit draft offer' : 'Prepare offer'}
-              </Action>
-            )}
-          <Action variant="secondary" onClick={resource.reload}>
-            Refresh
-          </Action>
-        </div>
-        {offer && (
-          <p className="muted">
-            Offer revision {offer.revision} · {offer.status} · Agreed standard
-            price {money(offer.terms.unitAmountMinor, offer.terms.currency)} per
-            seat / month.
-          </p>
-        )}
-      </section>
-      {application.status === 'approved' && <AdminBilling id={id} />}
-      <HistoryList
-        path={`${path}/reviews`}
-        title="Review and delivery history"
-      />
-      <HistoryList path={`${path}/history`} title="Commercial history" />
-      {command && (
-        <ApplicationCommand
-          command={command}
-          path={path}
-          record={resource.data}
-          close={() => setCommand(null)}
-          saved={() => {
-            setCommand(null)
-            resource.reload()
-          }}
-        />
-      )}
+        <aside className="admin-application-sidebar" aria-label="Application review and billing">
+          {application.status !== 'approved' && <section className="panel admin-application-review">
+            <span className="admin-review-icon" aria-hidden="true">{application.status === 'pending' ? <ClipboardCheck size={24} /> : <MessageSquareText size={24} />}</span>
+            <p className="admin-application-eyebrow">{application.status === 'pending' ? 'Next step' : 'Review outcome'}</p>
+            <h2>{application.status === 'pending' ? 'Review this company' : 'Corrections requested'}</h2>
+            <p className="muted">{application.status === 'pending' ? 'Check the company and contact details, then approve the request or ask for an update.' : 'The applicant can update their details and resubmit the application.'}</p>
+            {application.reason && <div className="admin-application-feedback"><strong>Feedback shared with applicant</strong><p>{application.reason}</p></div>}
+            {application.status === 'pending' && <div className="admin-application-review-actions"><Action onClick={() => setCommand('approve')}><Check size={16} aria-hidden="true" />Approve application</Action><Action variant="secondary" onClick={() => setCommand('reject')}><MessageSquareText size={16} aria-hidden="true" />Request corrections</Action></div>}
+          </section>}
+          {application.status === 'approved' && <AdminBilling id={id} />}
+        </aside>
+      </div>
+      <div className="admin-application-history"><HistoryList path={`${path}/reviews`} title="Review and delivery history" /><HistoryList path={`${path}/history`} title="Commercial history" /></div>
+      {command && <ApplicationCommand command={command} path={path} record={resource.data} close={() => setCommand(null)} saved={() => { setCommand(null); resource.reload() }} />}
     </div>
   )
 }
-
 function ApplicationCommand({ command, path, record, close, saved }) {
   const plan = useResource(command === 'offer' ? '/admin/plan' : null)
   const mutation = useMutation()
@@ -491,112 +463,6 @@ function ApplicationCommand({ command, path, record, close, saved }) {
           />
         </form>
       )}
-    </Dialog>
-  )
-}
-
-function StandardPlan() {
-  const resource = useResource('/admin/plan')
-  const [editing, setEditing] = useState(false)
-  return (
-    <>
-      <section className="panel admin-plan-panel">
-        <h2>Current standard plan</h2>
-        <ErrorNotice error={resource.error} retry={resource.reload} />
-        {resource.loading ? (
-          <Loading />
-        ) : (
-          resource.data && (
-            <div className="admin-plan-summary">
-              <div className="admin-plan-price">
-                <strong>
-                  {money(
-                    resource.data.plan.unitAmountMinor,
-                    resource.data.plan.currency,
-                  )}
-                </strong>
-                <span className="muted">per seat / month</span>
-                <span className="admin-tool-count">Version {resource.data.plan.version}</span>
-              </div>
-              <div className="admin-plan-description"><p className="muted">
-                A new version affects future offers. Accepted agreements keep
-                their original prices.
-              </p>
-              <Action onClick={() => setEditing(true)}>
-                Create a new plan version
-              </Action>
-              </div>
-            </div>
-          )
-        )}
-      </section>
-      <HistoryList path="/admin/plan/history" title="Plan history" />
-      {editing && (
-        <PlanEditor
-          plan={resource.data.plan}
-          close={() => setEditing(false)}
-          saved={() => {
-            setEditing(false)
-            resource.reload()
-          }}
-        />
-      )}
-    </>
-  )
-}
-
-function PlanEditor({ plan, close, saved }) {
-  const mutation = useMutation()
-  const [amount, setAmount] = useState(plan.unitAmountMinor)
-  const [reason, setReason] = useState('')
-  return (
-    <Dialog
-      title="Create a plan version"
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form
-        onSubmit={async (event) => {
-          event.preventDefault()
-          if (
-            await mutation.run('post', '/admin/plan/versions', {
-              expectedVersion: plan.version,
-              unitAmountMinor: Number(amount),
-              reason: reason.trim(),
-            })
-          )
-            saved()
-        }}
-      >
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          <Field
-            label="USD cents per seat / month"
-            required
-            type="number"
-            min="1"
-            max="100000000"
-            step="1"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-          <Field
-            label="Reason"
-            required
-            maxLength={500}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        </fieldset>
-        <SaveFooter
-          mutation={mutation}
-          close={close}
-          label="Create plan version"
-          onClear={() => {
-            setAmount(plan.unitAmountMinor)
-            setReason('')
-          }}
-        />
-      </form>
     </Dialog>
   )
 }
@@ -819,113 +685,6 @@ function ExtensionEditor({ id, revision, close, saved }) {
             setMonths(1)
             setReason('')
             setPreview(null)
-          }}
-        />
-      </form>
-    </Dialog>
-  )
-}
-
-function PermissionCatalog() {
-  const resource = useResource('/admin/permissions')
-  const [selected, setSelected] = useState(null)
-  const [query, setQuery] = useState('')
-  const entries = resource.data?.items || []
-  const visible = entries.filter(entry => `${entry.label} ${entry.key}`.toLowerCase().includes(query.trim().toLowerCase()))
-  return (
-    <section className="panel admin-permissions-panel">
-      <div className="section-heading"><div><h2>Available permissions</h2>
-      <p className="muted">
-        Catalog changes affect effective access immediately. Only supported
-        capabilities can be configured.
-      </p>
-      </div><span className="admin-tool-count">{query.trim() ? `${visible.length} of ` : ''}{entries.length} permissions</span></div>
-      <div className="admin-catalog-search">
-        <Field label="Find a permission" type="search" placeholder="Search by name or permission key" value={query} onChange={event => setQuery(event.target.value)} icon={<Search size={16} />} />
-      </div>
-      <ErrorNotice error={resource.error} retry={resource.reload} />
-      {resource.loading ? (
-        <ListSkeleton label="Loading permissions…" variant="list" />
-      ) : (
-        <div className="admin-permission-list">{visible.map((entry) => (
-          <div className="grant-row admin-permission-row" key={entry.key}>
-            <div className="admin-permission-name">
-              <strong>{entry.label}</strong>
-              <small className="muted">{entry.key}</small>
-            </div>
-            <div className="actions">
-              <Status value={entry.enabled ? 'active' : 'disabled'} />
-              <Action variant="secondary" onClick={() => setSelected(entry)}>
-                Configure
-              </Action>
-            </div>
-          </div>
-        ))}</div>
-      )}
-      {!resource.loading && !resource.error && !visible.length && <Empty title="No matching permissions">Try another name or permission key.</Empty>}
-      {selected && (
-        <CatalogEditor
-          entry={selected}
-          close={() => setSelected(null)}
-          saved={() => {
-            setSelected(null)
-            resource.reload()
-          }}
-        />
-      )}
-    </section>
-  )
-}
-
-function CatalogEditor({ entry, close, saved }) {
-  const [label, setLabel] = useState(entry.label)
-  const [enabled, setEnabled] = useState(entry.enabled)
-  const mutation = useMutation()
-  return (
-    <Dialog
-      title={`Configure ${entry.key}`}
-      close={close}
-      locked={mutation.pending || mutation.uncertain}
-    >
-      <form
-        onSubmit={async (event) => {
-          event.preventDefault()
-          if (
-            await mutation.run('put', `/admin/permissions/${entry.key}`, {
-              expectedRevision: entry.revision,
-              label: label.trim(),
-              enabled,
-              scopes: entry.scopes,
-            })
-          )
-            saved()
-        }}
-      >
-        <fieldset disabled={mutation.pending || mutation.uncertain}>
-          <Field
-            label="Display label"
-            required
-            maxLength={80}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(event) => setEnabled(event.target.checked)}
-            />
-            Enabled for effective authorization
-          </label>
-          <p className="muted">Supported scopes: {entry.scopes.join(', ')}.</p>
-        </fieldset>
-        <SaveFooter
-          mutation={mutation}
-          close={close}
-          label="Save catalog entry"
-          onClear={() => {
-            setLabel(entry.label)
-            setEnabled(entry.enabled)
           }}
         />
       </form>

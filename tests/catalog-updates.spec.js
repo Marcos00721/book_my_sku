@@ -130,6 +130,7 @@ test('decoration locations extend saved drafts without changing historical three
   await expect(
     page.getByRole('button', { name: 'Publish template', exact: true }),
   ).toBeEnabled()
+  await page.getByRole('button', { name: 'Published versions', exact: true }).click()
   await page
     .getByRole('button', { name: 'View publication', exact: true })
     .click()

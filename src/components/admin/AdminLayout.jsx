@@ -70,7 +70,7 @@ export function AdminLayout({ section, children }) {
           id="admin-main"
           ref={content}
           tabIndex={-1}
-          className="workspace-main admin-main"
+          className={`workspace-main admin-main${section === 'applications' ? ' admin-main--applications' : ''}`}
         >
           <PageHeader
             eyebrow="PLATFORM ADMINISTRATION"

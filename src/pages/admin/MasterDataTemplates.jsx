@@ -1,15 +1,16 @@
-﻿import { useState } from 'react'
-import { ChevronDown, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Archive, Building2, Check, CheckCircle2, ChevronDown, ClipboardCheck,
+  Database, History, Layers3, MapPin, Paintbrush, Pencil, Plus, RefreshCw,
+  Search, Send, X,
+} from 'lucide-react'
 import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
-import { readData } from '../../services/workspace'
+import { queryPath, readData } from '../../services/workspace'
 import {
-  ActivityHistory,
   ConflictReview,
   Pager,
 } from '../../components/workspace/RecordTools'
-const valueText = (value) =>
-  value == null || value === '' ? 'Not set' : String(value)
 import {
   Action,
   Dialog,
@@ -21,12 +22,23 @@ import {
   SaveFooter,
   Status,
 } from '../../components/workspace/Elements'
+import '../../styles/master-data-templates.css'
+
+const valueText = (value) =>
+  value == null || value === '' ? 'Not set' : String(value)
 
 const categories = {
   industry: 'Industries',
   product_category: 'Product categories',
   decoration_method: 'Decoration methods',
   decoration_location: 'Decoration locations',
+}
+
+const categoryDetails = {
+  industry: { Icon: Building2, description: 'The businesses your customers serve.' },
+  product_category: { Icon: Layers3, description: 'Keep products neatly organised.' },
+  decoration_method: { Icon: Paintbrush, description: 'How products are personalised.' },
+  decoration_location: { Icon: MapPin, description: 'Where decorations are placed.' },
 }
 
 function createEntryKey(label, category, entries) {
@@ -57,7 +69,11 @@ export function MasterDataTemplates() {
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [historyVersion, setHistoryVersion] = useState(0)
+  const [historyTab, setHistoryTab] = useState(null)
+  const historyTrigger = useRef(null)
   const [preview, setPreview] = useState(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const publish = useMutation()
   const draft = savedDraft || resource.data
 
@@ -103,6 +119,8 @@ export function MasterDataTemplates() {
           return [
             {
               entry: identity(entry),
+              label: entry.label,
+              category: entry.category,
               field: 'Added to active publication',
               before: null,
               after: entry.label,
@@ -116,6 +134,8 @@ export function MasterDataTemplates() {
           )
           .map((field) => ({
             entry: identity(entry),
+            label: entry.label,
+            category: entry.category,
             field,
             before: old.get(identity(entry))?.[field],
             after: entry[field],
@@ -125,6 +145,8 @@ export function MasterDataTemplates() {
         if (!activeKeys.has(key))
           differences.push({
             entry: key,
+            label: entry.label,
+            category: entry.category,
             field: 'Archived from active publication',
             before: entry.label,
             after: 'Excluded',
@@ -183,9 +205,23 @@ export function MasterDataTemplates() {
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
   const busy = refreshing || publish.pending || publish.uncertain
+  const counts = Object.fromEntries(
+    Object.keys(categories).map((key) => {
+      const entries = draft.entries.filter((entry) => entry.category === key)
+      return [key, {
+        total: entries.length,
+        active: entries.filter((entry) => entry.status === 'active').length,
+      }]
+    }),
+  )
+  const query = search.trim().toLocaleLowerCase()
   const rows = draft.entries
     .filter((entry) => entry.category === category)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
+  const filteredRows = rows.filter((entry) =>
+    (statusFilter === 'all' || entry.status === statusFilter) &&
+    (!query || `${entry.label} ${entry.description || ''}`.toLocaleLowerCase().includes(query)),
+  )
   const missingCategories = Object.keys(categories).filter(
     (key) =>
       !draft.entries.some(
@@ -199,17 +235,99 @@ export function MasterDataTemplates() {
       entries: draft.entries,
     }),
   ).length
+  const activeCount = draft.entries.filter((entry) => entry.status === 'active').length
+  const reviewed = preview && preview.revision === draft.revision && preview.version === draft.version
+
+  function selectCategory(key) {
+    setCategory(key)
+    setSearch('')
+    setStatusFilter('all')
+  }
+
+  function navigateCategories(event) {
+    const keys = Object.keys(categories)
+    const index = keys.indexOf(category)
+    const next = {
+      ArrowRight: keys[(index + 1) % keys.length],
+      ArrowLeft: keys[(index + keys.length - 1) % keys.length],
+      Home: keys[0],
+      End: keys.at(-1),
+    }[event.key]
+    if (!next) return
+    event.preventDefault()
+    selectCategory(next)
+    document.getElementById(`template-tab-${next}`)?.focus()
+  }
+
+  function openHistory(tab, event) {
+    historyTrigger.current = event.currentTarget
+    setHistoryTab(tab)
+  }
+
+  function closeHistory() {
+    setHistoryTab(null)
+    requestAnimationFrame(() => historyTrigger.current?.focus({ preventScroll: true }))
+  }
 
   return (
-    <>
-      <section className="panel">
-        <div className="section-heading">
+    <div className="master-templates">
+      <div className="master-template-summary" aria-label="Template overview">
+        <div className="master-template-summary-label">
+          <Database size={18} aria-hidden="true" />
+          <strong>Platform template</strong>
+          <span className="master-template-draft-tag">Draft revision {draft.revision}</span>
+        </div>
+        <div className="master-template-summary-tools">
+          <div className="master-template-summary-stats">
+            <span><strong>{activeCount}</strong> active entries</span>
+            <span>{draft.version > 0 ? <>Published <strong>v{draft.version}</strong></> : 'Not published yet'}</span>
+          </div>
+          <div className="master-template-history-actions" aria-label="Template history">
+            <Action variant="text-button" onClick={(event) => openHistory('versions', event)}>
+              <Layers3 size={16} aria-hidden="true" />Published versions
+            </Action>
+            <Action variant="text-button" aria-label="Platform template activity" onClick={(event) => openHistory('activity', event)}>
+              <History size={16} aria-hidden="true" />Activity
+            </Action>
+          </div>
+        </div>
+      </div>
+
+      <div className="master-template-categories" role="tablist" aria-label="Template categories" onKeyDown={navigateCategories}>
+        {Object.entries(categories).map(([key, label]) => {
+          const { Icon } = categoryDetails[key]
+          return (
+            <button
+              key={key}
+              id={`template-tab-${key}`}
+              type="button"
+              role="tab"
+              aria-label={label}
+              aria-selected={category === key}
+              aria-controls="template-entries"
+              tabIndex={category === key ? 0 : -1}
+              onClick={() => selectCategory(key)}
+            >
+              <span className="master-template-category-icon"><Icon size={20} aria-hidden="true" /></span>
+              <span className="master-template-category-copy">
+                <strong>{label}</strong>
+                <span>{counts[key].active} active <span aria-hidden="true">·</span> {counts[key].total} total</span>
+              </span>
+              {category === key && <Check size={16} className="master-template-category-check" aria-hidden="true" />}
+            </button>
+          )
+        })}
+      </div>
+
+      {notice && <p className="notice master-template-notice" role="status"><CheckCircle2 size={18} aria-hidden="true" />{notice}</p>}
+      <ErrorNotice error={error} retry={refreshDraft} />
+
+      <div className="master-template-layout">
+      <section className="panel master-template-entries-panel" aria-label="Starter reference lists">
+        <div className="section-heading master-template-list-heading">
           <div>
-            <h2>Starter reference lists</h2>
-            <p className="muted">
-              Add and edit entries in a focused form. Changes are saved to your
-              draft until you publish.
-            </p>
+            <div className="master-template-title"><h2>{categories[category]}</h2><span className="master-template-count">{rows.length}</span></div>
+            <p className="muted">{categoryDetails[category].description}</p>
           </div>
           <Action
             disabled={busy || remaining <= 0 || draft.entries.length >= 400}
@@ -218,39 +336,40 @@ export function MasterDataTemplates() {
             <Plus size={16} aria-hidden="true" /> Create
           </Action>
         </div>
-        <div className="tabs" role="tablist" aria-label="Template categories">
-          {Object.entries(categories).map(([key, label]) => (
-            <button
-              key={key}
-              id={`template-tab-${key}`}
-              role="tab"
-              aria-selected={category === key}
-              aria-controls="template-entries"
-              onClick={() => setCategory(key)}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="master-template-filters">
+          <Field
+            className="master-template-search"
+            aria-label={`Search ${categories[category].toLowerCase()}`}
+            placeholder="Search name or description…"
+            icon={<Search size={18} />}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            trailing={search ? <Action variant="icon-button" className="master-template-clear-search" aria-label="Clear search" onClick={() => setSearch('')}><X size={16} aria-hidden="true" /></Action> : undefined}
+          />
+          <Field
+            className="master-template-status-filter"
+            aria-label="Filter entries by status"
+            searchable={false}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </Field>
+          <Action variant="icon-button" aria-label="Refresh draft" title="Refresh draft" disabled={busy} onClick={refreshDraft}>
+            <RefreshCw size={17} className={refreshing ? 'animate-spin' : ''} aria-hidden="true" />
+          </Action>
         </div>
-        {notice && (
-          <p className="notice" role="status">
-            {notice}
-          </p>
-        )}
-        <p className="admin-list-meta">
-          {remaining} entries remaining in this category ·{' '}
-          {draft.entries.length}/400 total
-        </p>
-        <details className="admin-capacity"><summary>Storage limits</summary><p>{draftBytes}/60,000 bytes. Archived rows count toward capacity.</p></details>
-        <ErrorNotice error={error} retry={refreshDraft} />
         <div
           id="template-entries"
           role="tabpanel"
           aria-labelledby={`template-tab-${category}`}
+          tabIndex={0}
         >
-          {rows.length ? (
+          {filteredRows.length ? (
             <div className="table-scroll">
-              <table className="data-table">
+              <table className="data-table master-template-table" aria-label={`${categories[category]} entries`}>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -263,24 +382,25 @@ export function MasterDataTemplates() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((entry) => (
-                    <tr key={entry.key}>
-                      <td>
+                  {filteredRows.map((entry) => (
+                    <tr key={entry.key} className={entry.status === 'archived' ? 'master-template-archived-row' : undefined}>
+                      <td data-label="Name">
                         <strong>{entry.label}</strong>
                       </td>
-                      <td>{entry.description || '—'}</td>
-                      <td>{entry.sortOrder}</td>
-                      <td>
+                      <td data-label="Description" className="master-template-entry-description">{entry.description || <span className="master-template-no-description">No description</span>}</td>
+                      <td data-label="Order"><span className="master-template-order">{entry.sortOrder}</span></td>
+                      <td data-label="Status">
                         <Status value={entry.status} />
                       </td>
-                      <td>
+                      <td data-label="Actions">
                         <Action
-                          variant="secondary"
+                          variant="text-button"
+                          className="master-template-edit"
                           disabled={busy}
                           aria-label={`Edit ${entry.label}`}
                           onClick={() => setEditor(entry)}
                         >
-                          <Pencil size={14} aria-hidden="true" /> Edit
+                          <Pencil size={15} aria-hidden="true" /><span>Edit</span>
                         </Action>
                       </td>
                     </tr>
@@ -288,8 +408,13 @@ export function MasterDataTemplates() {
                 </tbody>
               </table>
             </div>
+          ) : rows.length ? (
+            <Empty icon={<Search size={24} aria-hidden="true" />} title="No matching entries" action={<Action variant="secondary" onClick={() => { setSearch(''); setStatusFilter('all') }}>Clear filters</Action>}>
+              Try another search or status to find the entry you need.
+            </Empty>
           ) : (
             <Empty
+              icon={<Database size={26} aria-hidden="true" />}
               title={`No ${categories[category].toLowerCase()} yet`}
               action={
                 <Action
@@ -306,84 +431,46 @@ export function MasterDataTemplates() {
             </Empty>
           )}
         </div>
-        <div className="table-bottom">
-          <span>
-            {rows.length} entries · Published version {draft.version}
-          </span>
-          <Action variant="secondary" disabled={busy} onClick={refreshDraft}>
-            <RefreshCw size={14} aria-hidden="true" />
-            {refreshing ? 'Refreshing…' : 'Refresh draft'}
-          </Action>
+        <div className="table-bottom master-template-table-footer">
+          <span role="status">{filteredRows.length === rows.length ? `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}` : `${filteredRows.length} of ${rows.length} entries`} shown</span>
+          <span>{remaining} slots available</span>
         </div>
       </section>
-      <section className="panel admin-publication-panel">
-        <h2>Publish a reviewed version</h2>
+      <aside className="master-template-sidebar" aria-label="Template publication">
+      <section className="panel master-template-publish-panel">
+        <div className="master-template-publish-heading"><span className="master-template-publish-icon"><Send size={19} aria-hidden="true" /></span><div><h2>Publish template</h2><p className="muted">Prepare the next workspace.</p></div></div>
+        <p className="master-template-publish-intro">Your edits stay in draft until you review and publish them.</p>
+        <div className="master-template-readiness">
+          <div className="master-template-readiness-heading"><strong>Category readiness</strong><span>{4 - missingCategories.length}/4 ready</span></div>
+          <ul>
+            {Object.entries(categories).map(([key, label]) => <li key={key} className={!counts[key].active ? 'master-template-category-missing' : undefined}>
+              {counts[key].active ? <CheckCircle2 size={15} aria-hidden="true" /> : <span className="master-template-missing-icon" aria-hidden="true" />}
+              <span>{label}</span><strong>{counts[key].active}</strong>
+            </li>)}
+          </ul>
+        </div>
         {missingCategories.length > 0 && (
-          <p className="notice">
+          <p className="master-template-publish-warning">
             Add an active entry before publishing:{' '}
             {missingCategories.map((key) => categories[key]).join(', ')}.
-            Historical three-category versions remain unchanged.
           </p>
         )}
-        <Action variant="secondary" disabled={busy} onClick={reviewPublication}>
-          Review saved draft changes
+        <Action className="master-template-review-button" variant="secondary" aria-label="Review saved draft changes" disabled={busy} onClick={reviewPublication}>
+          <ClipboardCheck size={17} aria-hidden="true" />{refreshing ? 'Loading draft…' : reviewed ? 'Review changes again' : 'Review saved draft changes'}
         </Action>
-        {preview &&
-          preview.revision === draft.revision &&
-          preview.version === draft.version && (
-            <div className="table-scroll">
-              <p>
-                Saved draft revision {preview.revision}, compared with published
-                version {preview.version}. This publication affects future
-                onboarding only.
-              </p>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Entry</th>
-                    <th>Field</th>
-                    <th>Published</th>
-                    <th>Saved draft</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.differences.map((row, index) => (
-                    <tr key={index}>
-                      <th>{row.entry}</th>
-                      <td>{row.field}</td>
-                      <td>{valueText(row.before)}</td>
-                      <td>{valueText(row.after)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!preview.differences.length && <p>No active-content changes.</p>}
-              {preview.archived.length > 0 && (
-                <>
-                  <h3>Archived rows retained in the saved draft</h3>
-                  <p>
-                    These rows count toward capacity and will not appear in the
-                    active publication.
-                  </p>
-                  <ul>
-                    {preview.archived.map((entry) => (
-                      <li key={`${entry.category}:${entry.key}`}>
-                        {entry.category}:{entry.key} · {entry.label} ·{' '}
-                        {entry.description || 'No description'} · Order{' '}
-                        {entry.sortOrder}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-        <p className="muted">
-          Include at least one active entry in each category. Published lists
-          are copied into new workspaces; existing workspaces keep their own
-          entries. Workspaces already being set up keep their selected version.
-        </p>
-        <form className="admin-publish-form" onSubmit={publishDraft}>
+        {reviewed && (
+          <a className="master-template-review-result" href="#master-template-comparison">
+            <CheckCircle2 size={15} aria-hidden="true" />
+            Draft reviewed · {preview.differences.length} {preview.differences.length === 1 ? 'change' : 'changes'}
+            <span>View comparison</span>
+          </a>
+        )}
+        {preview && !reviewed && (
+          <p className="master-template-publish-warning">
+            The draft has changed. Review it again before publishing.
+          </p>
+        )}
+        <form className="master-template-publish-form" onSubmit={publishDraft}>
           <Field
             label="Reason for publishing"
             required
@@ -394,6 +481,7 @@ export function MasterDataTemplates() {
           />
           <ErrorNotice error={publish.error} />
           <Action
+            className="master-template-publish-button"
             disabled={
               !reason.trim() ||
               missingCategories.length > 0 ||
@@ -405,6 +493,7 @@ export function MasterDataTemplates() {
             }
             type="submit"
           >
+            <Send size={16} aria-hidden="true" />
             {publish.pending
               ? 'Publishing…'
               : publish.uncertain
@@ -412,19 +501,35 @@ export function MasterDataTemplates() {
                 : 'Publish template'}
           </Action>
         </form>
+        <p className="master-template-publish-note">Published lists are copied into new workspaces. Existing workspaces and setups in progress keep their selected version.</p>
       </section>
-      <TemplateHistory key={historyVersion} />
-      <details className="panel admin-history">
-        <summary><h2>Platform template activity</h2><ChevronDown size={18} aria-hidden="true" /></summary>
-        <div className="admin-history-body">
-        <ActivityHistory
-          key={`activity:${historyVersion}`}
-          path="/admin/master-data/history"
-          title="Platform template activity"
-          actions={['master.draft', 'master.publish']}
-        />
+      <details className="master-template-capacity">
+        <summary>
+          <Database size={15} aria-hidden="true" />
+          <span>Template capacity</span>
+          <strong>{draft.entries.length}/400</strong>
+          <ChevronDown size={15} aria-hidden="true" />
+        </summary>
+        <div>
+          <label htmlFor="master-template-entry-capacity">{draft.entries.length} of 400 entries used</label>
+          <progress id="master-template-entry-capacity" value={draft.entries.length} max={400} />
+          <p>Up to 100 entries per category.</p>
+          <p>{draftBytes.toLocaleString()}/60,000 bytes used. Archived rows count toward capacity.</p>
         </div>
       </details>
+      </aside>
+      </div>
+
+      {reviewed && <TemplateComparison preview={preview} />}
+
+      {historyTab && (
+        <TemplateHistoryDialog
+          key={historyVersion}
+          tab={historyTab}
+          selectTab={setHistoryTab}
+          close={closeHistory}
+        />
+      )}
       {editor && (
         <TemplateEntryForm
           draft={draft}
@@ -432,7 +537,7 @@ export function MasterDataTemplates() {
           close={() => setEditor(null)}
           saved={(updated, label, selectedCategory) => {
             setSavedDraft(updated)
-            setCategory(selectedCategory)
+            selectCategory(selectedCategory)
             setNotice(
               `${label} saved to draft. Publish a reviewed version when you’re ready.`,
             )
@@ -440,7 +545,71 @@ export function MasterDataTemplates() {
           }}
         />
       )}
-    </>
+    </div>
+  )
+}
+
+function TemplateComparison({ preview }) {
+  const fieldLabels = { label: 'Name', description: 'Description', sortOrder: 'Display order' }
+  return (
+    <section
+      className="panel master-template-comparison"
+      id="master-template-comparison"
+      aria-label="Saved draft comparison"
+    >
+      <div className="master-template-comparison-heading">
+        <ClipboardCheck size={20} aria-hidden="true" />
+        <div>
+          <h2>Review saved changes</h2>
+          <p className="muted">
+            Saved draft revision {preview.revision}, compared with published version{' '}
+            {preview.version}. This publication affects future onboarding only.
+          </p>
+        </div>
+        <span className="master-template-count">
+          {preview.differences.length} {preview.differences.length === 1 ? 'change' : 'changes'}
+        </span>
+      </div>
+      {preview.differences.length ? (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr><th>Entry</th><th>Field</th><th>Published</th><th>Saved draft</th></tr>
+            </thead>
+            <tbody>
+              {preview.differences.map((row) => (
+                <tr key={`${row.entry}:${row.field}`}>
+                  <th scope="row">
+                    <strong>{row.label}</strong>
+                    <small>{categories[row.category] || row.category}</small>
+                  </th>
+                  <td>{fieldLabels[row.field] || row.field}</td>
+                  <td>{valueText(row.before)}</td>
+                  <td>{valueText(row.after)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p>No active-content changes.</p>}
+      {preview.archived.length > 0 && (
+        <div className="master-template-archived-review">
+          <Archive size={18} aria-hidden="true" />
+          <div>
+            <h3>Archived rows retained in the saved draft</h3>
+            <p>These rows count toward capacity and will not appear in the active publication.</p>
+            <ul>
+              {preview.archived.map((entry) => (
+                <li key={`${entry.category}:${entry.key}`}>
+                  <strong>{entry.label}</strong> · {categories[entry.category] || entry.category}{' '}
+                  · {entry.description || 'No description'} · Order {entry.sortOrder}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -519,11 +688,11 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
     <Dialog
       size="md"
       className="master-entry-dialog"
-      title={editing ? 'Edit' : 'Create'}
+      title={editing ? 'Edit template entry' : 'Create template entry'}
       close={close}
       locked={locked}
     >
-      <p className="muted">
+      <p className="muted master-template-editor-intro">
         Save this entry to the platform draft. Publishing remains a separate
         step.
       </p>
@@ -608,37 +777,99 @@ function TemplateEntryForm({ draft, entry, close, saved }) {
   )
 }
 
+const historyTabs = {
+  versions: { label: 'Published versions', Icon: Layers3 },
+  activity: { label: 'Platform template activity', Icon: History },
+}
+
+function TemplateHistoryDialog({ tab, selectTab, close }) {
+  useEffect(() => {
+    const root = document.documentElement
+    const previous = { overflow: root.style.overflow, scrollbarGutter: root.style.scrollbarGutter }
+    if (window.innerWidth > root.clientWidth) root.style.scrollbarGutter = 'stable'
+    root.style.overflow = 'hidden'
+    return () => Object.assign(root.style, previous)
+  }, [])
+
+  function navigateTabs(event) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const next = event.key === 'Home' ? 'versions'
+      : event.key === 'End' ? 'activity'
+        : tab === 'versions' ? 'activity' : 'versions'
+    selectTab(next)
+    document.getElementById(`master-history-tab-${next}`)?.focus()
+  }
+
+  return (
+    <Dialog
+      className="master-template-history-dialog"
+      title="Template history"
+      description="Review published templates and the changes behind them."
+      close={close}
+    >
+      <div className="master-template-history-tabs" role="tablist" aria-label="Template history views" onKeyDown={navigateTabs}>
+        {Object.entries(historyTabs).map(([key, { label, Icon }]) => (
+          <button
+            key={key}
+            id={`master-history-tab-${key}`}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            aria-controls="master-history-content"
+            tabIndex={tab === key ? 0 : -1}
+            onClick={() => selectTab(key)}
+          >
+            <Icon size={17} aria-hidden="true" />{label}
+          </button>
+        ))}
+      </div>
+      <div
+        id="master-history-content"
+        className="master-template-history-content"
+        role="tabpanel"
+        aria-labelledby={`master-history-tab-${tab}`}
+      >
+        {tab === 'versions' ? <TemplateHistory /> : <TemplateActivity />}
+      </div>
+    </Dialog>
+  )
+}
+
 function TemplateHistory() {
   const [pages, setPages] = useState([])
   const [selected, setSelected] = useState(null)
   const resource = useResource(
-    `/admin/master-data/versions?limit=25${pages.length ? `&after=${encodeURIComponent(pages.at(-1))}` : ''}`,
+    `/admin/master-data/versions?limit=10${pages.length ? `&after=${encodeURIComponent(pages.at(-1))}` : ''}`,
   )
   const detail = useResource(
     selected ? `/admin/master-data/versions/${selected}` : null,
   )
   return (
-    <details className="panel admin-history">
-      <summary><h2>Published versions</h2><span className="muted">{resource.error ? 'Unavailable' : `${resource.data?.items?.length || 0} versions`}</span><ChevronDown size={18} aria-hidden="true" /></summary>
-      <div className="admin-history-body">
+    <section className="master-template-history-view" aria-label="Published versions">
+      <div className="master-template-history-toolbar">
+        <p>Every publication, ready to revisit.</p>
+        <Action variant="text-button" disabled={resource.loading} onClick={resource.reload}>
+          <RefreshCw size={16} aria-hidden="true" />Refresh versions
+        </Action>
+      </div>
       <ErrorNotice error={resource.error} retry={resource.reload} />
+      <div key={pages.at(-1) || 'first'} className="master-template-history-scroll" role="region" aria-label="Published versions list" tabIndex={0}>
       {resource.loading ? (
         <ListSkeleton label="Loading published versions…" variant="list" rows={4} />
       ) : resource.data?.items?.length ? (
         resource.data.items.map((version) => (
-          <div className="grant-row" key={version.id}>
-            <span>
-              Version {version.version}
-              <small className="muted">
-                {' '}
-                · {version.entries?.length || 0} entries
-              </small>
-            </span>
+          <article className="master-template-version-row" key={version.id}>
+            <span className="master-template-version-icon"><Layers3 size={18} aria-hidden="true" /></span>
+            <div className="master-template-version-copy">
+              <h3>Version {version.version}</h3>
+              <p>{version.entries?.length || 0} entries</p>
+            </div>
             <Status value="published" />
-            <Action variant="secondary" onClick={() => setSelected(version.id)}>
+            <Action variant="text-button" onClick={() => setSelected(version.id)}>
               View publication
             </Action>
-          </div>
+          </article>
         ))
       ) : (
         !resource.error && (
@@ -647,14 +878,17 @@ function TemplateHistory() {
           </Empty>
         )
       )}
+      </div>
+      <div className="master-template-history-footer">
       <Pager
         resource={resource}
         pages={pages}
         setPages={setPages}
         label="versions"
       />
+      </div>
       {selected && (
-        <Dialog title="Published template" close={() => setSelected(null)}>
+        <Dialog className="master-template-publication-dialog" title="Published template" close={() => setSelected(null)}>
           <ErrorNotice error={detail.error} retry={detail.reload} />
           {detail.loading ? (
             <Loading />
@@ -681,7 +915,96 @@ function TemplateHistory() {
           )}
         </Dialog>
       )}
+    </section>
+  )
+}
+
+function TemplateActivity() {
+  const [pages, setPages] = useState([])
+  const [action, setAction] = useState('')
+  const resource = useResource(queryPath('/admin/master-data/history', {
+    action,
+    limit: 10,
+    after: pages.at(-1),
+  }))
+  const actionLabels = { 'master.draft': 'Draft updated', 'master.publish': 'Template published' }
+  const changeText = (value) => typeof value === 'object' && value !== null
+    ? JSON.stringify(value) : valueText(value)
+
+  function reload() {
+    if (resource.error?.code === 'INVALID_CURSOR') setPages([])
+    resource.reload()
+  }
+
+  return (
+    <section className="master-template-history-view" aria-label="Platform template activity">
+      <div className="master-template-history-toolbar">
+        <Field
+          aria-label="Activity type"
+          searchable={false}
+          value={action}
+          onChange={(event) => { setAction(event.target.value); setPages([]) }}
+        >
+          <option value="">All activities</option>
+          <option value="master.draft">Draft updates</option>
+          <option value="master.publish">Publications</option>
+        </Field>
+        <Action variant="text-button" disabled={resource.loading} onClick={() => { setPages([]); resource.reload() }}>
+          <RefreshCw size={16} aria-hidden="true" />Refresh history
+        </Action>
       </div>
-    </details>
+      <ErrorNotice error={resource.error} retry={reload} />
+      <div key={`${action}:${pages.at(-1) || 'first'}`} className="master-template-history-scroll" role="region" aria-label="Template activity list" tabIndex={0}>
+        {resource.loading ? (
+          <ListSkeleton label="Loading template activity…" variant="list" rows={4} />
+        ) : resource.data && (
+          <>
+            {resource.data.coverageStartedAt && (
+              <p className="master-template-history-coverage">Detailed history is available from {new Date(resource.data.coverageStartedAt).toLocaleString()}.</p>
+            )}
+            {resource.data.items?.length ? resource.data.items.map((event) => (
+              <details className="master-template-activity-event" key={event.id}>
+                <summary>
+                  <span className={`master-template-event-icon${event.action === 'master.publish' ? ' is-publication' : ''}`}>
+                    {event.action === 'master.publish' ? <Send size={17} aria-hidden="true" /> : <Pencil size={17} aria-hidden="true" />}
+                  </span>
+                  <span className="master-template-event-copy">
+                    <strong>{actionLabels[event.action] || event.action?.replaceAll('.', ' ') || 'Template updated'}</strong>
+                    <span>{event.actor?.label || 'Actor unavailable'} · {event.actor?.membershipStatus || 'Membership unavailable'}</span>
+                    <time dateTime={event.occurredAt || event.createdAt}>{new Date(event.occurredAt || event.createdAt).toLocaleString()}</time>
+                  </span>
+                  <span className="master-template-event-disclosure">View changes<ChevronDown size={16} aria-hidden="true" /></span>
+                </summary>
+                <div className="master-template-event-details">
+                  {event.reason && <p>{event.reason}</p>}
+                  {event.origin && <p className="muted">Source: {event.origin}</p>}
+                  {event.noOp && <p>No field values changed.</p>}
+                  {event.changes?.length > 0 && (
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead>
+                        <tbody>
+                          {event.changes.flatMap((change) => change.differences
+                            ? change.differences.map((diff) => ({ ...diff, field: `${categories[change.category] || change.category} / ${change.key || change.entryId} / ${diff.field}` }))
+                            : [change]).map((change, index) => (
+                              <tr key={index}><th scope="row">{change.field}</th><td>{changeText(change.before)}</td><td>{changeText(change.after)}</td></tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <p className="master-template-event-reference">Revision {valueText(event.beforeRevision)} → {valueText(event.afterRevision)} · Event: {event.id}{event.operationId ? ` · Related operation: ${event.operationId}` : ''}</p>
+                </div>
+              </details>
+            )) : !resource.error && (
+              <Empty icon={<History size={24} aria-hidden="true" />} title="No recorded activity">No recorded changes are available for these filters.</Empty>
+            )}
+          </>
+        )}
+      </div>
+      <div className="master-template-history-footer">
+        <Pager resource={resource} pages={pages} setPages={setPages} label="events" />
+      </div>
+    </section>
   )
 }
