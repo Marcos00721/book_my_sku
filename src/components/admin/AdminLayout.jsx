@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
 import { GlassSidebar } from '../common/GlassSidebar'
 import { ErrorNotice, PageHeader } from '../workspace/Elements'
 import { AppTopbar } from '../common/AppTopbar'
@@ -48,7 +47,6 @@ export function AdminLayout({ section, children }) {
         variant="admin"
         groups={groups}
         brandTo="/admin"
-        scope={{ label: 'Platform administration', subtitle: 'Super administrator', Icon: ShieldCheck }}
         email={email}
         role="Super administrator"
         signOut={signOut}

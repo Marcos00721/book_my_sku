@@ -1,11 +1,10 @@
-import { AlertCircle } from 'lucide-react'
-import { theme } from '@/crm-theme'
+import { Snackbar } from '../common/Snackbar'
 import { Action } from '../workspace/Elements'
 
 const FALLBACK = 'Something went wrong. Please try again.'
 
 /** Prefer backend message; never surface raw objects or opaque codes alone. */
-export function apiErrorMessage(error) {
+function apiErrorMessage(error) {
   if (!error) return null
   const message =
     typeof error.message === 'string' ? error.message.trim() : ''
@@ -18,7 +17,7 @@ export function apiErrorMessage(error) {
 }
 
 /**
- * Compact form-level API error banner for setup/company flows.
+ * Form-level API error snackbar for setup/company flows.
  * Shows a human message only; optional Retry for recoverable payment failures.
  */
 export function FormApiAlert({
@@ -39,8 +38,7 @@ export function FormApiAlert({
     : []
 
   return (
-    <div className={theme.cx(theme.notice.error, 'flex gap-sm')} role="alert">
-      <AlertCircle size={18} className="mt-micro shrink-0" aria-hidden="true" />
+    <Snackbar key={JSON.stringify([message, fieldHints, error.requestId])}>
       <div className="min-w-0 space-y-xs">
         <p className="m-0 text-sm leading-relaxed">{message}</p>
         {fieldHints.map((field, index) => (
@@ -58,6 +56,6 @@ export function FormApiAlert({
           </Action>
         ) : null}
       </div>
-    </div>
+    </Snackbar>
   )
 }

@@ -14,7 +14,7 @@
   padding: var(--space-md) var(--space-sm) var(--space-sm);
   border: var(--border-width) solid var(--glass-border);
   border-radius: calc(var(--radius-card) + var(--space-xs));
-  overflow: hidden;
+  overflow: visible;
   transition: width var(--duration-slow) var(--ease-standard);
 }
 .glass-sidebar-header {
@@ -40,24 +40,18 @@
   border-radius: var(--radius-pill);
   background: var(--control-bg);
 }
-.glass-sidebar-scope {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-height: var(--size-touch);
-  padding: var(--space-xs);
-  margin-bottom: var(--space-sm);
-}
-.glass-sidebar-scope-icon {
-  display: grid;
-  place-items: center;
+.glass-sidebar .glass-sidebar-header .glass-sidebar-toggle {
+  position: absolute;
+  top: calc(var(--space-md) + var(--size-touch) / 2);
+  right: 0;
+  z-index: 1;
+  transform: translate(50%, -50%);
+  min-width: 2rem;
   width: 2rem;
+  min-height: 2rem;
   height: 2rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-control);
-  color: rgb(var(--color-primary-ink));
-  background: rgb(var(--color-primary) / 0.14);
-  border: var(--border-width) solid var(--glass-border-accent);
+  background: rgb(var(--color-surface-raised));
+  box-shadow: var(--shadow-subtle);
 }
 .glass-sidebar-label { min-width: 0; white-space: nowrap; }
 .glass-sidebar-label strong, .glass-sidebar-label small {
@@ -187,12 +181,11 @@
   font-weight: var(--font-weight-semibold);
 }
 .glass-sidebar-account > button { flex-shrink: 0; }
-.glass-sidebar.is-collapsed .glass-sidebar-header { flex-direction: column; gap: var(--space-xs); }
+.glass-sidebar.is-collapsed .glass-sidebar-header { justify-content: center; }
 .glass-sidebar.is-collapsed .glass-sidebar-full-brand { display: none; }
 .glass-sidebar.is-collapsed .glass-sidebar-compact-brand { display: grid; place-items: center; min-height: var(--size-touch); }
 .glass-sidebar.is-collapsed .glass-sidebar-label,
 .glass-sidebar.is-collapsed .glass-sidebar-search kbd { display: none; }
-.glass-sidebar.is-collapsed .glass-sidebar-scope { justify-content: center; padding-inline: 0; }
 .glass-sidebar.is-collapsed .glass-sidebar-search { padding-inline: var(--space-sm); cursor: text; }
 .glass-sidebar.is-collapsed .glass-sidebar-search input { position: absolute; inset: 0; opacity: 0; }
 .glass-sidebar.is-collapsed .glass-sidebar-group-label {

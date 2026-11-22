@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Building2, RefreshCw, Search, UserRoundSearch } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
@@ -67,6 +68,7 @@ const columns = [
 
 export function LeadsPage() {
   const workspace = useWorkspace()
+  const location = useLocation()
   if (!workspace.can('inquiries.view')) return <PermissionDenied />
 
   return (
@@ -75,7 +77,7 @@ export function LeadsPage() {
         title="Leads"
         description="Keep track of incoming interest, from first inquiry to a qualified opportunity."
       />
-      <LeadsDirectory key={workspace.base} path={`${workspace.base}/inquiries`} />
+      <LeadsDirectory key={`${workspace.base}:${location.state?.createdLead || ''}`} path={`${workspace.base}/inquiries`} />
     </>
   )
 }

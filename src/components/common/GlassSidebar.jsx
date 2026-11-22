@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, LogOut, Search, X } from "lucide-react";
 import { BrandMark } from "../auth/BrandMark";
 import { Button } from "./Button";
-import { Tooltip } from "./Tooltip";
 import "../../styles/sidebar.css";
 
 function SidebarNavigation({ groups, label, query, onNavigate }) {
@@ -64,7 +63,6 @@ function SidebarNavigation({ groups, label, query, onNavigate }) {
 export function GlassSidebar({
   variant = "workspace",
   groups,
-  scope,
   brandTo,
   email,
   role,
@@ -162,7 +160,6 @@ export function GlassSidebar({
   }, [drawerRef]);
 
   function contents(mobile) {
-    const ScopeIcon = scope.Icon;
     return (
       <>
         <div className="glass-sidebar-header">
@@ -194,13 +191,6 @@ export function GlassSidebar({
                   : "Collapse sidebar"
             }
             aria-expanded={mobile ? undefined : !collapsed}
-            title={
-              mobile
-                ? "Close navigation"
-                : collapsed
-                  ? "Expand sidebar"
-                  : "Collapse sidebar"
-            }
             onClick={mobile ? closeDrawer : toggleCollapsed}
           >
             {mobile ? (
@@ -212,17 +202,6 @@ export function GlassSidebar({
             )}
           </Button>
         </div>
-        <Tooltip content={scope.label}>
-          <div className="glass-sidebar-scope">
-            <span className="glass-sidebar-scope-icon">
-              <ScopeIcon size={18} aria-hidden="true" />
-            </span>
-            <div className="glass-sidebar-label">
-              <strong>{scope.label}</strong>
-              <small>{scope.subtitle}</small>
-            </div>
-          </div>
-        </Tooltip>
         <div className="glass-sidebar-search">
           <Search size={18} aria-hidden="true" />
           <input
@@ -258,14 +237,11 @@ export function GlassSidebar({
           </span>
           <div className="glass-sidebar-label">
             <strong>{role}</strong>
-            <Tooltip content={email}>
-              <small>{email || "Signed-in account"}</small>
-            </Tooltip>
+            <small>{email || "Signed-in account"}</small>
           </div>
           <Button
             variant="icon"
             aria-label="Sign out"
-            title="Sign out"
             disabled={signingOut}
             onClick={signOut}
           >

@@ -1,8 +1,9 @@
 import { useId, useRef, useEffect } from 'react'
-import { AlertCircle, ArrowRight, X } from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { ClearFormButton } from '../forms/ClearFormButton'
 import { Button } from '../common/Button'
+import { Snackbar } from '../common/Snackbar'
 import { TextLink } from '../common/TextLink'
 import { PageHeader } from '../common/PageHeader'
 import { StickyPageChrome, PageTabs } from '../common/StickyPageChrome'
@@ -48,8 +49,7 @@ export function Action({
 export function ErrorNotice({ error, retry }) {
   if (!error) return null
   return (
-    <div className="notice error-notice" role="alert">
-      <AlertCircle size={18} aria-hidden="true" />
+    <Snackbar key={JSON.stringify([error.message, error.code, error.fields, error.requestId, error.status, error.retryAfterMs])}>
       <div>
         <p>{error.message || 'This request could not be completed.'}</p>
         {error.code && <small>{error.code}</small>}
@@ -79,7 +79,7 @@ export function ErrorNotice({ error, retry }) {
           </Action>
         )}
       </div>
-    </div>
+    </Snackbar>
   )
 }
 

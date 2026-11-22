@@ -1,0 +1,87 @@
+.app-snackbar {
+  position: fixed;
+  inset: auto 16px calc(var(--snackbar-bottom, 16px) + env(safe-area-inset-bottom, 0px)) auto;
+  z-index: 10000;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid rgb(var(--color-danger) / 0.3);
+  border-left: 4px solid rgb(var(--color-danger));
+  border-radius: var(--radius-control);
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-text-base));
+  box-shadow: var(--shadow-subtle), 0 8px 32px rgb(0 0 0 / 0.15);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-snackbar:popover-open {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+@supports not selector(:popover-open) {
+  .app-snackbar {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+.app-snackbar-icon {
+  flex-shrink: 0;
+  color: rgb(var(--color-danger));
+}
+
+.app-snackbar-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-snackbar-content p {
+  margin: 0;
+}
+
+.app-snackbar-content p + p,
+.app-snackbar-content small {
+  display: block;
+  margin-top: 4px;
+}
+
+.app-snackbar-content small {
+  color: rgb(var(--color-text-muted));
+}
+
+.app-snackbar-content button,
+.app-snackbar-content a {
+  margin-top: 8px;
+}
+
+.app-snackbar-dismiss {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: rgb(var(--color-text-muted));
+  cursor: pointer;
+}
+
+.app-snackbar-dismiss:hover {
+  background: rgb(var(--color-text-base) / 0.06);
+}
+
+.app-snackbar-dismiss:focus-visible {
+  outline: 2px solid rgb(var(--color-danger));
+  outline-offset: 2px;
+}

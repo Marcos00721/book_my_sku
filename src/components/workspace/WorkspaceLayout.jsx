@@ -22,6 +22,7 @@ import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { getAuthClient } from '../../services/auth'
 import { GlassSidebar } from '../common/GlassSidebar'
 import { AppTopbar } from '../common/AppTopbar'
+import { QuickCreate } from './QuickCreate'
 import { Action, ErrorNotice, ListSkeleton, Loading } from './Elements'
 
 export function WorkspaceLayout() {
@@ -106,7 +107,6 @@ export function WorkspaceLayout() {
       <GlassSidebar
         groups={groups}
         brandTo="/app"
-        scope={{ label: workspace.organization.name, subtitle: 'CRM Workspace', Icon: Building2 }}
         email={workspace.session.user.email || ''}
         role={workspace.owner ? 'Owner' : workspace.permissions?.role?.name || 'Team member'}
         signOut={signOut}
@@ -129,6 +129,7 @@ export function WorkspaceLayout() {
           Icon={activeLinks.find((link) => link.active)?.Icon || LayoutDashboard}
           menuButtonRef={menuButton}
           onOpenNavigation={() => drawer.current.showModal()}
+          actions={<QuickCreate key={`${workspace.base}:${location.key}`} />}
         />
         <main id="workspace-main" ref={content} tabIndex={-1} className="workspace-main">
           <ErrorNotice error={error} />

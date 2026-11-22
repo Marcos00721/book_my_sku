@@ -13,6 +13,7 @@ export function AppTopbar({
   Icon = LayoutDashboard,
   menuButtonRef,
   onOpenNavigation,
+  actions,
   admin = false,
 }) {
   return (
@@ -40,6 +41,7 @@ export function AppTopbar({
           </div>
         </div>
         <div className="app-topbar-controls">
+          {actions}
           {admin && <span className="app-topbar-access"><ShieldCheck size={14} aria-hidden="true" /> Platform access</span>}
           <ThemeToggle className="app-topbar-theme" />
         </div>
