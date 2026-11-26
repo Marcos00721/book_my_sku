@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { hasRichTextContent } from '../utils/richText'
 
 const plainText = (limit) => z.string()
   .refine((value) => !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value), 'Use plain text.')
@@ -11,7 +12,18 @@ export const leadFormSchema = z.object({
   phone: z.union([z.literal(''), plainText(40)]).default(''),
   requestedInHandsDate: z.union([z.literal(''), z.iso.date('Enter a valid date.')]).default(''),
   requirement: z.string()
-    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value.replace(/\r\n|\n/g, '')), 'Use plain paragraph text.')
+    .refine((value) => !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value.replace(/\r\n|\n/g, '')), 'Use valid paragraph text.')
     .transform((value) => value.replace(/\r\n/g, '\n').trim())
-    .pipe(z.string().min(1, 'Describe the requirement.').max(2000, 'Use no more than 2000 characters.')),
+    .pipe(z.string().min(1, 'Describe the requirement.').max(2000, 'Use no more than 2000 characters, including formatting.'))
+    .refine(hasRichTextContent, 'Describe the requirement.'),
 })
+
+export const leadEditSchema = leadFormSchema.extend({
+  transition: z.string(),
+  reason: z.string().trim().max(500, 'Use no more than 500 characters.')
+    .refine(value => !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value), 'Use plain text.'),
+}).refine(value => !['return', 'close'].includes(value.transition) || Boolean(value.reason), {
+  path: ['reason'], message: 'Enter a reason for this change.',
+})
+
+export const leadConversionSchema = z.object({ name: leadFormSchema.shape.companyName })

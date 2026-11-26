@@ -50,9 +50,11 @@ export function ReferenceSelect({
   labelFor = (item) => item.label || item.name,
   filter = () => true,
   query = {},
+  compact = false,
 }) {
   const [search, setSearch] = useState('')
   const [pages, setPages] = useState([])
+  const [searchOpen, setSearchOpen] = useState(false)
   const resource = useResource(
     path
       ? queryPath(path, { ...query, search, limit: 50, after: pages.at(-1) })
@@ -62,7 +64,7 @@ export function ReferenceSelect({
   const choices = items.filter(filter)
   return (
     <div className="reference-picker">
-      <Field
+      {(!compact || searchOpen) && <Field
         label={`Find ${label.toLowerCase()}`}
         maxLength={80}
         value={search}
@@ -71,7 +73,7 @@ export function ReferenceSelect({
           setSearch(event.target.value)
           setPages([])
         }}
-      />
+      />}
       <ErrorNotice error={resource.error} retry={resource.reload} />
       <Field
         label={label}
@@ -104,6 +106,11 @@ export function ReferenceSelect({
           </option>
         ))}
       </Field>
+      {compact && (resource.data?.next || search) && <Action variant="text-button" disabled={disabled}
+        onClick={() => {
+          setSearchOpen(value => !value)
+          if (searchOpen) { setSearch(''); setPages([]) }
+        }}>{searchOpen ? 'Hide directory search' : 'Search the full directory'}</Action>}
       {(pages.length > 0 || resource.data?.next) && (
         <Pager
           resource={resource}

@@ -1,14 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useMutation } from '../../hooks/useMutation'
 import { leadFormSchema } from '../../schemas/leadFormSchema'
-import { AppFormProvider } from '../forms/AppFormProvider'
-import { FormTextField } from '../forms/FormTextField'
+import { canAddLead } from '../../services/leads'
 import { useAppForm } from '../forms/useAppForm'
-import { Dialog, SaveFooter } from '../workspace/Elements'
-import { FieldFrame } from '../common/FieldFrame'
-import '../../styles/leads.css'
+import { SaveFooter } from '../workspace/Elements'
+import { FormTextField } from '../forms/FormTextField'
+import { LeadFormDialog } from './LeadFormDialog'
+import { LeadClientPicker, LeadOwnerPicker } from './LeadPickers'
 
 export function LeadForm({ path, close, saved }) {
+  const workspace = useWorkspace()
+  const [ownerId, setOwnerId] = useState('')
+  const [selection, setSelection] = useState({ clientId: '', contactId: '' })
   const mutation = useMutation()
   const locked = mutation.pending || mutation.uncertain
   const form = useAppForm(leadFormSchema, {
@@ -31,28 +35,30 @@ export function LeadForm({ path, close, saved }) {
   }, [form, mutation.error])
 
   async function onSubmit(values) {
+    if (!canAddLead(workspace) || !workspace.writesAllowed) return
     const payload = Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''))
+    if (ownerId) payload.ownerId = ownerId
+    if (selection.clientId) payload.clientId = selection.clientId
+    if (selection.contactId) payload.contactId = selection.contactId
     const result = await mutation.run('post', path, payload)
     if (result) saved(result.data)
   }
 
   return (
-    <Dialog size="md" title="Add lead" description="Capture the company, contact, and what they need." close={close} locked={locked}>
-      <AppFormProvider form={form} onSubmit={onSubmit} animated={false} className="lead-form">
-        <fieldset className="lead-form-fields" disabled={locked}>
-          <FormTextField name="companyName" label="Company name" required maxLength={160} />
-          <FormTextField name="contactName" label="Contact name" required maxLength={160} />
-          <FormTextField name="email" label="Email address" type="email" required maxLength={254} />
-          <FormTextField name="phone" label="Phone" type="tel" maxLength={40} />
-          <FormTextField name="requestedInHandsDate" label="Requested in-hands date" type="date" />
-          <FieldFrame label="Requirement" className="field" required error={form.formState.errors.requirement?.message}>
-            {({ id, describedBy, invalid }) => (
-              <textarea {...form.register('requirement')} id={id} aria-describedby={describedBy} aria-invalid={invalid} required rows={4} maxLength={2000} />
-            )}
-          </FieldFrame>
-        </fieldset>
-        <SaveFooter mutation={mutation} close={close} label="Add lead" />
-      </AppFormProvider>
-    </Dialog>
+    <LeadFormDialog title="Add lead" description="Start with a contact and what they need."
+      form={form} onSubmit={onSubmit} close={close} locked={locked} captureDisabled={locked}
+      hasUnsavedChanges={form.formState.isDirty || Boolean(ownerId || selection.clientId) || mutation.uncertain}
+      setup={<>
+        <FormTextField name="requestedInHandsDate" label="Requested in-hands date" type="date" disabled={locked}
+          hint="When the customer needs their order." />
+        {workspace.can('inquiries.edit') && <LeadOwnerPicker value={ownerId} onChange={setOwnerId} disabled={locked} optional compact />}
+      </>}
+      clientPicker={workspace.can('clients.view') && <LeadClientPicker {...selection} compact disabled={locked}
+        onChange={(clientId, contactId) => setSelection({ clientId, contactId })} />}
+      footer={<SaveFooter mutation={mutation} close={close} label="Add lead" onClear={() => {
+        setOwnerId('')
+        setSelection({ clientId: '', contactId: '' })
+      }} />}
+    />
   )
 }

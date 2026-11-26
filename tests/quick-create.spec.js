@@ -3,7 +3,7 @@ import { mockSignedIn } from './helpers/auth'
 
 const organizationId = '507f1f77bcf86cd799439011'
 const base = `/api/v1/organizations/${organizationId}`
-const allGrants = ['inquiries', 'clients', 'suppliers', 'products'].flatMap((area) => [`${area}.view`, `${area}.create`])
+const allGrants = ['inquiries', 'clients', 'suppliers', 'products'].flatMap((area) => [`${area}.view`, `${area}.${area === 'inquiries' ? 'add' : 'create'}`])
 
 async function mockWorkspace(page, { grants = allGrants, writesAllowed = true } = {}) {
   await mockSignedIn(page)
@@ -66,7 +66,7 @@ test('lead submission validates required fields and refreshes the current lead l
   await dialog.getByRole('button', { name: 'Add lead', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('cell', { name: 'Acme Studio', exact: true })).toBeVisible()
-  expect(submissions).toEqual([{ companyName: 'Acme Studio', contactName: 'Alex Smith', email: 'alex@example.com', requirement: '100 branded shirts\nDelivery to Mumbai' }])
+  expect(submissions).toEqual([{ companyName: 'Acme Studio', contactName: 'Alex Smith', email: 'alex@example.com', requirement: '<p>100 branded shirts</p><p>Delivery to Mumbai</p>' }])
 })
 
 test('menu only includes permitted create actions', async ({ page }) => {
@@ -74,6 +74,14 @@ test('menu only includes permitted create actions', async ({ page }) => {
   await page.goto('/app/leads')
   await page.getByRole('button', { name: 'Quick create', exact: true }).click()
   await expect(page.getByRole('menuitem')).toHaveText(['Add clientCreate a client relationship'])
+})
+
+test('the staging inquiry creation grant opens Add lead from Quick create', async ({ page }) => {
+  await mockWorkspace(page, { grants: ['inquiries.view', 'inquiries.create'] })
+  await page.goto('/app/leads')
+  await page.getByRole('button', { name: 'Quick create', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Add lead', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Add lead', exact: true })).toBeVisible()
 })
 
 test('an uncertain lead save retries the same request without losing the draft', async ({ page }) => {

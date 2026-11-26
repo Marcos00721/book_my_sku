@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { WorkspaceContext } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
@@ -16,15 +16,20 @@ import { ThemeToggle } from '../ui/ThemeToggle'
 import { BrandMark } from '../auth/BrandMark'
 import { getAuthClient } from '../../services/auth'
 
-export function WorkspaceProvider({ children }) {
+const WorkspaceLoginPage = lazy(() => import('../../pages/LoginPage').then(page => ({ default: page.LoginPage })))
+
+export function WorkspaceProvider({ children, keepLoginDestination = false }) {
   const auth = useAuthSession()
+  const location = useLocation()
   useEffect(() => {
     clearMutationIntents()
     return clearMutationIntents
   }, [auth.session?.user?.id])
   if (auth.loading) return <PageLoader label="Checking your session…" />
   if (auth.error) return <ErrorNotice error={auth.error} />
-  if (!auth.session) return <Navigate to="/login" replace />
+  if (!auth.session) return keepLoginDestination
+    ? <WorkspaceLoginPage returnTo={location.pathname} />
+    : <Navigate to="/login" replace />
   if (!auth.session.user.email_confirmed_at)
     return <Navigate to="/register" replace />
   return (
@@ -35,15 +40,24 @@ export function WorkspaceProvider({ children }) {
 }
 
 function WorkspaceSession({ session, children }) {
-  const [selectedId, setSelectedId] = useState(null)
+  const { organizationId: linkedOrganizationId } = useParams()
+  const navigate = useNavigate()
+  const [selectedId, setSelectedId] = useState(linkedOrganizationId || null)
+  const [lastLinkedId, setLastLinkedId] = useState(linkedOrganizationId)
+  // Remember a linked workspace when navigation returns to ordinary app routes.
+  if (linkedOrganizationId !== lastLinkedId) {
+    setLastLinkedId(linkedOrganizationId)
+    if (linkedOrganizationId) setSelectedId(linkedOrganizationId)
+  }
   const [cursor, setCursor] = useState(null)
   const [extra, setExtra] = useState([])
   const [pageError, setPageError] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const organizations = useResource('/organizations')
   const items = [...(organizations.data?.items || []), ...extra]
-  const organization =
-    items.find((item) => item.id === selectedId) ||
+  const organization = linkedOrganizationId
+    ? items.find((item) => item.id === linkedOrganizationId)
+    : items.find((item) => item.id === selectedId) ||
     items.find((item) => item.status === 'active') ||
     items[0]
   const base =
@@ -145,7 +159,7 @@ function WorkspaceSession({ session, children }) {
             title={
               organization
                 ? 'Your workspace is being prepared'
-                : 'Let’s get you settled in'
+                : linkedOrganizationId ? 'Linked workspace unavailable' : 'Let’s get you settled in'
             }
             action={
               <div className="actions">
@@ -156,10 +170,11 @@ function WorkspaceSession({ session, children }) {
               </div>
             }
           >
-            Existing team members can open their invitation link. Workspace
-            owners can continue their application and setup here.
+            {linkedOrganizationId
+              ? 'The linked workspace must be available in your account. Load more workspaces if it is on a later page.'
+              : 'Existing team members can open their invitation link. Workspace owners can continue their application and setup here.'}
           </Empty>
-          {items.length > 0 && (
+          {items.length > 0 && !linkedOrganizationId && (
             <FieldlessSelector
               items={items}
               selected={organization.id}
@@ -208,6 +223,7 @@ function WorkspaceSession({ session, children }) {
           detail: {
             proceed: () => {
               setSelectedId(id)
+              if (linkedOrganizationId && id !== linkedOrganizationId) navigate('/app/leads')
               resolve(true)
             },
             cancel: () => resolve(false),
@@ -215,6 +231,7 @@ function WorkspaceSession({ session, children }) {
         })
         if (!window.dispatchEvent(event)) return
         setSelectedId(id)
+        if (linkedOrganizationId && id !== linkedOrganizationId) navigate('/app/leads')
         resolve(true)
       }),
     base,

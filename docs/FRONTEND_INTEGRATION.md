@@ -34,16 +34,68 @@ Workspace owners manage their own team, roles and billing. Non-owner members use
 
 ## Screens and contracts
 
-Leads: `/app/leads` uses `GET /organizations/:organizationId/inquiries` with
-`limit=25`, company-prefix `search`, optional `stage`, and the server's `next`
-object serialized as JSON in `before`. Sidebar visibility and page access require
-the effective `inquiries.view` grant. Company labels prefer corrections over the
-submitted value. The list shows company, stage, source and creation date; the
-backend summary does not include contact details or an owner label. Filter changes
-reset cursor pagination. This first slice is read-only; create/detail workflows
-are separate. Inquiry runtime must be enabled and qualified on the backend; an
-unavailable route displays an error, never an empty list. Browser verification uses
-mocked API responses and does not establish live staging availability.
+Leads: `/app/leads` and `/app/leads/:leadId` implement staff inquiries against the
+backend checkout `87186e0`, its `docs/inquiry-staff-api.md`, HTTP contract and service. List requests
+use company-prefix search, stage/owner filters, and JSON `before` cursors; each
+filter change resets pagination. Reads require `inquiries.view`, capture uses
+`inquiries.add`, and assignment/corrections/stage saves use `inquiries.edit`.
+The current local frontend targets staging, which may still return the earlier
+`inquiries.create` effective grant; the lead list, quick-create menu and capture
+form accept either explicit creation grant. Ownership alone never grants this
+action. The list keeps Add lead visible but disabled with an explanation when
+creation permission is missing or workspace writes are paused.
+One PATCH combines changed capture fields, owner, explicit client/contact selection,
+transition and `expectedRevision`. Accepted values prefer corrections; original
+submissions remain available. Requirements use the existing HTML editor/safe renderer
+with the backend's 2,000-character limit including markup. Optional captured phone/date
+cannot be cleared by this contract. Qualified leads lock capture edits and require an
+explicit return with reason before client replacement. Close requires a reason;
+Closed and Converted are terminal. Conversion requires `projects.add` and authorized
+client/contact access, takes a separate command, and follows the returned immutable
+Project reference in a protected preview. Existing converted leads resolve their
+linked reference through client-filtered Project pages with explicit older-page loading.
+
+Client/contact pickers use the authorized active directories and support creation
+within the lead workflow. Created IDs remain selected after a failed lead save.
+Conflict review preserves explicit edits, refreshes untouched values, and requires
+acknowledging the latest revision. If qualification races with corrections, the editor
+can return the lead first, then continue the preserved capture edits at the new revision.
+Uncertain writes lock edits and reuse the same UUID/body. Activity inherits Inquiry
+View, consumes the backend's array response, and pages with `beforeRevision`.
+Assignment choices use only `purpose`/`limit` (and Project `clientId`), without the
+unrelated directory search/cursor parameters. These screens use the current module
+View/Add/Edit grants, without adding separate history or assignment grants.
+
+Notification/email links at `/organizations/:organizationId/inquiries/:leadId`
+keep their destination through sign-in and resolve the exact linked workspace, including explicit loading of
+later workspace pages. They never fall back to another organization. Private intake
+settings are Org Owner only: mask/copy the authorized URL, change the form owner,
+disable an existing form, and explicitly confirm regeneration. Current URLs are
+cleared during post-mutation refresh. Public forms and Enable/Publish controls remain
+unavailable under the backend's rollout contract. Inquiry runtime must be enabled
+and qualified; unavailable routes show errors. Browser checks mock the API and do
+not establish deployed API, database, SMTP, or anonymous-intake availability.
+
+The Add lead dialog uses a wider desktop layout: company/contact and requirement
+in the main column, with delivery date, ownership and optional client/contact
+selection in a secondary column. Only the form body scrolls; the header and
+Clear/Cancel/Add actions remain visible. Tablet and phone layouts stack the
+sections. The requirement editor exposes common tools first and keeps advanced
+formatting under More formatting. Compact client selectors retain full-directory
+search and pagination without always showing a second search field.
+
+Lead verification: production build, ESLint for every changed source/test file,
+and 71 browser checks across `lead-workflow`, `leads`, `quick-create`, `snackbar`,
+and shared rich-text client-note regressions passed. This includes ten Add lead
+layout checks across five viewport sizes in both themes. The earlier broad
+391-check run returned 364 passed and 27 failed;
+the stale lead Add-grant snackbar fixtures were subsequently corrected and pass
+the focused rerun. The product-modal loading timeout also passes in the focused
+rerun. Other broad failures include outdated selectors, retry overlays, and
+unrelated product, team, setup, role, reference-list and workspace checks.
+Full-project lint still reports four existing errors in `useDebouncedCallback`
+and `CustomProductEditPage`. Detailed broad failures remain in `test-results`;
+focused lead screenshots are in `test-results/lead-final`.
 
 | Route                                      | Integrated behavior                                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

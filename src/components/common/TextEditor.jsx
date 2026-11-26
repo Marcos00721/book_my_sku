@@ -6,7 +6,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import {
   Bold, Code2, FileCode2, IndentDecrease, IndentIncrease, Italic, Link2,
-  List, ListOrdered, Minus, Quote, Redo2, RemoveFormatting, Strikethrough,
+  List, ListOrdered, Minus, MoreHorizontal, Quote, Redo2, RemoveFormatting, Strikethrough,
   Underline, Undo2, Unlink,
 } from 'lucide-react'
 import { theme } from '@/crm-theme'
@@ -108,12 +108,14 @@ function LinkPanel({ draft, editor, disabled, close }) {
 /** Shared HTML editor. The length limit includes markup to match the API contract. */
 export function TextEditor({
   label, hint, error, required = false, id, name, className = '', disabled = false,
-  maxLength = 4000, rows = 5, placeholder = 'Start typing…', value = '', onChange, onBlur,
+  maxLength = 4000, rows = 5, placeholder = 'Start typing…', value = '', onChange, onBlur, compactToolbar = false,
 }) {
   const autoId = useId()
   const fieldId = id || autoId
   const [linkDraft, setLinkDraft] = useState(null)
   const [limitReached, setLimitReached] = useState(false)
+  const [expandedToolbar, setExpandedToolbar] = useState(false)
+  const showAllTools = !compactToolbar || expandedToolbar
   const minHeight = Math.max(4, Number(rows) || 5) * 1.5
   const describedBy = [
     hint && !error && `${fieldId}-hint`, error && `${fieldId}-error`, `${fieldId}-status`,
@@ -244,7 +246,7 @@ export function TextEditor({
               <ToolbarButton label="Redo" disabled={locked || !state?.redo} onClick={() => editor.chain().focus().redo().run()}><Redo2 size={16} /></ToolbarButton>
             </div>
             <div className="text-editor-tool-group" role="group" aria-label="Text style">
-              <select
+              {showAllTools && <select
                 className="text-editor-style-select"
                 aria-label="Text style"
                 disabled={locked}
@@ -260,24 +262,30 @@ export function TextEditor({
                 <option value="1">Heading 1</option>
                 <option value="2">Heading 2</option>
                 <option value="3">Heading 3</option>
-              </select>
-              {formats.map(({ label: actionLabel, mark, command, icon: Icon }) => (
+              </select>}
+              {formats.filter(({ mark }) => showAllTools || ['bold', 'italic', 'underline'].includes(mark)).map(({ label: actionLabel, mark, command, icon: Icon }) => (
                 <ToolbarButton key={mark} label={actionLabel} active={Boolean(state?.active[mark])} disabled={locked} onClick={() => editor.chain().focus()[command]().run()}><Icon size={16} aria-hidden="true" /></ToolbarButton>
               ))}
             </div>
             <div className="text-editor-tool-group" role="group" aria-label="Blocks and lists">
-              {blocks.map(({ label: actionLabel, mark, command, icon: Icon }) => (
+              {blocks.filter(({ mark }) => showAllTools || ['bulletList', 'orderedList'].includes(mark)).map(({ label: actionLabel, mark, command, icon: Icon }) => (
                 <ToolbarButton key={mark} label={actionLabel} active={Boolean(state?.active[mark])} disabled={locked} onClick={() => editor.chain().focus()[command]().run()}><Icon size={16} aria-hidden="true" /></ToolbarButton>
               ))}
-              <ToolbarButton label="Indent list item" disabled={locked || !state?.indent} onClick={() => editor.chain().focus().sinkListItem('listItem').run()}><IndentIncrease size={16} /></ToolbarButton>
-              <ToolbarButton label="Outdent list item" disabled={locked || !state?.outdent} onClick={() => editor.chain().focus().liftListItem('listItem').run()}><IndentDecrease size={16} /></ToolbarButton>
+              {showAllTools && <>
+                <ToolbarButton label="Indent list item" disabled={locked || !state?.indent} onClick={() => editor.chain().focus().sinkListItem('listItem').run()}><IndentIncrease size={16} /></ToolbarButton>
+                <ToolbarButton label="Outdent list item" disabled={locked || !state?.outdent} onClick={() => editor.chain().focus().liftListItem('listItem').run()}><IndentDecrease size={16} /></ToolbarButton>
+              </>}
             </div>
             <div className="text-editor-tool-group" role="group" aria-label="Links and cleanup">
               <ToolbarButton label={state?.active.link ? 'Edit link' : 'Insert link'} active={Boolean(state?.active.link)} disabled={locked} onClick={openLink}><Link2 size={16} /></ToolbarButton>
-              <ToolbarButton label="Remove link" disabled={locked || !state?.active.link} onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}><Unlink size={16} /></ToolbarButton>
-              <ToolbarButton label="Insert divider" disabled={locked} onClick={() => editor.chain().focus().setHorizontalRule().run()}><Minus size={16} /></ToolbarButton>
-              <ToolbarButton label="Clear formatting" disabled={locked} onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}><RemoveFormatting size={16} /></ToolbarButton>
+              {showAllTools && <>
+                <ToolbarButton label="Remove link" disabled={locked || !state?.active.link} onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}><Unlink size={16} /></ToolbarButton>
+                <ToolbarButton label="Insert divider" disabled={locked} onClick={() => editor.chain().focus().setHorizontalRule().run()}><Minus size={16} /></ToolbarButton>
+                <ToolbarButton label="Clear formatting" disabled={locked} onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}><RemoveFormatting size={16} /></ToolbarButton>
+              </>}
             </div>
+            {compactToolbar && <ToolbarButton label={expandedToolbar ? 'Less formatting' : 'More formatting'} active={expandedToolbar}
+              disabled={locked} onClick={() => setExpandedToolbar(value => !value)}><MoreHorizontal size={16} /></ToolbarButton>}
           </div>
           {linkDraft && !locked && <LinkPanel key={JSON.stringify(linkDraft)} draft={linkDraft} editor={editor} disabled={disabled} close={() => setLinkDraft(null)} />}
           <div className="text-editor-surface" style={{ '--editor-min-height': `${minHeight}rem` }} onClick={(event) => {
@@ -288,7 +296,7 @@ export function TextEditor({
           <div className="text-editor-footer" id={`${fieldId}-status`}>
             <span>{state?.words || 0} {(state?.words || 0) === 1 ? 'word' : 'words'}</span>
             <Tooltip content="Stored characters include HTML formatting and count toward the field limit.">
-              <span className="text-editor-counter">{state?.length || 0}{maxLength ? ` / ${maxLength}` : ''} stored characters</span>
+              <span className="text-editor-counter">{state?.length || 0}{maxLength ? ` / ${maxLength}` : ''} {compactToolbar ? 'characters' : 'stored characters'}</span>
             </Tooltip>
           </div>
           <div className="text-editor-limit" role="status">{limitReached ? `This change exceeds the ${maxLength} character limit, including formatting. Shorten the text or clear some formatting.` : ''}</div>

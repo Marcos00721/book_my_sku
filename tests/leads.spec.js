@@ -18,7 +18,7 @@ const lead = {
   createdAt: '2026-11-19T12:00:00.000Z',
 }
 
-async function mockWorkspace(page, { allowed = true, writesAllowed = true, respond } = {}) {
+async function mockWorkspace(page, { allowed = true, writesAllowed = true, grants = ['inquiries.view'], respond } = {}) {
   const requests = []
   await mockSignedIn(page)
   await page.route('https://fonts.googleapis.com/**', (route) => route.abort())
@@ -29,8 +29,10 @@ async function mockWorkspace(page, { allowed = true, writesAllowed = true, respo
     if (url.pathname === '/api/v1/organizations')
       return reply({ items: [{ id: organizationId, name: 'Acme workspace', status: 'active' }], next: null })
     if (url.pathname.endsWith('/permissions'))
-      return reply({ owner: true, grants: allowed ? [{ key: 'inquiries.view', scope: 'all' }] : [] })
+      return reply({ owner: true, grants: allowed ? grants.map(key => ({ key, scope: 'all' })) : [] })
     if (url.pathname.endsWith('/access')) return reply({ writesAllowed, state: writesAllowed ? 'normal' : 'restricted' })
+    if (url.pathname.endsWith('/assignment-options'))
+      return reply({ items: [{ actorId: '507f1f77bcf86cd799439099', label: 'Alex Smith' }] })
     if (url.pathname === endpoint) {
       requests.push(url)
       return respond ? respond({ route, url, reply }) : reply({ items: [lead], next: null })
@@ -150,17 +152,54 @@ test('loading skeleton resolves to empty and filtered empty states', async ({ pa
 })
 
 for (const mode of ['light', 'dark']) {
-  test(`mobile lead list fits the screen in ${mode} mode`, async ({ page }, testInfo) => {
-    await mockWorkspace(page)
-    await page.addInitScript((theme) => localStorage.setItem('theme', theme), mode)
-    await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/app/leads')
-    await expect(page.getByRole('cell', { name: 'Acme Studio' })).toBeVisible()
-    await expect(page.getByRole('searchbox', { name: 'Search leads' })).toBeVisible()
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
-    await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
-    await expect(page.getByRole('dialog', { name: 'Workspace navigation' }).getByRole('link', { name: 'Leads', exact: true })).toHaveAttribute('aria-current', 'page')
-    await page.keyboard.press('Escape')
-    await page.screenshot({ path: testInfo.outputPath(`leads-mobile-${mode}.png`), fullPage: true })
-  })
+  for (const width of [320, 375, 834, 1440]) {
+    test(`lead list keeps filters aligned at ${width}px in ${mode} mode`, async ({ page }, testInfo) => {
+      await mockWorkspace(page, {
+        grants: ['inquiries.view', 'inquiries.edit', 'inquiries.add'],
+        respond: ({ reply }) => reply({ items: [lead, {
+          ...lead, _id: '507f1f77bcf86cd799439023', corrections: { companyName: 'Northstar Events' }, stage: 'new', source: 'public',
+        }, {
+          ...lead, _id: '507f1f77bcf86cd799439024', corrections: { companyName: 'Meridian Corporate Gifting & Brand Experiences' }, stage: 'qualified',
+        }], next: null }),
+      })
+      await page.addInitScript((theme) => localStorage.setItem('theme', theme), mode)
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/app/leads')
+      await expect(page.getByRole('cell', { name: 'Acme Studio' })).toBeVisible()
+      await expect(page.getByRole('searchbox', { name: 'Search leads' })).toBeVisible()
+      const filters = page.getByRole('search', { name: 'Filter leads' })
+      const search = await filters.getByRole('searchbox', { name: 'Search leads' }).boundingBox()
+      const stage = await filters.getByRole('button', { name: 'Lead stage', exact: true }).boundingBox()
+      const owner = filters.getByRole('button', { name: 'Lead owner filter', exact: true })
+      await expect(owner).toBeEnabled()
+      const ownerBox = await owner.boundingBox()
+      if (width > 1100) {
+        expect(Math.abs(stage.y - search.y)).toBeLessThanOrEqual(1)
+        expect(Math.abs(ownerBox.y - search.y)).toBeLessThanOrEqual(1)
+        expect(stage.x).toBeGreaterThanOrEqual(search.x + search.width)
+        expect(ownerBox.x).toBeGreaterThanOrEqual(stage.x + stage.width)
+      } else if (width > 600) {
+        expect(stage.y).toBeGreaterThanOrEqual(search.y + search.height)
+        expect(Math.abs(ownerBox.y - stage.y)).toBeLessThanOrEqual(1)
+      } else {
+        expect(stage.y).toBeGreaterThanOrEqual(search.y + search.height)
+        expect(ownerBox.y).toBeGreaterThanOrEqual(stage.y + stage.height)
+      }
+      await owner.click()
+      await page.getByRole('option', { name: 'Alex Smith', exact: true }).click()
+      await expect(filters.getByText('1 active', { exact: true })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Filtered leads', exact: true })).toBeVisible()
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      await page.screenshot({ path: testInfo.outputPath(`leads-filtered-${mode}-${width}.png`), fullPage: true })
+      await filters.getByRole('button', { name: 'Clear filters', exact: true }).click()
+      await expect(owner).toContainText('All owners')
+      await expect(page.getByRole('heading', { name: 'All leads', exact: true })).toBeVisible()
+      if (width <= 600) {
+        await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
+        await expect(page.getByRole('dialog', { name: 'Workspace navigation' }).getByRole('link', { name: 'Leads', exact: true })).toHaveAttribute('aria-current', 'page')
+        await page.keyboard.press('Escape')
+      }
+      await page.screenshot({ path: testInfo.outputPath(`leads-${mode}-${width}.png`), fullPage: true })
+    })
+  }
 }

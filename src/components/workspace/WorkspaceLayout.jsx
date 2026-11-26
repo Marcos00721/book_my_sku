@@ -37,7 +37,7 @@ export function WorkspaceLayout() {
   const isListRoute = /^\/app\/(leads|clients|suppliers|products|master-data|decoration-matrices|team|roles)\/?$/.test(location.pathname)
   const loadingVariant = location.pathname.endsWith('/edit')
     ? 'form'
-    : /^\/app\/(clients|suppliers|products|decoration-matrices)\/.+/.test(location.pathname)
+    : /^\/app\/(leads|clients|suppliers|products|decoration-matrices)\/.+/.test(location.pathname)
       ? 'detail'
       : 'page'
   const links = [

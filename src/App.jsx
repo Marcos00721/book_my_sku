@@ -9,6 +9,9 @@ import { SignedIn } from "./components/workspace/SignedIn";
 const LoginPage = lazy(() =>
   import("./pages/LoginPage").then((page) => ({ default: page.LoginPage })),
 );
+const LeadDetailPage = lazy(() =>
+  import("./pages/workspace/LeadDetailPage").then((page) => ({ default: page.LeadDetailPage })),
+);
 const ContinuePage = lazy(() =>
   import("./pages/ContinuePage").then((page) => ({
     default: page.ContinuePage,
@@ -194,6 +197,7 @@ export default function App() {
         >
           <Route index element={<OverviewPage />} />
           <Route path="leads" element={<LeadsPage />} />
+          <Route path="leads/:leadId" element={<LeadDetailPage />} />
           <Route path="clients" element={<ClientsPage />} />
           <Route path="clients/:clientId/edit" element={<ClientEditPage />} />
           <Route path="clients/:clientId" element={<ClientDetailPage />} />
@@ -221,6 +225,9 @@ export default function App() {
           <Route path="roles" element={<RolesPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
+        </Route>
+        <Route path="/organizations/:organizationId/inquiries/:leadId" element={<WorkspaceProvider keepLoginDestination><WorkspaceLayout /></WorkspaceProvider>}>
+          <Route index element={<LeadDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
