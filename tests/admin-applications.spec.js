@@ -11,7 +11,7 @@ const pending = {
 }
 const approved = { ...pending, id: approvedId, companyName: 'Studio Forma', firstName: 'James', lastName: 'Chen', email: 'james@studioforma.co', status: 'approved' }
 
-async function setup(page, mode = 'light') {
+async function setup(page, mode = 'light', draftOffer = null) {
   await mockSignedIn(page)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(theme => localStorage.setItem('theme', theme), mode)
@@ -30,6 +30,11 @@ async function setup(page, mode = 'light') {
     const path = url.pathname.replace('/api/v1', '')
     let data = { items: [], nextCursor: null }
     if (path === '/admin/me') data = { role: 'super_admin' }
+    else if (path === '/admin/plan') data = { plan: { version: 3, unitAmountMinor: 2900 } }
+    else if (path.endsWith('/offer') && request.method() === 'PUT') {
+      writes.push(request.postDataJSON())
+      data = { offer: draftOffer }
+    }
     else if (path === '/admin/applications') {
       queries.push(Object.fromEntries(url.searchParams))
       const status = url.searchParams.get('status')
@@ -48,8 +53,8 @@ async function setup(page, mode = 'light') {
       const application = companies.find(item => item.id === id) || current
       data = {
         application,
-        offer: application.status === 'approved' ? { revision: 2, status: 'accepted', terms: { unitAmountMinor: 2900, currency: 'USD', discount: { type: 'none' } } } : null,
-        organization: application.status === 'approved' ? { status: 'active' } : null,
+        offer: draftOffer || (application.status === 'approved' ? { revision: 2, status: 'accepted', terms: { unitAmountMinor: 2900, currency: 'USD', discount: { type: 'none' } } } : null),
+        organization: !draftOffer && application.status === 'approved' ? { status: 'active' } : null,
       }
     }
     await route.fulfill({ json: { data } })
@@ -141,5 +146,52 @@ for (const decision of ['approve', 'reject']) {
     await expect(page.locator('.admin-application-profile .admin-application-status')).toHaveText(decision === 'approve' ? 'Approved' : 'Needs corrections')
     expect(writes).toEqual([{ decision, expectedRevision: 3, ...(decision === 'reject' ? { reason: 'Please confirm your company website.' } : {}) }])
     if (decision === 'reject') await expect(page.locator('.admin-application-feedback')).toContainText('Please confirm your company website.')
+  })
+}
+
+for (const type of ['percent', 'fixed']) {
+  test(`offer validates fields and preserves a zero ${type} discount`, async ({ page }) => {
+    const amountKey = type === 'percent' ? 'percent' : 'amountMinor'
+    const draft = {
+      revision: 2, status: 'draft',
+      terms: { planVersion: 2, unitAmountMinor: 2900, currency: 'USD', trialMonths: 0, discount: { type, [amountKey]: 0, months: 1 } },
+    }
+    const { writes } = await setup(page, 'light', draft)
+    await page.goto(`/admin?section=applications&application=${approvedId}`)
+    await page.getByRole('button', { name: 'Edit draft offer' }).click()
+    const dialog = page.getByRole('dialog')
+    const amount = dialog.getByRole('spinbutton', { name: type === 'percent' ? 'Percentage' : 'Discount in USD cents' })
+    const confirm = dialog.getByRole('button', { name: 'Confirm', exact: true })
+    await expect(amount).toHaveValue('0')
+    await dialog.getByRole('textbox', { name: 'Reason for offer' }).fill('   ')
+    await amount.fill('')
+    await confirm.click()
+    await expect(dialog.getByText('Enter a discount amount.', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('Enter a reason.', { exact: true })).toBeVisible()
+    await amount.fill('-1')
+    await confirm.click()
+    await expect(dialog.getByText('Enter 0 or more.', { exact: true })).toBeVisible()
+    await amount.fill('0.5')
+    await confirm.click()
+    await expect(dialog.getByText('Enter a whole number.', { exact: true })).toBeVisible()
+    await amount.fill(type === 'percent' ? '101' : '2901')
+    await confirm.click()
+    await expect(dialog.getByText(`Enter ${type === 'percent' ? 100 : 2900} or less.`, { exact: true })).toBeVisible()
+    await amount.fill('0')
+    await dialog.getByRole('spinbutton', { name: 'Free calendar months' }).fill('4')
+    await dialog.getByRole('spinbutton', { name: 'Discounted months' }).fill('0')
+    await confirm.click()
+    await expect(dialog.getByText('Enter 3 or less.', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('Enter 1 or more.', { exact: true })).toBeVisible()
+    expect(writes).toEqual([])
+    await dialog.getByRole('spinbutton', { name: 'Free calendar months' }).fill('0')
+    await dialog.getByRole('spinbutton', { name: 'Discounted months' }).fill('1')
+    await dialog.getByRole('textbox', { name: 'Reason for offer' }).fill(' Standard offer ')
+    await confirm.click()
+    await expect(dialog).toHaveCount(0)
+    expect(writes).toEqual([{
+      expectedRevision: 2, planVersion: 2, trialMonths: 0,
+      discount: { type, months: 1, [amountKey]: 0 }, reason: 'Standard offer',
+    }])
   })
 }

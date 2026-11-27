@@ -6,6 +6,7 @@ import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { mutate, paymentDestination } from '../../services/workspace'
 import { CheckoutTerms } from './CheckoutTerms'
+import { SeatSelection } from './SeatSelection'
 import { ButtonLink } from '../common/ButtonLink'
 import {
   Action,
@@ -559,6 +560,16 @@ function StartSubscription({ path, preview, reload }) {
 }
 
 function CheckoutOffer({ path, preview, flowVersion, reload }) {
+  const subscriptionCheckout = flowVersion != null ? flowVersion === 4 : preview.checkoutMode === 'subscription'
+  if (subscriptionCheckout) return (
+    <SeatSelection path={path} preview={preview}>
+      {(quote, editSeats) => <CheckoutPayment key={`${quote.offer.revision}:${quote.consent.termsVersion}:${quote.initialQuantity}`} path={path} preview={quote} flowVersion={flowVersion} reload={reload} editSeats={editSeats} />}
+    </SeatSelection>
+  )
+  return <CheckoutPayment path={path} preview={preview} flowVersion={flowVersion} reload={reload} />
+}
+
+function CheckoutPayment({ path, preview, flowVersion, reload, editSeats }) {
   const [consent, setConsent] = useState(false)
   const [linkError, setLinkError] = useState(null)
   const mutation = useMutation()
@@ -570,6 +581,7 @@ function CheckoutOffer({ path, preview, flowVersion, reload }) {
       expectedOfferRevision: preview.offer.revision,
       recurringConsent: true,
       termsVersion: preview.consent.termsVersion,
+      ...(subscriptionCheckout ? { quantity: preview.initialQuantity } : {}),
     })
     if (result) {
       try {
@@ -589,6 +601,7 @@ function CheckoutOffer({ path, preview, flowVersion, reload }) {
           change={setConsent}
           disabled={mutation.pending || mutation.uncertain}
         >
+          {editSeats && <Action variant="secondary" disabled={mutation.pending || mutation.uncertain} onClick={editSeats}>Change seats</Action>}
           <ErrorNotice error={mutation.error || linkError} />
           {mutation.error?.code === 'OFFER_REVISION_CONFLICT' && (
             <Action variant="secondary" onClick={reload}>

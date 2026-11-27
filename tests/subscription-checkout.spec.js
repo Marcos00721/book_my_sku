@@ -48,6 +48,16 @@ async function setup(page, { trial = 0, complete = true, handle = async () => fa
     if (await handle({ path, request, route, reply, state })) return
     if (path === '/onboarding/journey') return reply(state.current)
     if (path === '/onboarding/setup' && request.method() === 'GET') return reply(state.current.setup)
+    if (path === `${billing}/offer`) {
+      const quantity = Number(new URL(request.url()).searchParams.get('quantity') || 1)
+      return reply({
+        ...state.current.offer,
+        initialQuantity: quantity,
+        seatSelection: { enabled: true, min: 1, max: 1000 },
+        offer: { ...state.current.offer.offer, phases: state.current.offer.offer.phases.map(phase => ({ ...phase, totalAmountMinor: phase.unitAmountMinor * quantity })) },
+        firstCharge: { ...state.current.offer.firstCharge, quantity, totalAmountMinor: state.current.offer.firstCharge.amountMinor * quantity },
+      })
+    }
     if (path === `${billing}/checkout`) return reply({ status: 'checkout_pending', checkoutUrl: stripeUrl })
     if (path === `${billing}/refresh`) return reply(state.current.billing)
     return route.fulfill({ status: 500, json: { error: { code: 'UNEXPECTED_REQUEST', message: `Unexpected ${path}` } } })
@@ -55,10 +65,17 @@ async function setup(page, { trial = 0, complete = true, handle = async () => fa
   return state
 }
 
+async function chooseSeats(page, quantity = '1') {
+  await page.getByRole('spinbutton', { name: 'Number of seats' }).fill(quantity)
+  await page.getByRole('button', { name: 'Review seat pricing', exact: true }).click()
+  await expect(page.getByRole('checkbox', { name: /I agree to recurring billing/ })).toBeVisible()
+}
+
 for (const trial of [0, 1]) {
   test(`flow 4 ${trial ? 'trial' : 'paid offer'} needs explicit consent and one subscription Checkout`, async ({ page }) => {
     const state = await setup(page, { trial })
     await page.goto('/setup')
+    await chooseSeats(page)
     const pay = page.getByRole('button', { name: trial ? 'Start trial' : 'Pay and subscribe', exact: true })
     await expect(pay).toBeDisabled()
     await expect(page.getByLabel('First charge estimate')).toContainText('$24.50')
@@ -96,6 +113,8 @@ test('company completion waits for automatic preparation, then requests fresh pa
   state.current.provisioning = { status: 'prepared' }
   state.current.nextAction = 'review_offer'
   await page.getByRole('button', { name: 'Check current status', exact: true }).click()
+  await expect(page.getByRole('spinbutton', { name: 'Number of seats' })).toBeVisible()
+  await chooseSeats(page)
   await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toBeDisabled()
   expect(state.calls.filter(call => call.path.endsWith('/checkout'))).toEqual([])
 })
@@ -108,6 +127,7 @@ test('uncertain subscription Checkout preserves the exact body and UUID', async 
     return true
   } })
   await page.goto('/setup')
+  await chooseSeats(page)
   await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
   await page.getByRole('button', { name: 'Pay and subscribe', exact: true }).click()
   await page.getByRole('button', { name: 'Retry same Checkout', exact: true }).click()
@@ -127,9 +147,11 @@ test('changed subscription offer needs new consent and uses the new revision', a
     return true
   } })
   await page.goto('/setup')
+  await chooseSeats(page)
   await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
   await page.getByRole('button', { name: 'Pay and subscribe', exact: true }).click()
   await page.getByRole('button', { name: 'Reload offer and review again' }).click()
+  await chooseSeats(page)
   await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toBeDisabled()
   await page.getByRole('checkbox', { name: /recurring-v3/ }).check()
   await page.getByRole('button', { name: 'Pay and subscribe', exact: true }).click()
@@ -247,4 +269,43 @@ test('an invalid return status shows a retry and never starts another payment', 
   await page.getByRole('button', { name: 'Reload latest data', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Setup progress' })).toBeVisible()
   expect(state.calls.filter(call => call.method !== 'GET').map(call => call.path)).toEqual([`${billing}/refresh`, `${billing}/refresh`])
+})
+
+
+test('seat selection validates quantity, quotes totals and resets consent when seats change', async ({ page }) => {
+  const state = await setup(page)
+  await page.goto('/setup')
+  const seats = page.getByRole('spinbutton', { name: 'Number of seats' })
+  for (const value of ['', '0', '-1', '1.5', '1001']) {
+    await seats.fill(value)
+    await page.getByRole('button', { name: 'Review seat pricing' }).click()
+    await expect(seats).toHaveAttribute('aria-invalid', 'true')
+  }
+  expect(state.calls.filter(call => call.path.endsWith('/offer'))).toEqual([])
+  await chooseSeats(page, '5')
+  await expect(page.getByLabel('First charge estimate')).toContainText('$122.50')
+  await expect(page.locator('.price-phase').filter({ hasText: 'THEN, ONGOING' })).toContainText('$245.00')
+  await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
+  await page.getByRole('button', { name: 'Change seats', exact: true }).click()
+  await chooseSeats(page, '3')
+  await expect(page.getByRole('checkbox', { name: /I agree to recurring billing/ })).not.toBeChecked()
+  await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toBeDisabled()
+  await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
+  await page.getByRole('button', { name: 'Pay and subscribe', exact: true }).click()
+  await expect(page).toHaveURL(stripeUrl)
+  expect(state.calls.filter(call => call.path.endsWith('/checkout')).map(call => call.body.quantity)).toEqual([3])
+})
+
+test('seat quote failure preserves selection and does not allow payment', async ({ page }) => {
+  await setup(page, { handle: async ({ path, route }) => {
+    if (!path.endsWith('/offer')) return false
+    await route.fulfill({ status: 503, json: { error: { message: 'Pricing is temporarily unavailable.' } } })
+    return true
+  } })
+  await page.goto('/setup')
+  await page.getByRole('spinbutton', { name: 'Number of seats' }).fill('5')
+  await page.getByRole('button', { name: 'Review seat pricing', exact: true }).click()
+  await expect(page.getByText('Pricing is temporarily unavailable.')).toBeVisible()
+  await expect(page.getByRole('spinbutton', { name: 'Number of seats' })).toHaveValue('5')
+  await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toHaveCount(0)
 })

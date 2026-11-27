@@ -24,6 +24,7 @@ export function CheckoutTerms({
                 {money(phase.unitAmountMinor, preview.offer.currency)}
               </strong>
               <small>per seat / {preview.offer.interval}</small>
+              {phase.totalAmountMinor != null && <p>{preview.initialQuantity} seat{preview.initialQuantity === 1 ? '' : 's'} × {money(phase.unitAmountMinor, preview.offer.currency)} = <strong>{money(phase.totalAmountMinor, preview.offer.currency)}</strong> / {preview.offer.interval}</p>}
               <small>
                 {phase.months == null
                   ? 'Renews monthly'
@@ -38,6 +39,7 @@ export function CheckoutTerms({
               {preview.firstCharge.trialMonths > 0 ? 'First installment after the trial: ' : 'First installment at Checkout: '}
               <strong>{money(preview.firstCharge.amountMinor, preview.firstCharge.currency)}</strong>
               {' '}per seat for {preview.firstCharge.quantity} seat{preview.firstCharge.quantity === 1 ? '' : 's'}.
+              {preview.firstCharge.totalAmountMinor != null && <> Total: <strong>{money(preview.firstCharge.totalAmountMinor, preview.firstCharge.currency)}</strong>.</>}
             </p>
             {preview.firstCharge.trialMonths > 0 && (
               <p>
@@ -49,8 +51,10 @@ export function CheckoutTerms({
           </div>
         )}
         <p className="muted">
-          Starts with {preview.initialQuantity} owner seat. Pending invitations
-          reserve paid seats. Card details are required during free phases.{' '}
+          {preview.seatSelection?.enabled
+            ? `Includes ${preview.initialQuantity} paid seat${preview.initialQuantity === 1 ? '' : 's'}, including you. Invitations use available purchased seats; additional seats may cost extra.`
+            : `Starts with ${preview.initialQuantity} owner seat. Pending invitations reserve paid seats.`}
+          {' '}Card details are required during free phases.{' '}
           {preview.taxes === 'not_enabled'
             ? 'Tax calculation is not enabled.'
             : ''}

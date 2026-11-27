@@ -7,6 +7,7 @@ import {
   ExternalLink, FileText, Inbox, MessageSquareText, RefreshCw, Search, X,
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { BrandMark } from '../components/auth/BrandMark'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { ButtonLink } from '../components/common/ButtonLink'
@@ -301,27 +302,43 @@ function ApplicationOverview({ id, back }) {
 function ApplicationCommand({ command, path, record, close, saved }) {
   const plan = useResource(command === 'offer' ? '/admin/plan' : null)
   const mutation = useMutation()
-  const [reason, setReason] = useState('')
-  const [trialMonths, setTrialMonths] = useState(
-    record.offer?.terms.trialMonths || 0,
-  )
-  const [discountType, setDiscountType] = useState(
-    record.offer?.terms.discount.type || 'none',
-  )
-  const [amount, setAmount] = useState(
-    record.offer?.terms.discount.percent ||
-      record.offer?.terms.discount.amountMinor ||
-      '',
-  )
-  const [months, setMonths] = useState(record.offer?.terms.discount.months || 1)
-  async function submit(event) {
-    event.preventDefault()
+  const defaultValues = {
+    reason: '',
+    trialMonths: record.offer?.terms.trialMonths ?? 0,
+    discountType: record.offer?.terms.discount.type ?? 'none',
+    amount: record.offer?.terms.discount.percent ?? record.offer?.terms.discount.amountMinor ?? '',
+    months: record.offer?.terms.discount.months ?? 1,
+  }
+  const { register, control, handleSubmit, reset, resetField, formState: { errors } } = useForm({
+    defaultValues,
+    mode: 'onTouched',
+    shouldUnregister: true,
+  })
+  const discountType = useWatch({ control, name: 'discountType', defaultValue: defaultValues.discountType })
+  const maxDiscount = discountType === 'percent'
+    ? 100
+    : record.offer?.terms.unitAmountMinor ?? plan.data?.plan.unitAmountMinor
+  const planVersion = record.offer?.terms.planVersion ?? plan.data?.plan.version
+  const offerUnavailable = command === 'offer' && (plan.loading || !planVersion || maxDiscount === undefined && discountType === 'fixed')
+  function wholeNumber(label, min, max) {
+    return {
+      required: `Enter ${label}.`,
+      validate: value => {
+        const number = Number(value)
+        if (!Number.isSafeInteger(number)) return 'Enter a whole number.'
+        if (number < min) return `Enter ${min} or more.`
+        if (max !== undefined && number > max) return `Enter ${max} or less.`
+        return true
+      },
+    }
+  }
+  async function submit({ reason = '', trialMonths, amount, months, discountType }) {
+    if (mutation.pending || mutation.uncertain || offerUnavailable) return
     const payload =
       command === 'offer'
         ? {
-            expectedRevision: record.offer?.revision || 0,
-            planVersion:
-              record.offer?.terms.planVersion || plan.data.plan.version,
+            expectedRevision: record.offer?.revision ?? 0,
+            planVersion,
             trialMonths: Number(trialMonths),
             discount:
               discountType === 'none'
@@ -364,13 +381,16 @@ function ApplicationCommand({ command, path, record, close, saved }) {
       {command === 'offer' && plan.loading ? (
         <Loading />
       ) : (
-        <form onSubmit={submit}>
-          <fieldset disabled={mutation.pending || mutation.uncertain}>
+        <form noValidate onSubmit={mutation.uncertain ? async event => {
+          event.preventDefault()
+          if (await mutation.run()) saved()
+        } : handleSubmit(submit)}>
+          <fieldset disabled={mutation.pending || mutation.uncertain || offerUnavailable}>
             {command === 'offer' && (
               <>
                 <p className="muted">
                   Agreed plan version:{' '}
-                  {record.offer?.terms.planVersion || plan.data?.plan.version}.
+                  {planVersion}.
                   Existing customer prices stay fixed.
                 </p>
                 <Field
@@ -380,21 +400,29 @@ function ApplicationCommand({ command, path, record, close, saved }) {
                   max="3"
                   step="1"
                   required
-                  value={trialMonths}
-                  onChange={(event) => setTrialMonths(event.target.value)}
+                  {...register('trialMonths', wholeNumber('free calendar months', 0, 3))}
+                  error={errors.trialMonths?.message}
                 />
-                <Field
-                  label="Discount"
-                  value={discountType}
-                  onChange={(event) => {
-                    setDiscountType(event.target.value)
-                    setAmount('')
-                  }}
-                >
-                  <option value="none">No discount</option>
-                  <option value="percent">Whole percentage</option>
-                  <option value="fixed">Fixed amount per seat</option>
-                </Field>
+                <Controller
+                  name="discountType"
+                  control={control}
+                  rules={{ validate: value => ['none', 'percent', 'fixed'].includes(value) || 'Choose a discount type.' }}
+                  render={({ field }) => (
+                    <Field
+                      {...field}
+                      label="Discount"
+                      error={errors.discountType?.message}
+                      onChange={event => {
+                        field.onChange(event)
+                        resetField('amount', { defaultValue: '' })
+                      }}
+                    >
+                      <option value="none">No discount</option>
+                      <option value="percent">Whole percentage</option>
+                      <option value="fixed">Fixed amount per seat</option>
+                    </Field>
+                  )}
+                />
                 {discountType !== 'none' && (
                   <div className="form-grid">
                     <Field
@@ -404,17 +432,12 @@ function ApplicationCommand({ command, path, record, close, saved }) {
                           : 'Discount in USD cents'
                       }
                       type="number"
-                      min="1"
-                      max={
-                        discountType === 'percent'
-                          ? 100
-                          : record.offer?.terms.unitAmountMinor ||
-                            plan.data?.plan.unitAmountMinor
-                      }
+                      min="0"
+                      max={maxDiscount}
                       step="1"
                       required
-                      value={amount}
-                      onChange={(event) => setAmount(event.target.value)}
+                      {...register('amount', wholeNumber('a discount amount', 0, maxDiscount))}
+                      error={errors.amount?.message}
                     />
                     <Field
                       label="Discounted months"
@@ -422,8 +445,9 @@ function ApplicationCommand({ command, path, record, close, saved }) {
                       min="1"
                       max="120"
                       required
-                      value={months}
-                      onChange={(event) => setMonths(event.target.value)}
+                      step="1"
+                      {...register('months', wholeNumber('discounted months', 1, 120))}
+                      error={errors.months?.message}
                     />
                   </div>
                 )}
@@ -438,8 +462,11 @@ function ApplicationCommand({ command, path, record, close, saved }) {
                 }
                 required
                 maxLength={500}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                {...register('reason', {
+                  validate: value => Boolean(value.trim()) || 'Enter a reason.',
+                  maxLength: { value: 500, message: 'Use 500 characters or fewer.' },
+                })}
+                error={errors.reason?.message}
               />
             )}
             {command === 'approve' && (
@@ -453,13 +480,8 @@ function ApplicationCommand({ command, path, record, close, saved }) {
             mutation={mutation}
             close={close}
             label="Confirm"
-            onClear={() => {
-              setReason('')
-              setTrialMonths(record.offer?.terms.trialMonths || 0)
-              setDiscountType(record.offer?.terms.discount.type || 'none')
-              setAmount(record.offer?.terms.discount.percent || record.offer?.terms.discount.amountMinor || '')
-              setMonths(record.offer?.terms.discount.months || 1)
-            }}
+            disabled={offerUnavailable}
+            onClear={() => reset(defaultValues)}
           />
         </form>
       )}
