@@ -40,13 +40,11 @@ export function ProductConfiguration({ path, product, changed }) {
     }),
   )
   const editable =
-    workspace.can('products.edit') &&
-    workspace.writesAllowed &&
+    workspace.canWrite('products.edit') &&
     product.status !== 'archived'
   const canAdopt =
-    workspace.can('products.pricing.edit') &&
-    workspace.can('products.pricing.cost') &&
-    workspace.can('products.pricing.preview') &&
+    workspace.can('products.edit') &&
+    workspace.canViewCosts &&
     workspace.writesAllowed &&
     product.status !== 'archived'
   const configuration = product.configuration || {

@@ -59,7 +59,7 @@ export function ClientsPage() {
 
   if (!canView) return <PermissionDenied />
 
-  const create = workspace.can('clients.create') && workspace.writesAllowed && (
+  const create = workspace.canWrite('clients.add') && (
     <Action onClick={() => setCreating(true)}>
       <Plus size={17} />
       Create

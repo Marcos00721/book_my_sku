@@ -28,7 +28,7 @@ async function setup(page) {
     } else if (path.endsWith('/permissions')) {
       data = {
         owner: true,
-        grants: ['suppliers.view', 'suppliers.create', 'suppliers.edit', 'products.view', 'products.create', 'products.edit', 'master_data.view'].map((key) => ({ key, scope: 'all' })),
+        grants: ['suppliers.view', 'suppliers.add', 'suppliers.edit', 'products.view', 'products.add', 'products.edit', 'master_data.view'].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
       }
     } else if (path.endsWith('/access')) {
       data = { writesAllowed: true, state: 'normal' }

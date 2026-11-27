@@ -12,32 +12,31 @@ import '../../styles/overview.css'
 
 const destinations = [
   {
-    permission: 'inquiries.view', to: '/app/leads', title: 'Leads',
+    to: '/app/leads', title: 'Leads',
     description: 'Keep track of inquiries and client conversations.',
     Icon: UserRoundSearch, tone: 'teal',
   },
   {
-    permission: 'clients.view', to: '/app/clients', title: 'Clients',
+    to: '/app/clients', title: 'Clients',
     description: 'Company profiles, contacts, and saved addresses.',
     Icon: Building2, tone: 'teal',
   },
   {
-    permission: 'suppliers.view', to: '/app/suppliers', title: 'Suppliers',
+    to: '/app/suppliers', title: 'Suppliers',
     description: 'Your partners, their capabilities, and contact details.',
     Icon: Truck, tone: 'blue',
   },
   {
-    permission: 'products.view', to: '/app/products', title: 'Products',
+    to: '/app/products', title: 'Products',
     description: 'Explore custom products, variants, and pricing.',
     Icon: Boxes, tone: 'blue',
   },
   {
-    permission: 'master_data.view', to: '/app/master-data', title: 'Reference lists',
+    to: '/app/master-data', title: 'Reference lists',
     description: 'Keep shared categories and workspace lists organized.',
     Icon: ListTree, tone: 'amber',
   },
   {
-    permission: 'master_data.view', ownerOnly: true,
     to: '/app/decoration-matrices', title: 'Decoration matrices',
     description: 'Manage decoration methods and their pricing rules.',
     Icon: Paintbrush, tone: 'amber',
@@ -55,9 +54,7 @@ export function OverviewPage() {
   const role = workspace.owner
     ? 'Owner'
     : workspace.permissions.role?.name || 'Team member'
-  const available = destinations.filter(item =>
-    workspace.can(item.permission) && (!item.ownerOnly || workspace.owner),
-  )
+  const available = destinations.filter(item => workspace.canVisit(item.to))
   const primary = available.find(item => item.to === '/app/clients') || available[0]
 
   return (

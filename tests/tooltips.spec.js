@@ -18,7 +18,7 @@ async function setup(page, mode) {
     if (path === '/organizations') data = { items: [{ id: org, name: company, status: 'active' }] }
     else if (path.endsWith('/permissions')) data = {
       owner: true,
-      grants: ['clients.view', 'clients.edit', 'contacts.view', 'contacts.edit'].map(key => ({ key, scope: 'all' })),
+      grants: ['clients.view', 'clients.edit', 'contacts.view', 'contacts.edit'].map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
     }
     else if (path.endsWith('/access')) data = { writesAllowed: true, state: 'normal' }
     else if (path === base) data = { _id: clientId, name: 'Acme Client', status: 'active', __v: 1 }

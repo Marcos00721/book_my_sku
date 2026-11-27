@@ -19,7 +19,8 @@ export function ClientManagement({ path, client, reload }) {
   const industry = useResource(client.industryId ? `${path}/industry` : null)
   const { saveClient, refetch } = useClients({ autoFetch: false })
   const [editor, setEditor] = useState(null)
-  const canEdit = workspace.can('clients.edit') && workspace.writesAllowed
+  const canEdit = workspace.canWrite('clients.edit')
+  const canLifecycle = workspace.canWrite(client.status === 'archived' ? 'clients.edit' : 'clients.delete')
   if (resource.loading) return <Loading />
   if (resource.error)
     return <ErrorNotice error={resource.error} retry={resource.reload} />
@@ -39,29 +40,21 @@ export function ClientManagement({ path, client, reload }) {
                 Edit profile
               </ButtonLink>
             )}
-            {canEdit && (
-              <>
-                {client.status !== 'archived' && (
-                  <Action
-                    variant="secondary"
-                    onClick={() => setEditor('management')}
-                  >
-                    Edit relationship
-                  </Action>
-                )}
-                <Action
-                  variant="secondary"
-                  onClick={() =>
-                    setEditor(
-                      client.status === 'archived' ? 'restore' : 'archive',
-                    )
-                  }
-                >
-                  {client.status === 'archived'
-                    ? 'Restore client'
-                    : 'Archive client'}
-                </Action>
-              </>
+            {canEdit && client.status !== 'archived' && (
+              <Action
+                variant="secondary"
+                onClick={() => setEditor('management')}
+              >
+                Edit relationship
+              </Action>
+            )}
+            {canLifecycle && (
+              <Action
+                variant="secondary"
+                onClick={() => setEditor(client.status === 'archived' ? 'restore' : 'archive')}
+              >
+                {client.status === 'archived' ? 'Restore client' : 'Archive client'}
+              </Action>
             )}
           </div>
         </div>
@@ -109,7 +102,7 @@ export function ClientManagement({ path, client, reload }) {
         notes={client.notes}
         editPath={canEdit && client.status !== 'archived' ? `/app/clients/${client._id}/edit` : undefined}
       />
-      {editor && (
+      {editor && (editor === 'archive' ? canLifecycle : canEdit) && (
         <ManagementEditor
           command={editor}
           path={path}

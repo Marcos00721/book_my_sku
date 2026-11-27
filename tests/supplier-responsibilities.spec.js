@@ -23,7 +23,7 @@ for (const width of [375, 1440]) {
       } else if (path.endsWith('/permissions')) {
         data = {
           owner: true,
-          grants: ['suppliers.view', 'suppliers.edit', 'suppliers.create'].map((key) => ({ key, scope: 'all' })),
+          grants: ['suppliers.view', 'suppliers.edit', 'suppliers.add'].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
         }
       } else if (path.endsWith('/access')) {
         data = { writesAllowed: true, state: 'normal' }

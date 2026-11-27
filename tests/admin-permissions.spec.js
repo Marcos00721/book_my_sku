@@ -3,11 +3,11 @@ import { mockSignedIn } from './helpers/auth'
 import { contrastRatio } from './helpers/contrast'
 
 const catalog = [
-  { key: 'clients.view', label: 'View clients', scopes: ['assigned', 'all'], enabled: true, revision: 3 },
-  { key: 'clients.create', label: 'Create clients', scopes: ['none'], enabled: true, revision: 2 },
+  { key: 'clients.view', label: 'View clients', scopes: ['all'], enabled: true, revision: 3 },
+  { key: 'clients.add', label: 'Add clients', scopes: ['none'], enabled: true, revision: 2 },
   { key: 'clients.delete', label: 'Delete clients', scopes: ['all'], enabled: false, revision: 4 },
   { key: 'products.view', label: 'View products', scopes: ['all'], enabled: true, revision: 1 },
-  { key: 'products.edit', label: 'Edit products and their associated configuration details', scopes: ['assigned', 'all'], enabled: false, revision: 5 },
+  { key: 'products.edit', label: 'Edit products and their associated configuration details', scopes: ['all'], enabled: false, revision: 5 },
   { key: 'suppliers.view', label: 'View suppliers', scopes: [], enabled: true, revision: 1 },
 ]
 
@@ -46,7 +46,7 @@ for (const mode of ['light', 'dark']) {
       page.on('pageerror', error => errors.push(error.message))
       await page.goto('/admin?section=catalog')
       await expect(page.getByRole('button', { name: /^Configure / })).toHaveCount(6)
-      await expect(page.getByRole('region', { name: 'Clients', exact: true })).toContainText('Assigned records')
+      await expect(page.getByRole('region', { name: 'Clients', exact: true })).toContainText('All records')
       await expect(page.getByRole('region', { name: 'Suppliers', exact: true })).toContainText('No supported scopes')
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       expect(await contrastRatio(page.locator('.permission-status--enabled').first())).toBeGreaterThanOrEqual(4.5)
@@ -55,7 +55,7 @@ for (const mode of ['light', 'dark']) {
       const dialog = page.getByRole('dialog', { name: 'Configure permission' })
       await expect(dialog.getByLabel('Display label')).toBeFocused()
       await expect(dialog).toContainText('clients.view')
-      await expect(dialog).toContainText('Assigned records')
+      await expect(dialog).toContainText('All records')
       await expect(dialog.getByRole('button', { name: 'Save catalog entry' })).toBeInViewport()
       expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath(`editor-${mode}-${width}.png`), fullPage: true })
@@ -103,5 +103,5 @@ test('configuration preserves revision and scopes and refreshes saved status', a
   const row = page.locator('.permission-row').filter({ hasText: 'clients.view' })
   await expect(row).toContainText('Read client records')
   await expect(row).toContainText('Disabled')
-  expect(writes).toEqual([{ path: '/admin/permissions/clients.view', body: { expectedRevision: 3, label: 'Read client records', enabled: false, scopes: ['assigned', 'all'] } }])
+  expect(writes).toEqual([{ path: '/admin/permissions/clients.view', body: { expectedRevision: 3, label: 'Read client records', enabled: false, scopes: ['all'] } }])
 })

@@ -30,6 +30,7 @@ export function MultipleUploader({
   maxSizeMB = 5,
   maxFiles = 8,
   disabled = false,
+  readOnly = false,
   error,
   label,
   existing = [],
@@ -92,13 +93,13 @@ export function MultipleUploader({
     <div className={theme.cx('file-uploader', 'file-uploader--multiple')}>
       {label ? <p className={theme.label}>{label}</p> : null}
 
-      <Dropzone
+      {!readOnly && <Dropzone
         filePlaceholder={filePlaceholder}
         multiple
         disabled={disabled}
         limitReached={limitReached}
         onFiles={addFiles}
-      />
+      />}
 
       <p className="muted file-uploader-summary" aria-live="polite">
         {remoteReady} of {maxFiles} images uploaded

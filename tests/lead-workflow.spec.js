@@ -28,7 +28,7 @@ async function setup(page, options = {}) {
     const reply = data => route.fulfill({ json: { data } })
     state.requests.push({ url, method })
     if (url.pathname === '/api/v1/organizations') return reply({ items: options.organizations || [{ id: org, name: 'Acme workspace', status: 'active' }], next: options.organizationNext || null })
-    if (url.pathname.endsWith('/permissions')) return reply({ owner: options.owner || false, grants: (options.grants || grants).map(key => ({ key })) })
+    if (url.pathname.endsWith('/permissions')) return reply({ owner: options.owner || false, grants: (options.grants || grants).map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) })
     if (url.pathname.endsWith('/access')) return reply({ writesAllowed: options.writesAllowed !== false, state: options.writesAllowed === false ? 'restricted' : 'normal' })
     if (method !== 'GET') {
       state.writes.push({ method, path: url.pathname, body: request.postDataJSON(), key: request.headers()['idempotency-key'] })
@@ -106,7 +106,7 @@ test('combined save sends only changed captures, explicit owner/client/contact, 
   await expect(page.getByRole('button', { name: 'Convert to project', exact: true })).toBeVisible()
 })
 
-for (const grant of ['inquiries.add', 'inquiries.create']) {
+for (const grant of ['inquiries.add']) {
 test(`${grant} exposes capture and sends formatted requirements with optional client selection`, async ({ page }) => {
   const state = await setup(page, { grants: ['inquiries.view', grant, 'clients.view'] })
   await page.goto('/app/leads')
@@ -125,12 +125,55 @@ test(`${grant} exposes capture and sends formatted requirements with optional cl
 })
 }
 
-test('the Add lead button explains missing permission instead of disappearing', async ({ page }) => {
+test('lead phone formats typed and pasted input when adding', async ({ page }) => {
+  const state = await setup(page)
+  await page.goto('/app/leads')
+  await page.getByRole('button', { name: 'Add lead', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add lead' })
+  const phone = dialog.getByLabel('Phone', { exact: true })
+  await phone.pressSequentially('4155550123')
+  await expect(phone).toHaveValue('415-555-0123')
+  await phone.fill('+1 (212) 555-0199')
+  await expect(phone).toHaveValue('212-555-0199')
+  await dialog.getByLabel('Company name', { exact: true }).fill('New company')
+  await dialog.getByLabel('Contact name', { exact: true }).fill('Alex Smith')
+  await dialog.getByLabel('Email address', { exact: true }).fill('alex@example.com')
+  await dialog.getByLabel('Requirement', { exact: true }).fill('250 event bags')
+  await dialog.getByRole('button', { name: 'Add lead', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.writes[0].body.phone).toBe('212-555-0199')
+})
+
+test('lead phone formats existing values without creating a correction and restores formatting on clear', async ({ page }) => {
+  const state = await setup(page, { lead: { corrections: { companyName: 'Acme Studio', phone: '+1 (415) 555-0123' } } })
+  await page.goto(`/app/leads/${id}`)
+  await page.getByRole('button', { name: 'Edit lead', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Edit lead' })
+  const phone = dialog.getByLabel('Phone', { exact: true })
+  await expect(phone).toHaveValue('415-555-0123')
+  await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+  await phone.fill('2125550199')
+  await expect(phone).toHaveValue('212-555-0199')
+  await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(phone).toHaveValue('415-555-0123')
+  await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+  await dialog.getByLabel('Company name', { exact: true }).fill('Acme Updated')
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.writes[0].body).toEqual({ expectedRevision: 2, corrections: { companyName: 'Acme Updated' } })
+  await page.getByRole('button', { name: 'Edit lead', exact: true }).click()
+  await expect(phone).toHaveValue('415-555-0123')
+  await phone.fill('2125550199')
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(state.writes[1].body).toEqual({ expectedRevision: 3, corrections: { phone: '212-555-0199' } })
+})
+
+test('the Add lead button is hidden without Add permission', async ({ page }) => {
   await setup(page, { grants: ['inquiries.view'] })
   await page.goto('/app/leads')
-  await expect(page.getByRole('button', { name: 'Add lead', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add lead', exact: true })).toBeDisabled()
-  await expect(page.getByText('Your role does not include permission to add leads. Ask your workspace owner to enable lead creation.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add lead', exact: true })).toHaveCount(0)
 })
 
 test('a correction raced by qualification returns first and then saves the preserved capture draft', async ({ page }) => {

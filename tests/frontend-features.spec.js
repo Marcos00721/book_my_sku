@@ -62,7 +62,7 @@ test('client profiles save optional fields and use client-specific industry opti
   let saved
   const clientId = '507f1f77bcf86cd799439055'
   await workspace(page, {
-    grants: ['clients.view', 'clients.create', 'clients.edit', 'contacts.view'],
+    grants: ['clients.view', 'clients.add', 'clients.edit', 'contacts.view'],
     handler: async ({ path, request, reply }) => {
       if (path === `${base}/clients/industry-options`) {
         await reply({
@@ -119,15 +119,15 @@ async function workspace(
   {
     grants = [
       'products.view',
-      'products.create',
+      'products.add',
       'products.edit',
-      'products.archive',
-      'products.restore',
-      'products.history.view',
+      'products.delete',
+      'products.edit',
+      'products.view',
       'suppliers.view',
-      'suppliers.create',
+      'suppliers.add',
       'suppliers.edit',
-      'suppliers.history.view',
+      'suppliers.view',
       'master_data.view',
     ],
     owner = true,
@@ -162,7 +162,7 @@ async function workspace(
         owner,
         grants: grants.map((key) => ({
           key,
-          scope: key.endsWith('create') ? 'none' : 'all',
+          scope: key.endsWith('add') ? 'none' : 'all',
         })),
       })
     if (path.endsWith('/access'))

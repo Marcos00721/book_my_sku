@@ -61,7 +61,7 @@ async function setup(page, { failStage, canEdit = true } = {}) {
     if (path === '/organizations') return reply({ items: [{ id: org, name: 'Acme', status: 'active' }], next: null })
     if (path.endsWith('/permissions')) return reply({
       owner: true,
-      grants: ['products.view', 'products.create', ...(canEdit ? ['products.edit'] : [])].map((key) => ({ key, scope: 'all' })),
+      grants: ['products.view', 'products.add', ...(canEdit ? ['products.edit'] : [])].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
     })
     if (path === `${root}/access`) return reply({ writesAllowed: true, state: 'normal' })
     if (path.endsWith('/supplier-options')) return reply({ items: [{ id: supplierId, name: 'Acme Supply' }] })
@@ -126,6 +126,7 @@ for (const failStage of ['create', 'reservation', 'upload', 'association']) {
     await dialog.locator('input[type="file"]').setInputFiles(image)
     await dialog.getByRole('button', { name: 'Create Product', exact: true }).click()
     await expect(dialog.getByRole('alert')).toContainText('Please retry the interrupted request.')
+    await dialog.getByRole('button', { name: 'Dismiss error', exact: true }).click()
     const retry = dialog.getByRole('button', {
       name: failStage === 'create' ? 'Retry same request' : 'Retry image upload', exact: true,
     })
@@ -182,6 +183,7 @@ test('continue to the saved product when an image cannot be uploaded', async ({ 
   await dialog.getByRole('button', { name: 'Create Product', exact: true }).click()
   await expect(dialog.getByRole('alert')).toBeVisible()
   await expect(dialog.getByRole('textbox', { name: 'Product name', exact: true })).toBeDisabled()
+  await dialog.getByRole('button', { name: 'Dismiss error', exact: true }).click()
   await dialog.getByRole('button', { name: 'Continue to product', exact: true }).click()
   await expect(page).toHaveURL(`/app/products/${productId}`)
   expect(writes.map((write) => write.stage)).toEqual(['create', 'reservation'])
@@ -190,8 +192,8 @@ test('continue to the saved product when an image cannot be uploaded', async ({ 
 test('image uploads respect product editing permission', async ({ page }) => {
   const writes = await setup(page, { canEdit: false })
   const dialog = await fillProduct(page)
-  await expect(dialog.getByRole('button', { name: 'Add product image', exact: true })).toHaveAttribute('aria-disabled', 'true')
-  await expect(dialog.getByText('Product editing permission is required to upload images.')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Add product image', exact: true })).toHaveCount(0)
+  await expect(dialog.locator('input[type="file"]')).toHaveCount(0)
   await dialog.getByRole('button', { name: 'Create Product', exact: true }).click()
   await expect(page).toHaveURL(`/app/products/${productId}`)
   expect(writes.map((write) => write.stage)).toEqual(['create'])

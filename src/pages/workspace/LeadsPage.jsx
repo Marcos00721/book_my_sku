@@ -83,10 +83,9 @@ export function LeadsPage() {
         description="Keep track of incoming interest, from first inquiry to a qualified opportunity."
         actions={<>
           {workspace.owner && <Action variant="secondary" onClick={() => setSettings(true)}><Settings2 size={16} aria-hidden="true" />Intake settings</Action>}
-          <Action disabled={Boolean(createUnavailable)} title={createUnavailable} onClick={() => setCreating(true)}><Plus size={16} />Add lead</Action>
+          {canCreate && <Action disabled={Boolean(createUnavailable)} title={createUnavailable} onClick={() => setCreating(true)}><Plus size={16} />Add lead</Action>}
         </>}
       />
-      {!canCreate && <p className="muted leads-create-hint">Your role does not include permission to add leads. Ask your workspace owner to enable lead creation.</p>}
       {flash && <p className="notice" role="status">{flash}</p>}
       <LeadsDirectory key={`${workspace.base}:${location.state?.createdLead || ''}:${version}`} path={`${workspace.base}/inquiries`} />
       {creating && canCreate && workspace.writesAllowed && <LeadForm path={`${workspace.base}/inquiries`} close={() => setCreating(false)} saved={() => {

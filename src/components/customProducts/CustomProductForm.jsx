@@ -256,7 +256,7 @@ export function CustomProductForm({
             autoFocusName
             supplierSelectedLabel={newSupplier?.name}
             categorySelectedLabel={product?.category?.label}
-            imageField={!isEdit ? (
+            imageField={!isEdit && workspace.can('products.edit') ? (
               <CustomProductImageField
                 key={imageResetKey}
                 file={imageFile}
@@ -268,7 +268,7 @@ export function CustomProductForm({
               />
             ) : null}
             onAddSupplier={
-              !isEdit && !createdProduct && workspace.can('suppliers.create')
+              !isEdit && !createdProduct && workspace.can('suppliers.add')
                 ? () => setAddingSupplier(true)
                 : null
             }

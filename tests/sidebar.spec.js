@@ -14,7 +14,7 @@ async function mockWorkspace(page, { mode = 'light', owner = true } = {}) {
       owner,
       role: owner ? null : { name: 'Client viewer' },
       grants: (owner ? ['clients.view', 'suppliers.view', 'products.view', 'master_data.view'] : ['clients.view'])
-        .map((key) => ({ key, scope: 'all' })),
+        .map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
     }
     else if (path.endsWith('/access')) data = { writesAllowed: true, state: 'normal' }
     return route.fulfill({ json: { data } })

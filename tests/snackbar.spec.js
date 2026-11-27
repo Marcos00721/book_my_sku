@@ -15,7 +15,7 @@ async function mockWorkspace(page, { failList = false } = {}) {
     const path = new URL(request.url()).pathname
     const reply = (data) => route.fulfill({ json: { data } })
     if (path === '/api/v1/organizations') return reply({ items: [{ id: organizationId, name: 'Acme workspace', status: 'active' }], next: null })
-    if (path.endsWith('/permissions')) return reply({ owner: false, grants: ['inquiries.view', 'inquiries.add'].map((key) => ({ key, scope: 'all' })) })
+    if (path.endsWith('/permissions')) return reply({ owner: false, grants: ['inquiries.view', 'inquiries.add'].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) })
     if (path.endsWith('/access')) return reply({ writesAllowed: true, state: 'normal' })
     if (path === `${base}/inquiries`) {
       if (request.method() === 'POST') {

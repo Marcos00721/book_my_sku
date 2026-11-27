@@ -9,6 +9,7 @@ export function PricingScheduleList({
   setPages,
   kind,
   editable,
+  cost,
   canPublish,
   onOpen,
   onPublish,
@@ -47,6 +48,7 @@ export function PricingScheduleList({
                     schedule={schedule}
                     kind={kind}
                     editable={editable}
+                    cost={cost}
                     canPublish={canPublish}
                     onOpen={onOpen}
                     onPublish={onPublish}
@@ -62,6 +64,7 @@ export function PricingScheduleList({
                 schedule={schedule}
                 kind={kind}
                 editable={editable}
+                cost={cost}
                 canPublish={canPublish}
                 onOpen={onOpen}
                 onPublish={onPublish}

@@ -5,6 +5,7 @@ import { useMutation } from '../../hooks/useMutation'
 import { useResource } from '../../hooks/useResource'
 import { leadEditSchema } from '../../schemas/leadFormSchema'
 import { acceptedLead, leadFields, leadTransitions } from '../../services/leads'
+import { formatNumber } from '../../utils/phone'
 import { FormSelectField } from '../forms/FormSelectField'
 import { FormTextField } from '../forms/FormTextField'
 import { useAppForm } from '../forms/useAppForm'
@@ -12,6 +13,11 @@ import { Action, ErrorNotice, Loading, SaveFooter } from '../workspace/Elements'
 import { LeadFormDialog } from './LeadFormDialog'
 import { LeadClientPicker, LeadOwnerPicker } from './LeadPickers'
 import { LeadConflictReview } from './LeadConflictReview'
+
+function leadFormValues(lead) {
+  const values = acceptedLead(lead)
+  return { ...values, phone: formatNumber(values.phone) }
+}
 
 export function LeadEditor({ path, lead, close, saved, initialTransition = '' }) {
   const workspace = useWorkspace()
@@ -25,11 +31,11 @@ export function LeadEditor({ path, lead, close, saved, initialTransition = '' })
   const locked = mutation.pending || mutation.uncertain || committedReturn
   const terminal = ['closed', 'converted'].includes(record.stage)
   const captureEditable = ['new', 'reviewing'].includes(record.stage)
-  const form = useAppForm(leadEditSchema, { defaultValues: { ...acceptedLead(lead), transition: initialTransition, reason: '' } })
+  const form = useAppForm(leadEditSchema, { defaultValues: { ...leadFormValues(lead), transition: initialTransition, reason: '' } })
   const values = useWatch({ control: form.control })
   const clientEditable = !terminal && (captureEditable || !record.clientId || values.transition === 'return')
   const selectionChanged = selection.clientId !== (record.clientId || '') || selection.contactId !== (record.contactId || '')
-  const before = acceptedLead(record)
+  const before = leadFormValues(record)
   const captureChanged = captureEditable && Object.keys(leadFields).some(key => values[key] !== before[key])
   const changed = captureChanged || selectionChanged || ownerId !== (record.ownerId || '') || Boolean(values.transition)
   const invalidSelection = selection.clientId !== (record.clientId || '') && !clientEditable
@@ -74,7 +80,7 @@ export function LeadEditor({ path, lead, close, saved, initialTransition = '' })
 
   function review(current) {
     // Refresh untouched fields while preserving explicit edits, avoiding accidental overwrites.
-    const latest = acceptedLead(current)
+    const latest = leadFormValues(current)
     const draft = form.getValues()
     for (const key of Object.keys(leadFields)) {
       if (draft[key] === before[key]) form.setValue(key, latest[key])
@@ -126,7 +132,7 @@ export function LeadEditor({ path, lead, close, saved, initialTransition = '' })
       footer={<SaveFooter mutation={mutation} close={hasSaved ? saved : close}
           disabled={committedReturn || (!mutation.uncertain && (terminal || invalidSelection || !changed || mutation.error?.status === 409 || !workspace.writesAllowed || !workspace.can('inquiries.edit')))}
           onClear={() => {
-            form.reset({ ...acceptedLead(record), transition: '', reason: '' })
+            form.reset({ ...leadFormValues(record), transition: '', reason: '' })
             setOwnerId(record.ownerId || '')
             setSelection({ clientId: record.clientId || '', contactId: record.contactId || '' })
           }} />}

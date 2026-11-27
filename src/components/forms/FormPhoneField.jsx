@@ -19,7 +19,6 @@ export function FormPhoneField({
       icon={icon}
       prefix="+1"
       // hint={hint}
-      maxLength={12}
       formatValue={formatNumber}
     />
   );

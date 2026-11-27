@@ -33,12 +33,12 @@ const application = {
 }
 const allGrants = [
   'clients.view',
-  'clients.create',
+  'clients.add',
   'clients.edit',
   'contacts.view',
-  'contacts.create',
+  'contacts.add',
   'contacts.edit',
-].map((key) => ({ key, scope: key.endsWith('create') ? 'none' : 'all' }))
+].map((key) => ({ key, scope: key.endsWith('add') ? 'none' : 'all' }))
 
 async function workspace(
   page,
@@ -150,6 +150,7 @@ test('client mutations recover an uncertain response with the same UUID and body
     .getByRole('button', { name: 'Create', exact: true })
     .click()
   await expect(dialog.getByLabel('Client name')).toBeDisabled()
+  await dialog.getByRole('button', { name: 'Dismiss error', exact: true }).click()
   await dialog.getByRole('button', { name: 'Retry same request' }).click()
   await expect(page).toHaveURL(`/app/clients/${clientId}`)
   expect(requests).toHaveLength(2)

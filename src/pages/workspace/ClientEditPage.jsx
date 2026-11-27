@@ -74,7 +74,7 @@ export function ClientEditPage() {
   const { clientId } = useParams()
   const navigate = useNavigate()
   const canView = workspace.can('clients.view')
-  const canEdit = workspace.can('clients.edit') && workspace.writesAllowed
+  const canEdit = workspace.canWrite('clients.edit')
 
   const { clients, loading: listLoading, loaded, error: listError, refetch, saveClient } = useClients({
     autoFetch: canView,

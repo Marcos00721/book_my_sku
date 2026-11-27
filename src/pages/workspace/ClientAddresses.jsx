@@ -68,7 +68,8 @@ export function ClientAddresses({ path, client, reloadClient }) {
   const resource = useResource(queryPath(`${path}/addresses`, { state, after: history.at(-1), limit: 25 }))
   const countries = useResource('/reference/countries')
   const items = resource.data?.items || []
-  const editable = workspace.can('clients.edit') && workspace.writesAllowed && client.status !== 'archived'
+  const editable = workspace.canWrite('clients.edit') && client.status !== 'archived'
+  const canCreate = workspace.canWrite('clients.add') && client.status !== 'archived'
   const hasDefaults = client.defaultBillingAddressId || client.defaultShippingAddressId
 
   function saved() {
@@ -106,7 +107,7 @@ export function ClientAddresses({ path, client, reloadClient }) {
   return <div className="client-addresses">
     <div className="client-addresses-heading">
       <h2>Addresses</h2>
-      {editable && <Action onClick={() => setEditing({})}><Plus size={16} aria-hidden="true" />Add address</Action>}
+      {canCreate && <Action onClick={() => setEditing({})}><Plus size={16} aria-hidden="true" />Add address</Action>}
     </div>
     <div className="client-addresses-toolbar">
       <SelectField label="Status" value={state} searchable={false} onChange={event => {
@@ -143,8 +144,8 @@ export function ClientAddresses({ path, client, reloadClient }) {
       {state === 'active' ? 'Add a billing or shipping address.' : 'Try a different status.'}
     </Empty>}
     {resource.data && (items.length > 0 || history.length > 0) && <CursorPager count={items.length} label={items.length === 1 ? 'address' : 'addresses'} pages={history} setPages={setHistory} next={resource.data.next} />}
-    {editing && <AddressEditor path={path} address={editing} close={() => setEditing(null)} saved={saved} />}
-    {command && <AddressCommand command={command} close={() => setCommand(null)} saved={saved} />}
+    {editing && (editing.id ? editable : canCreate) && <AddressEditor path={path} address={editing} close={() => setEditing(null)} saved={saved} />}
+    {command && editable && <AddressCommand command={command} close={() => setCommand(null)} saved={saved} />}
   </div>
 }
 

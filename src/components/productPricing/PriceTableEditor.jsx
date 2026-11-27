@@ -87,7 +87,7 @@ function PriceTableWorkspace({
       />
     )
   const editable =
-    edit && cost && workspace.can('products.edit') && workspace.writesAllowed
+    edit && cost && workspace.canWrite('products.edit')
   return (
     <div className="product-pricing simple-pricing">
       <div className="section-heading">

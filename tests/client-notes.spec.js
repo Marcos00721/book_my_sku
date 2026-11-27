@@ -21,7 +21,7 @@ async function setup(page, { notes = '<p><strong>Project brief</strong> with <em
     let data = { items: [], next: null }
     if (current.includes('/notes')) notesRequests.push(current)
     if (current === '/organizations') data = { items: [{ id: org, name: 'QA Studio', status: 'active' }], next: null }
-    else if (current.endsWith('/permissions')) data = { owner: true, grants: ['clients.view', 'clients.create', 'clients.edit', 'clients.history.view'].map(key => ({ key, scope: key === 'clients.create' ? 'none' : 'all' })) }
+    else if (current.endsWith('/permissions')) data = { owner: true, grants: ['clients.view', 'clients.add', 'clients.edit', 'clients.view'].map(key => ({ key, scope: key === 'clients.add' ? 'none' : 'all' })) }
     else if (current.endsWith('/access')) data = { state: 'normal', writesAllowed: true }
     else if ((current === root && request.method() === 'POST') || (current === path && request.method() === 'PATCH')) {
       const body = request.postDataJSON()

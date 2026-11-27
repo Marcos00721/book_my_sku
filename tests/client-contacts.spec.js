@@ -31,7 +31,7 @@ async function setup(page, { editable = true, archived = false, view = true } = 
     if (method === 'GET') reads.push(current)
     else writes.push({ path: current, method, body: request.postDataJSON() })
     if (current === '/organizations') data = { items: [{ id: org, name: 'QA Studio', status: 'active' }] }
-    else if (current.endsWith('/permissions')) data = { owner: false, grants: ['clients.view', ...(view ? ['contacts.view'] : []), ...(editable ? ['contacts.create', 'contacts.edit', 'clients.edit'] : [])].map(key => ({ key, scope: 'all' })) }
+    else if (current.endsWith('/permissions')) data = { owner: false, grants: ['clients.view', ...(view ? ['contacts.view'] : []), ...(editable ? ['contacts.add', 'contacts.edit', 'contacts.delete', 'clients.edit'] : [])].map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) }
     else if (current.endsWith('/access')) data = { writesAllowed: true, state: 'normal' }
     else if (current === base) data = { _id: clientId, name: 'Acme Promotions', clientCode: 'CLI-001', status: archived ? 'archived' : 'active', __v: 4 }
     else if (current === `${base}/management`) data = { relationshipStatus: 'customer' }
@@ -66,7 +66,7 @@ async function setup(page, { editable = true, archived = false, view = true } = 
     await route.fulfill({ json: { data } })
   })
   await page.goto(`/app/clients/${clientId}`)
-  await page.getByRole('tab', { name: 'Contacts', exact: true }).click()
+  if (view) await page.getByRole('tab', { name: 'Contacts', exact: true }).click()
   return { writes, queries, reads, contacts }
 }
 
@@ -207,7 +207,8 @@ for (const options of [{ editable: false }, { archived: true }]) {
 
 test('contacts cannot be read without permission', async ({ page }) => {
   const { reads } = await setup(page, { view: false, editable: false })
-  await expect(page.getByRole('tabpanel', { name: 'Contacts' })).toContainText('Access is limited')
+  await expect(page.getByRole('heading', { name: 'Acme Promotions', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Contacts', exact: true })).toHaveCount(0)
   expect(reads.filter(current => current.startsWith(path))).toHaveLength(0)
 })
 

@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { Boxes, Building2, Plus, Truck, UserRoundSearch } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
-import { canAddLead } from '../../services/leads'
 import { fetchClients } from '../../store/clientSlice'
 import { fetchSuppliers } from '../../store/supplierSlice'
 import { fetchCustomProducts } from '../../store/customProductSlice'
@@ -19,7 +18,7 @@ const formLoaders = {
 }
 
 const options = [
-  { key: 'lead', label: 'Add lead', description: 'Capture a new inquiry', area: 'inquiries', permission: 'inquiries.add', route: 'leads', Icon: UserRoundSearch },
+  { key: 'lead', label: 'Add lead', description: 'Capture a new inquiry', area: 'inquiries', route: 'leads', Icon: UserRoundSearch },
   { key: 'client', label: 'Add client', description: 'Create a client relationship', area: 'clients', route: 'clients', Icon: Building2, refresh: fetchClients },
   { key: 'supplier', label: 'Add supplier', description: 'Add a supplier or decorator', area: 'suppliers', route: 'suppliers', Icon: Truck, refresh: fetchSuppliers },
   { key: 'product', label: 'Add product', description: 'Create a supplier-linked product', area: 'products', route: 'products', Icon: Boxes, refresh: fetchCustomProducts },
@@ -60,9 +59,7 @@ export function QuickCreate() {
   const trigger = useRef(null)
   const menu = useRef(null)
   const menuId = useId()
-  const available = options.filter((option) => option.key === 'lead'
-    ? canAddLead(workspace)
-    : workspace.can(option.permission || `${option.area}.create`))
+  const available = options.filter((option) => workspace.canWrite(`${option.area}.add`))
 
   useEffect(() => {
     if (!open) return

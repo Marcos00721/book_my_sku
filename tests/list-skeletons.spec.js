@@ -4,7 +4,7 @@ import { mockSignedIn } from './helpers/auth'
 const organizationId = '507f1f77bcf86cd799439011'
 const base = `/organizations/${organizationId}`
 const grants = ['clients.view', 'clients.edit', 'suppliers.view', 'products.view', 'products.edit', 'master_data.view']
-  .map((key) => ({ key, scope: 'all' }))
+  .map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' }))
 
 async function mockWorkspace(page, respond) {
   await mockSignedIn(page)

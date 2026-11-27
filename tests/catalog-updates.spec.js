@@ -256,6 +256,7 @@ test('active variant corrections preserve the variant and retry the exact correc
   await expect(
     dialog.getByRole('textbox', { name: 'Supplier part code', exact: true }),
   ).toBeDisabled()
+  await page.getByRole('button', { name: 'Dismiss error', exact: true }).click()
   await dialog
     .getByRole('button', { name: 'Retry same request', exact: true })
     .click()
@@ -1006,15 +1007,13 @@ async function setup(
     owner = true,
     grants = [
       'products.view',
-      'products.create',
+      'products.add',
       'products.edit',
-      'products.archive',
-      'products.restore',
-      'products.history.view',
-      'products.pricing.edit',
-      'products.pricing.publish',
-      'products.pricing.preview',
-      'products.pricing.cost',
+      'products.delete',
+      'products.edit',
+      'products.view',
+      'products.edit',
+      'products.view',
       'master_data.view',
       'suppliers.view',
     ],
@@ -1039,7 +1038,7 @@ async function setup(
     if (name.endsWith('/permissions'))
       return reply({
         owner,
-        grants: grants.map((key) => ({ key, scope: 'all' })),
+        grants: grants.map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
       })
     if (name.endsWith('/access'))
       return reply({ writesAllowed: true, state: 'normal' })
@@ -1454,6 +1453,7 @@ test('pricing drafts retain decimal strings and retry keys; publication requires
   await dialog
     .getByRole('button', { name: 'Save pricing draft', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Dismiss error', exact: true }).click()
   await dialog
     .getByRole('button', { name: 'Retry same request', exact: true })
     .click()
@@ -1509,8 +1509,8 @@ test('sale-only editors never render costs and stale previews require explicit s
     owner: false,
     grants: [
       'products.view',
-      'products.pricing.edit',
-      'products.pricing.preview',
+      'products.edit',
+      'products.view',
     ],
     handler: async ({ name, request, reply }) => {
       if (name === `${path}/pricing/schedules`) {
@@ -1520,6 +1520,7 @@ test('sale-only editors never render costs and stale previews require explicit s
               id: scheduleId,
               revision: 5,
               ...rules,
+              rules, // A retained full payload must not expose costs to a sale-only editor.
               sales: [{ id: variantId, sale: '1.333333' }],
             },
           ],
@@ -1579,6 +1580,7 @@ test('sale-only editors never render costs and stale previews require explicit s
   await expect(
     page.getByRole('button', { name: 'Add pricing', exact: true }),
   ).toHaveCount(0)
+  await expect(page.getByText(/first tier .*USD/)).toHaveCount(0)
   await page.getByRole('button', { name: 'Open editor', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await expect(

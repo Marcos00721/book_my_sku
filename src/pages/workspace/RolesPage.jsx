@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Info, Plus, Search, Shield } from 'lucide-react'
+import { Info, Plus, Search, Shield } from 'lucide-react'
 import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
 import { queryPath } from '../../services/workspace'
+import { modulePermissionCatalog, permissionLabels } from '../../services/permissions'
 import {
   Action,
   Dialog,
@@ -32,26 +33,6 @@ function groupTitle(prefix) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-/** Under a Clients group, show "Create" instead of "Create clients". */
-function permissionActionLabel(entry, groupPrefix) {
-  const parts = String(entry.key || '')
-    .split('.')
-    .filter(Boolean)
-  if (parts.length > 1) {
-    return parts
-      .slice(1)
-      .join(' ')
-      .replaceAll('_', ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase())
-  }
-  const group = groupTitle(groupPrefix)
-  const label = String(entry.label || entry.key || '').trim()
-  const stripped = label
-    .replace(new RegExp(`\\s+${group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), '')
-    .trim()
-  return stripped || label
-}
-
 function groupCatalog(catalog) {
   const groups = new Map()
   for (const entry of catalog) {
@@ -62,7 +43,7 @@ function groupCatalog(catalog) {
   return [...groups.entries()]
 }
 
-function PermissionGroup({ prefix, entries, grants, locked, filtered, toggleGrant, toggleGroup, setScope }) {
+function PermissionGroup({ prefix, entries, grants, locked, filtered, toggleGrant, toggleGroup }) {
   const checkboxRef = useRef(null)
   const available = entries.filter((entry) => entry.enabled && entry.scopes.length)
   const selectedCount = available.filter((entry) => grants.some((grant) => grant.key === entry.key)).length
@@ -104,24 +85,10 @@ function PermissionGroup({ prefix, entries, grants, locked, filtered, toggleGran
                   aria-label={entry.label || entry.key}
                   onChange={(event) => toggleGrant(entry, event.target.checked)}
                 />
-                <span>{permissionActionLabel(entry, prefix)}</span>
+                <span>{permissionLabels[entry.key.split('.')[1]]}</span>
               </label>
               {unavailable ? (
                 <span className="role-editor-access-note">Unavailable</span>
-              ) : selected && entry.scopes.length > 1 ? (
-                <div className="role-editor-scope">
-                  <select
-                    aria-label={`Scope for ${entry.label || entry.key}`}
-                    value={selected.scope}
-                    disabled={locked}
-                    onChange={(event) => setScope(entry.key, event.target.value)}
-                  >
-                    {entry.scopes.map((scope) => (
-                      <option key={scope} value={scope}>{scopeLabel(scope)}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={15} aria-hidden="true" />
-                </div>
               ) : (
                 <span className="role-editor-access-note">
                   {selected ? scopeLabel(selected.scope) : 'No access'}
@@ -272,7 +239,7 @@ export function RolesPage() {
       {editing && catalog.data && (
         <RoleEditor
           role={editing}
-          catalog={catalog.data.items}
+          catalog={modulePermissionCatalog(catalog.data.items)}
           close={() => setEditing(null)}
           saved={saved}
         />
@@ -288,6 +255,7 @@ function RoleEditor({ role, catalog, close, saved }) {
   const [name, setName] = useState(role.name || '')
   const [search, setSearch] = useState('')
   const nameRef = useRef(null)
+  const selectAllRef = useRef(null)
   useEffect(() => {
     nameRef.current?.focus()
   }, [])
@@ -308,8 +276,14 @@ function RoleEditor({ role, catalog, close, saved }) {
       `${groupTitle(entry.key.split('.')[0])} ${entry.label || ''} ${entry.key}`.toLowerCase().includes(query),
     ))
   }, [catalog, search])
-  const enabledCount = catalog.filter((entry) => entry.enabled && entry.scopes.length).length
+  const available = catalog.filter((entry) => entry.enabled && entry.scopes.length)
+  const enabledCount = available.length
   const selectedCount = grants.length
+  const allSelected = enabledCount > 0 && selectedCount === enabledCount
+  useEffect(() => {
+    if (selectAllRef.current)
+      selectAllRef.current.indeterminate = selectedCount > 0 && !allSelected
+  }, [selectedCount, allSelected])
   const clientsView = catalog.find((entry) => entry.key === 'clients.view' && entry.enabled && entry.scopes.length)
   const needsClientsView =
     grants.some((grant) => grant.key.startsWith('contacts.')) &&
@@ -323,14 +297,6 @@ function RoleEditor({ role, catalog, close, saved }) {
             { key: entry.key, scope: entry.scopes[0] },
           ]
         : value.filter((grant) => grant.key !== entry.key),
-    )
-  }
-
-  function setScope(entryKey, scope) {
-    setGrants((value) =>
-      value.map((grant) =>
-        grant.key === entryKey ? { ...grant, scope } : grant,
-      ),
     )
   }
 
@@ -365,7 +331,7 @@ function RoleEditor({ role, catalog, close, saved }) {
       description={
         role.archive
           ? 'Archived roles stay in history but cannot be assigned to new members.'
-          : 'Choose what this role can see and change in the workspace.'
+          : 'Choose View, Add, Edit and Delete access for each module.'
       }
       close={close}
       locked={locked}
@@ -400,6 +366,16 @@ function RoleEditor({ role, catalog, close, saved }) {
               <div className="role-editor-section-heading">
                 <h3>Permissions</h3>
                 <span className="role-editor-count" role="status">{selectedCount} of {enabledCount} selected</span>
+                <label className="role-editor-select-all">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    disabled={locked || !enabledCount}
+                    onChange={(event) => toggleGroup(available, event.target.checked)}
+                  />
+                  Select all permissions
+                </label>
               </div>
               <Field
                 label="Search permissions"
@@ -436,7 +412,6 @@ function RoleEditor({ role, catalog, close, saved }) {
                   filtered={Boolean(search.trim())}
                   toggleGrant={toggleGrant}
                   toggleGroup={toggleGroup}
-                  setScope={setScope}
                 />)}
               </div>
               {!groups.length && (

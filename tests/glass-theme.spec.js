@@ -24,12 +24,12 @@ async function mockWorkspace(page, mode) {
     else if (path.endsWith('/permissions')) data = {
       owner: true,
       grants: [
-        'clients.view', 'clients.create', 'clients.edit', 'contacts.view',
-        'suppliers.view', 'suppliers.create', 'suppliers.edit', 'suppliers.history.view',
-        'products.view', 'products.create', 'products.edit', 'products.history.view',
-        'products.pricing.edit', 'products.pricing.preview', 'products.pricing.cost',
+        'clients.view', 'clients.add', 'clients.edit', 'contacts.view',
+        'suppliers.view', 'suppliers.add', 'suppliers.edit', 'suppliers.view',
+        'products.view', 'products.add', 'products.edit', 'products.view',
+        'products.edit', 'products.view',
         'master_data.view',
-      ].map((key) => ({ key, scope: key.endsWith('create') ? 'none' : 'all' })),
+      ].map((key) => ({ key, scope: key.endsWith('add') ? 'none' : 'all' })),
     }
     else if (path.endsWith('/access')) data = { writesAllowed: true, state: 'normal' }
     else if (path === `/organizations/${org}/products`) data = { items: [product], next: null }

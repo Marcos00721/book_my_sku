@@ -3,7 +3,7 @@ import { mockSignedIn } from './helpers/auth'
 
 const organizationId = '507f1f77bcf86cd799439011'
 const base = `/api/v1/organizations/${organizationId}`
-const allGrants = ['inquiries', 'clients', 'suppliers', 'products'].flatMap((area) => [`${area}.view`, `${area}.${area === 'inquiries' ? 'add' : 'create'}`])
+const allGrants = ['inquiries', 'clients', 'suppliers', 'products'].flatMap((area) => [`${area}.view`, `${area}.add`])
 
 async function mockWorkspace(page, { grants = allGrants, writesAllowed = true } = {}) {
   await mockSignedIn(page)
@@ -16,7 +16,7 @@ async function mockWorkspace(page, { grants = allGrants, writesAllowed = true } 
     const path = new URL(request.url()).pathname
     const reply = (data) => route.fulfill({ json: { data } })
     if (path === '/api/v1/organizations') return reply({ items: [{ id: organizationId, name: 'Acme workspace', status: 'active' }], next: null })
-    if (path.endsWith('/permissions')) return reply({ owner: false, grants: grants.map((key) => ({ key, scope: 'all' })) })
+    if (path.endsWith('/permissions')) return reply({ owner: false, grants: grants.map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) })
     if (path.endsWith('/access')) return reply({ writesAllowed, state: writesAllowed ? 'normal' : 'restricted' })
     if (path === `${base}/inquiries`) {
       if (request.method() === 'POST') {
@@ -70,18 +70,18 @@ test('lead submission validates required fields and refreshes the current lead l
 })
 
 test('menu only includes permitted create actions', async ({ page }) => {
-  await mockWorkspace(page, { grants: ['inquiries.view', 'clients.create'] })
+  await mockWorkspace(page, { grants: ['inquiries.view', 'clients.add'] })
   await page.goto('/app/leads')
   await page.getByRole('button', { name: 'Quick create', exact: true }).click()
   await expect(page.getByRole('menuitem')).toHaveText(['Add clientCreate a client relationship'])
 })
 
-test('the staging inquiry creation grant opens Add lead from Quick create', async ({ page }) => {
+test('legacy inquiry creation grants do not expose Quick create', async ({ page }) => {
   await mockWorkspace(page, { grants: ['inquiries.view', 'inquiries.create'] })
   await page.goto('/app/leads')
-  await page.getByRole('button', { name: 'Quick create', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Add lead', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Add lead', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Quick create', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add lead', exact: true })).toHaveCount(0)
 })
 
 test('an uncertain lead save retries the same request without losing the draft', async ({ page }) => {

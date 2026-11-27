@@ -15,10 +15,10 @@ import { PriceTableEditor } from './PriceTableEditor'
 
 export function ProductPricing({ path, product }) {
   const workspace = useWorkspace()
-  const rights = ['edit', 'publish', 'preview', 'cost'].map((action) =>
-    workspace.can(`products.pricing.${action}`),
-  )
-  if (!rights.slice(0, 3).some(Boolean)) {
+  const edit = workspace.can('products.edit')
+  const preview = workspace.can('products.view')
+  const cost = workspace.canViewCosts
+  if (!preview) {
     return (
       <Empty title="Pricing access is limited">
         Ask your workspace owner for pricing access.
@@ -27,20 +27,20 @@ export function ProductPricing({ path, product }) {
   }
   return (
     <PriceTableEditor
-      key={`${path}:${rights.join(':')}:${workspace.writesAllowed}`}
+      key={`${path}:${edit}:${cost}:${workspace.writesAllowed}`}
       path={path}
       product={product}
-      edit={rights[0]}
-      preview={rights[2]}
-      cost={rights[3]}
+      edit={edit}
+      preview={preview}
+      cost={cost}
       legacy={
         <PricingWorkspace
           path={path}
           product={product}
-          edit={rights[0]}
-          publish={rights[1]}
-          preview={rights[2]}
-          cost={rights[3]}
+          edit={edit}
+          publish={edit}
+          preview={preview}
+          cost={cost}
         />
       }
     />
@@ -172,6 +172,7 @@ function PricingWorkspace({ path, product, edit, publish, preview, cost }) {
             setPages={setPages}
             kind={kind}
             editable={edit && writable}
+            cost={cost}
             canPublish={publish && cost && writable}
             onOpen={setSelected}
             onPublish={setPublishing}

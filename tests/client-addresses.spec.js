@@ -29,7 +29,7 @@ async function setup(page, { editable = true, archived = false } = {}) {
     if (method !== 'GET') writes.push({ path, method, body: request.postDataJSON() })
     let data = { items: [], next: null }
     if (path === '/organizations') data = { items: [{ id: org, name: 'QA Studio', status: 'active' }] }
-    else if (path.endsWith('/permissions')) data = { owner: false, grants: ['clients.view', ...(editable ? ['clients.edit'] : [])].map(key => ({ key, scope: 'all' })) }
+    else if (path.endsWith('/permissions')) data = { owner: false, grants: ['clients.view', ...(editable ? ['clients.add', 'clients.edit'] : [])].map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) }
     else if (path.endsWith('/access')) data = { state: 'normal', writesAllowed: true }
     else if (path === base) data = { ...client }
     else if (path === `${base}/management`) data = { relationshipStatus: 'customer' }

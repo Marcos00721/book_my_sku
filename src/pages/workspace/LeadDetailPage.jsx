@@ -36,7 +36,7 @@ function LeadRecord({ path }) {
   const lead = resource.data
   const accepted = acceptedLead(lead)
   const terminal = ['closed', 'converted'].includes(lead.stage)
-  const editable = workspace.can('inquiries.edit') && workspace.writesAllowed && !terminal
+  const editable = workspace.canWrite('inquiries.edit') && !terminal
   const canConvert = editable && workspace.can('projects.add') && workspace.can('clients.view') && (!lead.contactId || workspace.can('contacts.view')) && lead.stage === 'qualified' && Boolean(lead.clientId)
 
   function saved(message, result) {

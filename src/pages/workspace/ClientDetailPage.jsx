@@ -47,9 +47,9 @@ function ClientRecord({ path }) {
   const client = resource.data
   const tabItems = [
     { value: 'overview', label: 'Overview' },
-    { value: 'contacts', label: 'Contacts' },
+    ...(workspace.can('contacts.view') ? [{ value: 'contacts', label: 'Contacts' }] : []),
     { value: 'addresses', label: 'Saved addresses' },
-    ...(workspace.can('clients.history.view')
+    ...(workspace.can('clients.view')
       ? [{ value: 'activity', label: 'Activity' }]
       : []),
   ]
@@ -75,8 +75,7 @@ function ClientRecord({ path }) {
       title={client.name}
       description={[client.clientCode, client.accountLabel].filter(Boolean).join(' · ') || undefined}
       actions={
-        workspace.can('clients.edit') &&
-        workspace.writesAllowed &&
+        workspace.canWrite('clients.edit') &&
         client.status !== 'archived' && (
           <ButtonLink
             variant="secondary"

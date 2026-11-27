@@ -5,7 +5,7 @@ const org = '507f1f77bcf86cd799439011'
 const clientId = '507f1f77bcf86cd799439021'
 const root = `/organizations/${org}/clients/${clientId}`
 
-async function workspace(page, history = true) {
+async function workspace(page, view = true) {
   await mockSignedIn(page)
   await page.route('https://fonts.googleapis.com/**', (route) => route.abort())
   await page.route('https://fonts.gstatic.com/**', (route) => route.abort())
@@ -24,9 +24,8 @@ async function workspace(page, history = true) {
               owner: false,
               organizationId: org,
               grants: [
-                { key: 'clients.view', scope: 'all' },
-                ...(history
-                  ? [{ key: 'clients.history.view', scope: 'all' }]
+                ...(view
+                  ? [{ key: 'clients.view', scope: 'all' }]
                   : []),
               ],
             }
@@ -136,7 +135,7 @@ test('activity renders protected actor and changes as text, follows opaque curso
   ).toHaveCount(0)
 })
 
-test('client viewers without history permission do not request or see the activity tab', async ({
+test('members without Clients View do not request client details or activity', async ({
   page,
 }) => {
   await workspace(page, false)
@@ -147,7 +146,7 @@ test('client viewers without history permission do not request or see the activi
   })
   await page.goto(`/app/clients/${clientId}`)
   await expect(
-    page.getByRole('heading', { name: 'BookMySKU QA Client', exact: true }),
+    page.getByRole('heading', { name: 'Access is limited', exact: true }),
   ).toBeVisible()
   await expect(
     page.getByRole('tab', { name: 'Activity', exact: true }),

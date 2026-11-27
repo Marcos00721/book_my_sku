@@ -23,7 +23,7 @@ import { getAuthClient } from '../../services/auth'
 import { GlassSidebar } from '../common/GlassSidebar'
 import { AppTopbar } from '../common/AppTopbar'
 import { QuickCreate } from './QuickCreate'
-import { Action, ErrorNotice, ListSkeleton, Loading } from './Elements'
+import { Action, ErrorNotice, ListSkeleton, Loading, PermissionDenied } from './Elements'
 
 export function WorkspaceLayout() {
   const workspace = useWorkspace()
@@ -42,38 +42,16 @@ export function WorkspaceLayout() {
       : 'page'
   const links = [
     { to: '/app', label: 'Overview', Icon: LayoutDashboard, end: true },
-    ...(workspace.can('inquiries.view')
-      ? [{ to: '/app/leads', label: 'Leads', Icon: UserRoundSearch }]
-      : []),
-    ...(workspace.can('clients.view')
-      ? [{ to: '/app/clients', label: 'Clients', Icon: Building2 }]
-      : []),
-    ...(workspace.can('suppliers.view')
-      ? [{ to: '/app/suppliers', label: 'Suppliers', Icon: Truck }]
-      : []),
-    ...(workspace.can('products.view')
-      ? [{ to: '/app/products', label: 'Products', Icon: Boxes }]
-      : []),
-    ...(workspace.can('master_data.view')
-      ? [{ to: '/app/master-data', label: 'Reference lists', Icon: ListTree }]
-      : []),
-    ...(workspace.owner && workspace.can('master_data.view')
-      ? [
-          {
-            to: '/app/decoration-matrices',
-            label: 'Decoration matrices',
-            Icon: Paintbrush,
-          },
-        ]
-      : []),
-    ...(workspace.owner
-      ? [
-          { to: '/app/team', label: 'Team', Icon: Users },
-          { to: '/app/roles', label: 'Roles & permissions', Icon: Shield },
-          { to: '/app/billing', label: 'Billing', Icon: CreditCard },
-        ]
-      : []),
-  ]
+    { to: '/app/leads', label: 'Leads', Icon: UserRoundSearch },
+    { to: '/app/clients', label: 'Clients', Icon: Building2 },
+    { to: '/app/suppliers', label: 'Suppliers', Icon: Truck },
+    { to: '/app/products', label: 'Products', Icon: Boxes },
+    { to: '/app/master-data', label: 'Reference lists', Icon: ListTree },
+    { to: '/app/decoration-matrices', label: 'Decoration matrices', Icon: Paintbrush },
+    { to: '/app/team', label: 'Team', Icon: Users },
+    { to: '/app/roles', label: 'Roles & permissions', Icon: Shield },
+    { to: '/app/billing', label: 'Billing', Icon: CreditCard },
+  ].filter((link) => workspace.canVisit(link.to))
   const activeLinks = links.map((link) => ({
     ...link,
     active: link.end
@@ -129,7 +107,16 @@ export function WorkspaceLayout() {
           Icon={activeLinks.find((link) => link.active)?.Icon || LayoutDashboard}
           menuButtonRef={menuButton}
           onOpenNavigation={() => drawer.current.showModal()}
-          actions={<QuickCreate key={`${workspace.base}:${location.key}`} />}
+          actions={<>
+            {workspace.organizations.length > 1 && <select
+              aria-label="Switch workspace"
+              value={workspace.organization.id}
+              onChange={(event) => { void workspace.selectOrganization(event.target.value) }}
+            >
+              {workspace.organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+            </select>}
+            <QuickCreate key={`${workspace.base}:${location.key}`} />
+          </>}
         />
         <main id="workspace-main" ref={content} tabIndex={-1} className="workspace-main">
           <ErrorNotice error={error} />
@@ -156,7 +143,7 @@ export function WorkspaceLayout() {
                 : <Loading variant={loadingVariant} />
             }
           >
-            <Outlet />
+            {workspace.canVisit(location.pathname) ? <Outlet /> : <PermissionDenied />}
           </Suspense>
         </main>
         <footer className="workspace-footer">

@@ -22,6 +22,7 @@ export function Snackbar({ children }) {
     const node = ref.current
     // Show after a surrounding dialog enters the browser's top layer.
     const frame = requestAnimationFrame(() => {
+      if (!node.isConnected) return
       node.showPopover?.()
       visibleSnackbars.add(node)
       positionSnackbars()

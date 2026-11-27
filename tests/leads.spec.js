@@ -29,7 +29,7 @@ async function mockWorkspace(page, { allowed = true, writesAllowed = true, grant
     if (url.pathname === '/api/v1/organizations')
       return reply({ items: [{ id: organizationId, name: 'Acme workspace', status: 'active' }], next: null })
     if (url.pathname.endsWith('/permissions'))
-      return reply({ owner: true, grants: allowed ? grants.map(key => ({ key, scope: 'all' })) : [] })
+      return reply({ owner: true, grants: allowed ? grants.map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) : [] })
     if (url.pathname.endsWith('/access')) return reply({ writesAllowed, state: writesAllowed ? 'normal' : 'restricted' })
     if (url.pathname.endsWith('/assignment-options'))
       return reply({ items: [{ actorId: '507f1f77bcf86cd799439099', label: 'Alex Smith' }] })

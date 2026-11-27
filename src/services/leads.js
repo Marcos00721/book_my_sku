@@ -1,9 +1,7 @@
 import { api, ApiError } from './api'
 
-// Local backend uses Add; earlier staging releases expose the same create
-// operation as inquiries.create. Require an explicit effective grant either way.
 export function canAddLead(workspace) {
-  return workspace.can('inquiries.add') || workspace.can('inquiries.create')
+  return workspace.can('inquiries.add')
 }
 
 export const leadStages = {

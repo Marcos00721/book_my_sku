@@ -112,8 +112,7 @@ export function ProductMedia({ path, product, changed }) {
   const reserved = useRef(new Map())
 
   const editable =
-    workspace.can('products.edit') &&
-    workspace.writesAllowed &&
+    workspace.canWrite('products.edit') &&
     product.status !== 'archived'
 
   useDraftGuard(busyUpload)
@@ -311,6 +310,7 @@ export function ProductMedia({ path, product, changed }) {
           </p>
 
           <MultipleUploader
+            readOnly={!editable}
             filePlaceholder={IMAGE_PLACEHOLDER}
             maxSizeMB={MAX_SIZE_MB}
             maxFiles={MAX_FILES}

@@ -59,8 +59,7 @@ export function CustomProductsPage() {
 
   if (!canView) return <PermissionDenied />
 
-  const create = workspace.can('products.create') &&
-    workspace.writesAllowed && (
+  const create = workspace.canWrite('products.add') && (
       <Action onClick={() => setCreating(true)}>
         <Plus size={17} />
         Create

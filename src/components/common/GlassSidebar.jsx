@@ -25,7 +25,6 @@ function SidebarNavigation({ groups, label, query, onNavigate }) {
         <div className="glass-sidebar-group" key={group.label}>
           <p className="glass-sidebar-group-label">{group.label}</p>
           {group.items.map(({ to, label: itemLabel, Icon, active }) => (
-            <>
               <Link
                 className="glass-sidebar-link"
                 key={to}
@@ -46,7 +45,6 @@ function SidebarNavigation({ groups, label, query, onNavigate }) {
                 <Icon size={20} aria-hidden="true" />
                 <span className="glass-sidebar-label">{itemLabel}</span>
               </Link>
-            </>
           ))}
         </div>
       ))}

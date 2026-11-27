@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useResource } from '../../hooks/useResource'
 import { useMutation } from '../../hooks/useMutation'
+import { modulePermissionCatalog } from '../../services/permissions'
 import {
   Action, Dialog, Empty, ErrorNotice, Field, ListSkeleton, SaveFooter,
 } from '../../components/workspace/Elements'
@@ -30,7 +31,7 @@ export function PermissionCatalog() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [module, setModule] = useState('all')
-  const entries = resource.data?.items || []
+  const entries = modulePermissionCatalog(resource.data?.items)
   const modules = [...new Set(entries.map(moduleKey))].sort((a, b) => a.localeCompare(b))
   const enabledCount = entries.filter(entry => entry.enabled).length
   const counts = { all: entries.length, enabled: enabledCount, disabled: entries.length - enabledCount }

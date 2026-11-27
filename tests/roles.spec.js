@@ -4,17 +4,17 @@ import { mockSignedIn } from './helpers/auth'
 const orgId = '507f1f77bcf86cd799439011'
 const roleId = '507f1f77bcf86cd799439041'
 const catalog = [
-  { key: 'clients.view', label: 'View clients', scopes: ['assigned', 'all'], enabled: true },
-  { key: 'clients.create', label: 'Create clients', scopes: ['none'], enabled: true },
-  { key: 'clients.edit', label: 'Edit clients', scopes: ['assigned', 'all'], enabled: true },
+  { key: 'clients.view', label: 'View clients', scopes: ['all'], enabled: true },
+  { key: 'clients.add', label: 'Add clients', scopes: ['none'], enabled: true },
+  { key: 'clients.edit', label: 'Edit clients', scopes: ['all'], enabled: true },
   { key: 'clients.delete', label: 'Delete clients', scopes: ['all'], enabled: false },
   { key: 'clients.export', label: 'Export clients', scopes: [], enabled: true },
   { key: 'clients.history.view', label: 'View client history', scopes: ['all'], enabled: true },
-  ...['contacts', 'diagnostics', 'inquiries', 'leads', 'products', 'suppliers', 'orders', 'quotes', 'invoices', 'reports', 'catalog', 'pricing', 'workflows', 'deliveries'].flatMap((area) =>
-    ['view', 'create', 'edit'].map((action) => ({
+  ...Object.entries({ contacts: ['view', 'add', 'edit', 'delete'], diagnostics: ['view'], inquiries: ['view', 'add', 'edit'], mail: ['view', 'add', 'edit', 'delete'], master_data: ['view'], products: ['view', 'add', 'edit', 'delete'], projects: ['view', 'add', 'edit'], sage: ['view', 'add', 'edit'], suppliers: ['view', 'add', 'edit', 'delete'] }).flatMap(([area, actions]) =>
+    actions.map((action) => ({
       key: `${area}.${action}`,
       label: `${action[0].toUpperCase() + action.slice(1)} ${area}`,
-      scopes: action === 'create' ? ['none'] : ['assigned', 'all'],
+      scopes: action === 'add' ? ['none'] : ['all'],
       enabled: true,
     })),
   ),
@@ -59,26 +59,36 @@ test('create role searches without losing grants and selects only matching avail
   await expect(dialog.getByLabel('Role name')).toBeFocused()
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   await dialog.getByLabel('Role name').fill('Support team')
-  await dialog.getByRole('checkbox', { name: 'View clients', exact: true }).check()
-  await dialog.getByRole('combobox', { name: 'Scope for View clients' }).selectOption('all')
+  const selectAll = dialog.getByRole('checkbox', { name: 'Select all permissions', exact: true })
   const search = dialog.getByRole('searchbox', { name: 'Search permissions' })
-  await search.fill('Create clients')
+  await search.fill('Add clients')
+  await selectAll.check()
+  await search.fill('')
+  await expect(dialog.getByRole('checkbox', { name: 'Delete suppliers', exact: true })).toBeChecked()
+  await expect(dialog.getByRole('checkbox', { name: 'Delete clients', exact: true })).not.toBeChecked()
+  await expect(selectAll).toBeChecked()
+  await selectAll.uncheck()
+  await expect(dialog.getByRole('checkbox', { name: 'View clients', exact: true })).not.toBeChecked()
+  await dialog.getByRole('checkbox', { name: 'View clients', exact: true }).check()
+  expect(await selectAll.evaluate(el => el.indeterminate)).toBe(true)
+  await search.fill('Add clients')
   await dialog.getByRole('checkbox', { name: 'Select all matching Clients permissions' }).check()
   await search.fill('')
   await expect(dialog.getByRole('checkbox', { name: 'View clients', exact: true })).toBeChecked()
-  await expect(dialog.getByRole('combobox', { name: 'Scope for View clients' })).toHaveValue('all')
   await expect(dialog.getByRole('checkbox', { name: 'Edit clients', exact: true })).not.toBeChecked()
   await expect(dialog.getByRole('checkbox', { name: 'Delete clients', exact: true })).toBeDisabled()
-  await expect(dialog.getByRole('checkbox', { name: 'Export clients', exact: true })).toBeDisabled()
+  await expect(dialog.getByRole('checkbox', { name: 'Export clients', exact: true })).toHaveCount(0)
+  await expect(dialog.getByRole('checkbox', { name: 'View client history', exact: true })).toHaveCount(0)
+  await expect(dialog.locator('.role-editor-group').first().locator('.role-editor-permission span')).toHaveText(['View', 'Add', 'Edit', 'Delete'])
   expect(await dialog.getByRole('checkbox', { name: 'Select all Clients permissions' }).evaluate((el) => el.indeterminate)).toBe(true)
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).toHaveCount(0)
   expect(submitted).toEqual({ name: 'Support team', grants: [
-    { key: 'clients.view', scope: 'all' }, { key: 'clients.create', scope: 'none' },
+    { key: 'clients.view', scope: 'all' }, { key: 'clients.add', scope: 'none' },
   ] })
 })
 
-test('edit keeps existing scopes during group selection and Clear restores saved permissions', async ({ page }) => {
+test('edit selects all permissions and Clear restores saved permissions', async ({ page }) => {
   await setup(page)
   let submitted
   await page.route(`**/roles/${roleId}`, (route) => {
@@ -87,13 +97,16 @@ test('edit keeps existing scopes during group selection and Clear restores saved
   })
   await page.getByRole('button', { name: 'Edit', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Edit role' })
-  await dialog.getByRole('checkbox', { name: 'Select all Clients permissions' }).check()
-  await expect(dialog.getByRole('combobox', { name: 'Scope for View clients' })).toHaveValue('all')
-  await expect(dialog.getByRole('combobox', { name: 'Scope for Edit clients' })).toHaveValue('assigned')
+  const selectAll = dialog.getByRole('checkbox', { name: 'Select all permissions', exact: true })
+  expect(await selectAll.evaluate(el => el.indeterminate)).toBe(true)
+  await selectAll.check()
+  await expect(dialog.getByRole('checkbox', { name: 'Delete suppliers', exact: true })).toBeChecked()
+  await expect(dialog.getByRole('combobox')).toHaveCount(0)
   await dialog.getByLabel('Role name').fill('Changed name')
   await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
   await expect(dialog.getByLabel('Role name')).toHaveValue(savedRole.name)
-  await expect(dialog.getByRole('checkbox', { name: 'Create clients', exact: true })).not.toBeChecked()
+  expect(await selectAll.evaluate(el => el.indeterminate)).toBe(true)
+  await expect(dialog.getByRole('checkbox', { name: 'Add clients', exact: true })).not.toBeChecked()
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).toHaveCount(0)
   expect(submitted).toEqual({ name: savedRole.name, grants: savedRole.grants, expectedRevision: 8 })
@@ -128,7 +141,9 @@ test('uncertain role saves lock the draft and recover with the same payload and 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog.getByLabel('Role name')).toBeDisabled()
   await expect(dialog.getByRole('checkbox', { name: 'Select all Clients permissions' })).toBeDisabled()
+  await expect(dialog.getByRole('checkbox', { name: 'Select all permissions', exact: true })).toBeDisabled()
   await expect(dialog.getByRole('button', { name: 'Close dialog' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Dismiss error', exact: true }).click()
   await dialog.getByRole('button', { name: 'Retry same request' }).click()
   await expect(dialog).toHaveCount(0)
   expect(attempts).toHaveLength(2)
@@ -157,7 +172,7 @@ for (const [width, height] of [[375, 640], [834, 724], [834, 480], [1440, 900]])
       await dialog.getByRole('checkbox', { name: 'View clients', exact: true }).setChecked(true)
       const after = await rows.first().boundingBox()
       expect(after.height).toBe(before.height)
-      const scope = await dialog.getByRole('combobox', { name: 'Scope for View clients' }).boundingBox()
+      const scope = await rows.first().locator('.role-editor-access-note').boundingBox()
       const access = await rows.nth(1).locator('.role-editor-access-note').boundingBox()
       expect(Math.abs(scope.x - access.x)).toBeLessThan(2)
       await page.screenshot({ path: testInfo.outputPath(`role-${mode}.png`), fullPage: true })
@@ -170,7 +185,7 @@ for (const [width, height] of [[375, 640], [834, 724], [834, 480], [1440, 900]])
       await permissions.hover()
       await page.mouse.wheel(0, 10000)
       await expect.poll(() => permissions.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
-      const lastPermission = dialog.getByRole('checkbox', { name: 'Edit deliveries', exact: true })
+      const lastPermission = dialog.getByRole('checkbox', { name: 'Delete suppliers', exact: true })
       await expect(lastPermission).toBeInViewport()
       const listBox = await permissions.boundingBox()
       await expect.poll(async () => {

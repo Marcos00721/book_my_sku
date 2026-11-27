@@ -19,7 +19,7 @@ for (const width of [375, 1440]) {
       } else if (path.endsWith('/permissions')) {
         data = {
           owner: true,
-          grants: ['products.view', 'products.create', 'suppliers.create'].map((key) => ({ key, scope: 'all' })),
+          grants: ['products.view', 'products.add', 'suppliers.add'].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
         }
       } else if (path.endsWith('/access')) {
         data = { writesAllowed: true, state: 'normal' }
@@ -97,7 +97,7 @@ test('product editors save independent formatting and render it in the overview'
     const path = new URL(request.url()).pathname.replace('/api/v1', '')
     let data = { items: [], next: null }
     if (path === '/organizations') data = { items: [{ id: org, name: 'Acme Studio', status: 'active' }] }
-    else if (path.endsWith('/permissions')) data = { owner: true, grants: ['products.view', 'products.create', 'products.edit'].map(key => ({ key, scope: 'all' })) }
+    else if (path.endsWith('/permissions')) data = { owner: true, grants: ['products.view', 'products.add', 'products.edit'].map(key => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) }
     else if (path.endsWith('/access')) data = { writesAllowed: true, state: 'normal' }
     else if (path.endsWith('/supplier-options')) data = { items: [{ id: supplierId, name: 'Acme Supply' }], next: null }
     else if (path === productsRoot && request.method() === 'POST') {

@@ -60,15 +60,11 @@ async function setup(
       })
     if (name.endsWith('/permissions'))
       return reply({
-        owner: false,
+        owner: cost,
         grants: [
           'products.view',
           'products.edit',
-          'products.pricing.edit',
-          'products.pricing.preview',
-          'products.pricing.publish',
-          ...(cost ? ['products.pricing.cost'] : []),
-        ].map((key) => ({ key, scope: 'all' })),
+        ].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })),
       })
     if (name.endsWith('/access'))
       return reply({

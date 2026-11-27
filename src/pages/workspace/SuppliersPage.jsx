@@ -69,8 +69,7 @@ export function SuppliersPage() {
 
   if (!canView) return <PermissionDenied />
 
-  const create = workspace.can('suppliers.create') &&
-    workspace.writesAllowed && (
+  const create = workspace.canWrite('suppliers.add') && (
       <Action onClick={() => setCreating(true)}>
         <Plus size={16} />
         Create

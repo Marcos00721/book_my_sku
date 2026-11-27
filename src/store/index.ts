@@ -3,7 +3,7 @@ import clientsReducer from './clientSlice'
 import customProductsReducer from './customProductSlice'
 import suppliersReducer from './supplierSlice'
 
-export const store = configureStore({
+export const createWorkspaceStore = () => configureStore({
   reducer: {
     clients: clientsReducer,
     suppliers: suppliersReducer,
@@ -11,5 +11,5 @@ export const store = configureStore({
   },
 })
 
-export type RootState = ReturnType<typeof store.getState>
-export type AppDispatch = typeof store.dispatch
+export type RootState = ReturnType<ReturnType<typeof createWorkspaceStore>['getState']>
+export type AppDispatch = ReturnType<typeof createWorkspaceStore>['dispatch']

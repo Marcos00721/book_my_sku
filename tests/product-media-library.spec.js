@@ -63,7 +63,7 @@ async function setup(page, { editable = true, archived = false, cleanupFails = f
       }
     }
     if (name === '/organizations') return reply({ items: [{ id: org, name: 'Acme', status: 'active' }] })
-    if (name.endsWith('/permissions')) return reply({ grants: ['products.view', ...(editable ? ['products.edit'] : [])].map((key) => ({ key, scope: 'all' })) })
+    if (name.endsWith('/permissions')) return reply({ grants: ['products.view', ...(editable ? ['products.edit'] : [])].map((key) => ({ key, scope: key.endsWith('.add') ? 'none' : 'all' })) })
     if (name.endsWith('/access') && !name.includes('/media/')) return reply({ writesAllowed: true })
     if (name === path) return reply(product())
     if (name === `${path}/variants`) return reply({ items: [{ id: variantId, partCode: 'BLUE-M' }], next: null })
@@ -221,7 +221,7 @@ test('failed local uploads can retry from the card layout without reserving twic
 for (const options of [{ editable: false }, { archived: true }]) {
   test(`read-only library supports both views without exposing mutations: ${JSON.stringify(options)}`, async ({ page }) => {
     const writes = await setup(page, options)
-    await expect(page.getByRole('button', { name: 'Upload product images', exact: true })).toHaveAttribute('aria-disabled', 'true')
+    await expect(page.getByRole('button', { name: 'Upload product images', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Set as cover|Clear cover|Clean up unused/ })).toHaveCount(0)
     await page.getByRole('button', { name: 'Cards', exact: true }).click()
     await expect(page.getByRole('article')).toHaveCount(3)

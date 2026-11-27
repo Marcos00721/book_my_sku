@@ -31,8 +31,9 @@ function ContactDirectory({ path, archived, reloadClient }) {
   const lifecycle = useMutation()
   const resource = useResource(queryPath(path, { state, search, limit: 25, after: pages.at(-1) }))
   const items = resource.data?.items || []
-  const editable = !archived && workspace.can('contacts.edit') && workspace.writesAllowed
-  const canCreate = !archived && workspace.can('contacts.create') && workspace.writesAllowed
+  const editable = !archived && workspace.canWrite('contacts.edit')
+  const canCreate = !archived && workspace.canWrite('contacts.add')
+  const canDelete = !archived && workspace.canWrite('contacts.delete')
   const locked = lifecycle.pending || lifecycle.uncertain
 
   function changed() {
@@ -107,7 +108,7 @@ function ContactDirectory({ path, archived, reloadClient }) {
                 <td><Status value={contact.active === false ? 'archived' : 'active'} /></td>
                 <td><div className="client-contact-actions">
                   {editable && contact.active !== false && <Action variant="icon-button" aria-label={`Edit ${contact.name}`} title="Edit contact" disabled={locked} onClick={() => setEditing(contact)}><Pencil size={16} aria-hidden="true" /></Action>}
-                  {editable && <Action variant="icon-button" aria-label={`${contact.active === false ? 'Restore' : 'Archive'} ${contact.name}`} title={contact.active === false ? 'Restore contact' : 'Archive contact'} disabled={locked} onClick={() => changeStatus(contact)}>{contact.active === false ? <RotateCcw size={16} aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}</Action>}
+                  {(contact.active === false ? editable : canDelete) && <Action variant="icon-button" aria-label={`${contact.active === false ? 'Restore' : 'Archive'} ${contact.name}`} title={contact.active === false ? 'Restore contact' : 'Archive contact'} disabled={locked} onClick={() => changeStatus(contact)}>{contact.active === false ? <RotateCcw size={16} aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}</Action>}
                 </div></td>
               </tr>
             ))}</tbody>
@@ -117,7 +118,7 @@ function ContactDirectory({ path, archived, reloadClient }) {
         {search ? 'Try another name prefix. Search is case-sensitive.' : state !== 'active' ? 'Try a different status.' : 'Add a contact to this client.'}
       </Empty>}
       {resource.data && (items.length > 0 || pages.length > 0) && <CursorPager count={items.length} label="contact" pages={pages} setPages={setPages} next={resource.data.next} />}
-      {editing && <ContactEditor path={path} contact={editing} close={() => setEditing(null)} saved={() => {
+      {editing && (editing._id ? editable : canCreate) && <ContactEditor path={path} contact={editing} close={() => setEditing(null)} saved={() => {
         setEditing(null)
         changed()
       }} />}

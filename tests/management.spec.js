@@ -23,8 +23,8 @@ const catalog = [
     revision: 0,
   },
   {
-    key: 'clients.create',
-    label: 'Create clients',
+    key: 'clients.add',
+    label: 'Add clients',
     enabled: true,
     scopes: ['none'],
     revision: 0,
@@ -139,14 +139,14 @@ test('role creation uses supported catalog scopes and never adds legacy authorit
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Role name').fill('Account team')
   await dialog.getByRole('checkbox', { name: 'View clients' }).check()
-  await dialog.getByRole('checkbox', { name: 'Create clients' }).check()
+  await dialog.getByRole('checkbox', { name: 'Add clients' }).check()
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(submitted).toEqual({
     name: 'Account team',
     grants: [
       { key: 'clients.view', scope: 'all' },
-      { key: 'clients.create', scope: 'none' },
+      { key: 'clients.add', scope: 'none' },
     ],
   })
 })

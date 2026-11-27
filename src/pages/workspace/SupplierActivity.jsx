@@ -4,7 +4,7 @@ export function SupplierActivity({ path }) {
   return (
     <ActivityTimeline
       path={`${path}/activity`}
-      permission="suppliers.history.view"
+      permission="suppliers.view"
       description="Recorded changes to this supplier, its contacts and addresses."
     />
   )

@@ -61,7 +61,7 @@ export function LeadClientPicker({ clientId, contactId, onChange, disabled, clie
   const [created, setCreated] = useState(null)
   const [choicesVersion, setChoicesVersion] = useState(0)
   if (!workspace.can('clients.view')) return <p className="muted">Client access is required to select a client.</p>
-  const createClient = workspace.can('clients.add') && workspace.writesAllowed && <Action variant="text-button" disabled={disabled || clientDisabled} onClick={() => setCreating('client')}>Create a new client</Action>
+  const createClient = workspace.canWrite('clients.add') && <Action variant="text-button" disabled={disabled || clientDisabled} onClick={() => setCreating('client')}>Create a new client</Action>
   const refreshChoices = <Action variant={compact ? 'icon-button' : 'text-button'} disabled={disabled} onClick={() => setChoicesVersion(value => value + 1)}
     aria-label={compact ? 'Refresh client choices' : undefined} title={compact ? 'Refresh client choices' : undefined}>
     {compact ? <RefreshCw size={16} aria-hidden="true" /> : 'Refresh client choices'}

@@ -63,9 +63,7 @@ function ProductRecord({ id }) {
 
   const product = resource.data
   const isArchived = product.status === 'archived'
-  const pricingAllowed = ['edit', 'publish', 'preview'].some((action) =>
-    workspace.can(`products.pricing.${action}`),
-  )
+  const pricingAllowed = workspace.can('products.view')
   const activationBlockers = product.readiness?.activationBlockers || []
 
   async function lifecycle() {
@@ -95,7 +93,7 @@ function ProductRecord({ id }) {
     { value: 'configuration', label: 'Variants' },
     { value: 'images', label: 'Images' },
     ...(pricingAllowed ? [{ value: 'pricing', label: 'Pricing' }] : []),
-    ...(workspace.can('products.history.view')
+    ...(workspace.can('products.view')
       ? [{ value: 'activity', label: 'Activity' }]
       : []),
   ]
@@ -156,13 +154,13 @@ function ProductRecord({ id }) {
                     Edit
                   </Action>
                 )}
-                {workspace.can('products.create') && (
+                {workspace.can('products.add') && (
                   <Action variant="secondary" onClick={() => setCopying(true)}>
                     Copy product
                   </Action>
                 )}
                 {workspace.can(
-                  isArchived ? 'products.restore' : 'products.archive',
+                  isArchived ? 'products.edit' : 'products.delete',
                 ) && (
                   <Action
                     variant="secondary"
@@ -238,7 +236,7 @@ function ProductRecord({ id }) {
               <PermissionDenied />
             )
           ) : tab === 'activity' ? (
-            workspace.can('products.history.view') ? (
+            workspace.can('products.view') ? (
               <ActivityHistory
                 path={customProductPaths.activity(productsBase, product.id)}
               />

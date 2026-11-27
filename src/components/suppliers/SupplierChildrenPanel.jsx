@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Mail, MapPin, Phone, UserRound } from 'lucide-react'
 import { useMutation } from '../../hooks/useMutation'
+import { useWorkspace } from '../../hooks/WorkspaceContext'
 import { useResource } from '../../hooks/useResource'
 import { queryPath } from '../../services/workspace'
 import { MutationRetry, Pager } from '../workspace/RecordTools'
@@ -115,6 +116,9 @@ export function SupplierChildrenPanel({
   parentArchived,
   changed,
 }) {
+  const workspace = useWorkspace()
+  const canCreate = !parentArchived && workspace.canWrite('suppliers.add')
+  const canDelete = !parentArchived && workspace.canWrite('suppliers.delete')
   const [open, setOpen] = useState(null)
   const [pages, setPages] = useState([])
   const [status, setStatus] = useState('active')
@@ -175,7 +179,7 @@ export function SupplierChildrenPanel({
                   setPages([])
                 }}
               />
-              {canEdit ? (
+              {canCreate ? (
                 <Action onClick={() => setOpen({})}>Create</Action>
               ) : null}
             </div>
@@ -203,20 +207,20 @@ export function SupplierChildrenPanel({
       ) : resource.data?.items?.length ? (
         <div className={kind === 'addresses' ? 'supplier-address-grid' : 'supplier-contact-cards'}>
           {resource.data.items.map((child) => {
-            const actions = canEdit && (
+            const actions = (canEdit || canDelete) && (
               <div className="actions">
-                {child.status === 'active' && (
+                {canEdit && child.status === 'active' && (
                   <Action variant="secondary" onClick={() => setOpen(child)}>
                     Edit
                   </Action>
                 )}
-                <Action
+                {(child.status === 'active' ? canDelete : canEdit) && <Action
                   variant="secondary"
                   disabled={mutation.pending || mutation.uncertain}
                   onClick={() => lifecycle(child)}
                 >
                   {child.status === 'active' ? 'Archive' : 'Restore'}
-                </Action>
+                </Action>}
               </div>
             )
 
@@ -252,7 +256,7 @@ export function SupplierChildrenPanel({
         setPages={setPages}
         label={kind}
       />
-      {open && (
+      {open && (open._id ? canEdit : canCreate) && (
         <SupplierChildEditor
           kind={kind}
           base={base}

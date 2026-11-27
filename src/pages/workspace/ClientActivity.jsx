@@ -4,7 +4,7 @@ export function ClientActivity({ path }) {
   return (
     <ActivityTimeline
       path={`${path}/activity`}
-      permission="clients.history.view"
+      permission="clients.view"
       description="Recorded changes to this client, its contacts and addresses."
     />
   )

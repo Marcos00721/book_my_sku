@@ -46,9 +46,9 @@ function SupplierRecord({ base }) {
 
   const supplier = resource.data
   const canEdit =
-    workspace.can('suppliers.edit') &&
-    workspace.writesAllowed &&
+    workspace.canWrite('suppliers.edit') &&
     supplier.status === 'active'
+  const canLifecycle = workspace.canWrite(supplier.status === 'active' ? 'suppliers.delete' : 'suppliers.edit')
 
   async function lifecycle() {
     const action = supplier.status === 'active' ? 'archive' : 'restore'
@@ -73,7 +73,7 @@ function SupplierRecord({ base }) {
     { value: 'overview', label: 'Overview' },
     { value: 'contacts', label: 'Contacts' },
     { value: 'addresses', label: 'Addresses' },
-    ...(workspace.can('suppliers.history.view')
+    ...(workspace.can('suppliers.view')
       ? [{ value: 'activity', label: 'Activity' }]
       : []),
   ]
@@ -101,7 +101,7 @@ function SupplierRecord({ base }) {
                 Edit details
               </Action>
             )}
-            {workspace.can('suppliers.edit') && workspace.writesAllowed && (
+            {canLifecycle && (
               <Action
                 variant="secondary"
                 disabled={mutation.pending || mutation.uncertain}
@@ -149,7 +149,7 @@ function SupplierRecord({ base }) {
           )}
         </section>
       </StickyPageChrome>
-      {editing && (
+      {editing && canEdit && (
         <SupplierEditor
           path={base}
           supplier={supplier}

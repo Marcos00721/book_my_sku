@@ -17,6 +17,7 @@ export function PricingScheduleRow({
   schedule,
   kind,
   editable,
+  cost,
   canPublish,
   onOpen,
   onPublish,
@@ -30,7 +31,7 @@ export function PricingScheduleRow({
             {schedule.accountId || '—'} / {schedule.warehouseId || '—'}
           </small>
         </div>
-        <ScheduleTierSummary rules={schedule.rules} cost={editable} />
+        <ScheduleTierSummary rules={schedule.rules} cost={cost} />
       </th>
       <td>
         <Badge tone={kind === 'draft' ? 'warning' : 'success'}>
@@ -59,6 +60,7 @@ export function PricingScheduleCard({
   schedule,
   kind,
   editable,
+  cost,
   canPublish,
   onOpen,
   onPublish,
@@ -77,7 +79,7 @@ export function PricingScheduleCard({
         </Badge>
       </header>
       <p className="pricing-cell-muted">{intervalLabel(kind, schedule)}</p>
-      <ScheduleTierSummary rules={schedule.rules} cost={editable} />
+      <ScheduleTierSummary rules={schedule.rules} cost={cost} />
       <div className="pricing-row-actions">
         <Button variant="secondary" onClick={() => onOpen(schedule.id)}>
           {kind === 'draft' && editable ? 'Open editor' : 'View details'}

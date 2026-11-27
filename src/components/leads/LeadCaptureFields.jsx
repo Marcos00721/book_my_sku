@@ -1,5 +1,6 @@
 import { FileText, UsersRound } from 'lucide-react'
 import { FormTextField } from '../forms/FormTextField'
+import { FormPhoneField } from '../forms/FormPhoneField'
 import { FormTextEditor } from '../forms/FormTextEditor'
 
 export function LeadCaptureFields({ disabled = false, layout = 'default' }) {
@@ -14,7 +15,7 @@ export function LeadCaptureFields({ disabled = false, layout = 'default' }) {
         <FormTextField name="companyName" label="Company name" required maxLength={160} placeholder={capture ? 'e.g. Acme Studio' : undefined} />
         <FormTextField name="contactName" label="Contact name" required maxLength={160} placeholder={capture ? 'Full name' : undefined} />
         <FormTextField name="email" label="Email address" type="email" required maxLength={254} placeholder={capture ? 'name@company.com' : undefined} />
-        <FormTextField name="phone" label="Phone" type="tel" maxLength={40} placeholder={capture ? 'Include country code' : undefined} />
+        <FormPhoneField name="phone" label="Phone" />
       </div>
       {!capture && <FormTextField name="requestedInHandsDate" label="Requested in-hands date" type="date" />}
       <div className={capture ? 'lead-capture-requirement' : undefined}>

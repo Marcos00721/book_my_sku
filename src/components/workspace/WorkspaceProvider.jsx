@@ -1,4 +1,5 @@
 import { lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Provider } from 'react-redux'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuthSession } from '../../hooks/useAuthSession'
 import { WorkspaceContext } from '../../hooks/WorkspaceContext'
@@ -15,6 +16,8 @@ import { ButtonLink } from '../common/ButtonLink'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { BrandMark } from '../auth/BrandMark'
 import { getAuthClient } from '../../services/auth'
+import { createWorkspacePermissions } from '../../services/permissions'
+import { createWorkspaceStore } from '../../store'
 
 const WorkspaceLoginPage = lazy(() => import('../../pages/LoginPage').then(page => ({ default: page.LoginPage })))
 
@@ -113,7 +116,11 @@ function WorkspaceSession({ session, children }) {
   useEffect(() => {
     window.addEventListener('workspace-access-changed', refreshAccess)
     window.addEventListener('focus', refreshAccess)
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refreshAccess()
+    }, 60_000)
     return () => {
+      window.clearInterval(timer)
       window.removeEventListener('workspace-access-changed', refreshAccess)
       window.removeEventListener('focus', refreshAccess)
     }
@@ -210,8 +217,13 @@ function WorkspaceSession({ session, children }) {
         </ButtonLink>
       </div>
     )
-  const can = (key) =>
-    permissions.data?.grants?.some((grant) => grant.key === key) === true
+  const policy = createWorkspacePermissions(permissions.data, access.data)
+  // Drop open forms and protected read results when authority changes. Ordinary
+  // background refreshes preserve the UI when the effective access is unchanged.
+  const permissionKey = JSON.stringify([
+    organization.id, owner, access.data?.writesAllowed === true,
+    (permissions.data?.grants || []).map(({ key, scope }) => `${key}:${scope}`).sort(),
+  ])
   const value = {
     session,
     organization,
@@ -236,7 +248,7 @@ function WorkspaceSession({ session, children }) {
       }),
     base,
     owner,
-    can,
+    ...policy,
     permissions: permissions.data,
     access: access.data,
     writesAllowed: access.data?.writesAllowed === true,
@@ -248,9 +260,16 @@ function WorkspaceSession({ session, children }) {
   }
   return (
     <WorkspaceContext.Provider value={value}>
-      <div key={organization.id}>{children}</div>
+      <WorkspaceContent key={permissionKey}>{children}</WorkspaceContent>
     </WorkspaceContext.Provider>
   )
+}
+
+function WorkspaceContent({ children }) {
+  // Each account/workspace/permission set gets its own cache. Late requests from
+  // a previous workspace can only update that workspace's discarded store.
+  const [store] = useState(createWorkspaceStore)
+  return <Provider store={store}>{children}</Provider>
 }
 
 function FieldlessSelector({ items, selected, onChange }) {
