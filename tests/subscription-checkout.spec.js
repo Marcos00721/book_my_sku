@@ -24,14 +24,14 @@ async function setup(page, { trial = 0, complete = true, handle = async () => fa
       billing: { flowVersion: 4, status: 'not_started', billingEligible: false, synchronization: 'current', quantity: 1 },
       offer: {
         flowVersion: 4, checkoutMode: 'subscription', state: 'available', checkoutAllowed: true,
-        initialQuantity: 1, taxes: 'not_enabled',
+        initialQuantity: 1, pendingInvitationsReserveSeats: true, taxes: 'not_enabled',
         offer: { revision: 3, currency: 'usd', interval: 'month', phases: [
           ...(trial ? [{ kind: 'trial', months: trial, unitAmountMinor: 0 }] : []),
           { kind: 'discount', months: 2, unitAmountMinor: 2450 },
           { kind: 'standard', months: null, unitAmountMinor: 4900 },
         ] },
         firstCharge: { amountMinor: 2450, currency: 'usd', quantity: 1, trialMonths: trial, estimatedAt: '2026-12-15T00:00:00Z', timing: 'relative_to_checkout_completion' },
-        consent: { termsVersion: 'recurring-v2', termsUrl: 'https://example.com/terms' },
+        consent: { termsVersion: 'recurring-v1', termsUrl: 'https://example.com/terms' },
       },
       invitations: { items: [] }, workspaces: { items: [], next: null },
     },
@@ -53,9 +53,7 @@ async function setup(page, { trial = 0, complete = true, handle = async () => fa
       return reply({
         ...state.current.offer,
         initialQuantity: quantity,
-        seatSelection: { enabled: true, min: 1, max: 1000 },
-        offer: { ...state.current.offer.offer, phases: state.current.offer.offer.phases.map(phase => ({ ...phase, totalAmountMinor: phase.unitAmountMinor * quantity })) },
-        firstCharge: { ...state.current.offer.firstCharge, quantity, totalAmountMinor: state.current.offer.firstCharge.amountMinor * quantity },
+        firstCharge: { ...state.current.offer.firstCharge, quantity, amountMinor: state.current.offer.firstCharge.amountMinor * quantity },
       })
     }
     if (path === `${billing}/checkout`) return reply({ status: 'checkout_pending', checkoutUrl: stripeUrl })
@@ -87,7 +85,7 @@ for (const trial of [0, 1]) {
     await expect(page).toHaveURL(stripeUrl)
     const writes = state.calls.filter(call => call.method !== 'GET')
     expect(writes).toHaveLength(1)
-    expect(writes[0]).toMatchObject({ path: `${billing}/checkout`, body: { expectedOfferRevision: 3, recurringConsent: true, termsVersion: 'recurring-v2' } })
+    expect(writes[0]).toMatchObject({ path: `${billing}/checkout`, body: { expectedOfferRevision: 3, recurringConsent: true, termsVersion: 'recurring-v1', quantity: 1 } })
     expect(writes[0].key).toMatch(/^[\da-f-]{36}$/)
   })
 }
@@ -127,13 +125,14 @@ test('uncertain subscription Checkout preserves the exact body and UUID', async 
     return true
   } })
   await page.goto('/setup')
-  await chooseSeats(page)
+  await chooseSeats(page, '5')
   await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
   await page.getByRole('button', { name: 'Pay and subscribe', exact: true }).click()
   await page.getByRole('button', { name: 'Retry same Checkout', exact: true }).click()
   await expect(page).toHaveURL(stripeUrl)
   const writes = state.calls.filter(call => call.path === `${billing}/checkout`)
   expect(writes).toHaveLength(2)
+  expect(writes[0].body.quantity).toBe(5)
   expect(writes[1]).toEqual(writes[0])
 })
 
@@ -283,11 +282,15 @@ test('seat selection validates quantity, quotes totals and resets consent when s
   }
   expect(state.calls.filter(call => call.path.endsWith('/offer'))).toEqual([])
   await chooseSeats(page, '5')
-  await expect(page.getByLabel('First charge estimate')).toContainText('$122.50')
+  await expect(page.getByLabel('First charge estimate')).toContainText('$122.50 total for 5 seats.')
+  await expect(page.getByLabel('First charge estimate')).not.toContainText('per seat')
+  await expect(page.locator('.price-phase').filter({ hasText: 'DISCOUNT' })).toContainText('5 seats × $24.50 = $122.50 / month')
   await expect(page.locator('.price-phase').filter({ hasText: 'THEN, ONGOING' })).toContainText('$245.00')
+  await expect(page.getByText('Includes 5 paid seats, including you.', { exact: false })).toBeVisible()
   await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
   await page.getByRole('button', { name: 'Change seats', exact: true }).click()
   await chooseSeats(page, '3')
+  await expect(page.getByLabel('First charge estimate')).toContainText('$73.50 total for 3 seats.')
   await expect(page.getByRole('checkbox', { name: /I agree to recurring billing/ })).not.toBeChecked()
   await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toBeDisabled()
   await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
@@ -308,4 +311,39 @@ test('seat quote failure preserves selection and does not allow payment', async 
   await expect(page.getByText('Pricing is temporarily unavailable.')).toBeVisible()
   await expect(page.getByRole('spinbutton', { name: 'Number of seats' })).toHaveValue('5')
   await expect(page.getByRole('button', { name: 'Pay and subscribe', exact: true })).toHaveCount(0)
+})
+
+for (const amountMinor of [2450, 0]) {
+  test(`five-seat trial displays the backend first-charge total for a ${amountMinor ? 'discounted' : 'zero-due'} offer`, async ({ page }) => {
+    const state = await setup(page, { trial: 1 })
+    state.current.offer.offer.phases[1].unitAmountMinor = amountMinor
+    state.current.offer.firstCharge.amountMinor = amountMinor
+    await page.goto('/setup')
+    await chooseSeats(page, '5')
+    const estimate = page.getByLabel('First charge estimate')
+    await expect(estimate).toContainText(`First installment after the trial: $${(amountMinor * 5 / 100).toFixed(2)} total for 5 seats.`)
+    await expect(estimate).not.toContainText('per seat')
+    await expect(page.locator('.price-phase').filter({ hasText: 'TRIAL' })).toContainText('5 seats × $0.00 = $0.00 / month')
+    await expect(page.locator('.price-phase').filter({ hasText: 'THEN, ONGOING' })).toContainText('5 seats × $49.00 = $245.00 / month')
+    if (!amountMinor) await expect(estimate).toContainText('This installment is zero due.')
+    await page.getByRole('checkbox', { name: /I agree to recurring billing/ }).check()
+    await page.getByRole('button', { name: 'Start trial', exact: true }).click()
+    await expect(page).toHaveURL(stripeUrl)
+    expect(state.calls.filter(call => call.path.endsWith('/checkout')).map(call => call.body.quantity)).toEqual([5])
+  })
+}
+
+test('a quote for a different seat count cannot authorize checkout', async ({ page }) => {
+  const state = await setup(page, { handle: async ({ path, reply, state }) => {
+    if (!path.endsWith('/offer')) return false
+    await reply(state.current.offer)
+    return true
+  } })
+  await page.goto('/setup')
+  await page.getByRole('spinbutton', { name: 'Number of seats' }).fill('5')
+  await page.getByRole('button', { name: 'Review seat pricing', exact: true }).click()
+  await expect(page.getByText('Seat pricing could not be confirmed.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('spinbutton', { name: 'Number of seats' })).toHaveValue('5')
+  await expect(page.getByRole('checkbox', { name: /I agree to recurring billing/ })).toHaveCount(0)
+  expect(state.calls.filter(call => call.path.endsWith('/checkout'))).toEqual([])
 })

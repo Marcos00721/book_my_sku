@@ -13,9 +13,15 @@ export function SeatSelection({ path, preview, children }) {
   async function review({ quantity }) {
     setError(null)
     try {
-      const { data } = await api.get(`${path}/offer?quantity=${Number(quantity)}`)
-      if (data.state !== 'available' || data.initialQuantity !== Number(quantity) ||
-        !data.seatSelection?.enabled || !data.offer?.phases.every(phase => Number.isSafeInteger(phase.totalAmountMinor))) {
+      const selectedQuantity = Number(quantity)
+      const { data } = await api.get(`${path}/offer?quantity=${selectedQuantity}`)
+      if (data.state !== 'available' || data.checkoutMode !== 'subscription' ||
+        data.initialQuantity !== selectedQuantity || data.firstCharge?.quantity !== selectedQuantity ||
+        !Number.isSafeInteger(data.firstCharge?.amountMinor) || data.firstCharge.amountMinor < 0 ||
+        data.firstCharge.currency !== data.offer?.currency ||
+        !Array.isArray(data.offer?.phases) || data.offer.phases.length === 0 ||
+        !data.offer.phases.every(phase => Number.isSafeInteger(phase.unitAmountMinor) &&
+          phase.unitAmountMinor >= 0 && Number.isSafeInteger(phase.unitAmountMinor * selectedQuantity))) {
         throw new Error('Seat pricing could not be confirmed. Refresh your billing details and try again.')
       }
       setQuote({ ...data, checkoutAllowed: preview.checkoutAllowed && data.checkoutAllowed })
